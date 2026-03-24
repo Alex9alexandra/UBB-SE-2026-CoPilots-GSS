@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Events_GSS (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Events_GSS (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
