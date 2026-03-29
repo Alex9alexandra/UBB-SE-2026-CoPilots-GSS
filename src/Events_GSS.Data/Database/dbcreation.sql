@@ -1,4 +1,5 @@
-﻿USE master;
+﻿
+Use master;
 GO
 
 IF DB_ID('ISSEvents') IS NOT NULL
@@ -58,8 +59,7 @@ CREATE TABLE Users (
 CREATE TABLE Events (
     EventId         INT            NOT NULL IDENTITY(1,1),
     Name            NVARCHAR(200)  NOT NULL,
-    LocationLat     FLOAT          NOT NULL,
-    LocationLng     FLOAT          NOT NULL,
+    Location        NVARCHAR(200)  NOT NULL,
     StartDateTime   DATETIME2      NOT NULL,
     EndDateTime     DATETIME2      NOT NULL,
     IsPublic        BIT            NOT NULL DEFAULT 1,
@@ -67,13 +67,13 @@ CREATE TABLE Events (
     MaximumPeople   INT            NULL,          -- NULL = no limit
     EventBannerPath NVARCHAR(500)  NULL,
     CategoryId      INT            NULL,
-    CreatedBy       INT            NOT NULL,
+    AdminId       INT            NOT NULL,
     -- Per-event slow-mode for discussions; NULL = slow mode off
     SlowModeSeconds INT            NULL,
 
     CONSTRAINT PK_Events               PRIMARY KEY (EventId),
     CONSTRAINT FK_Events_Category      FOREIGN KEY (CategoryId)  REFERENCES Categories (CategoryId),
-    CONSTRAINT FK_Events_CreatedBy     FOREIGN KEY (CreatedBy)   REFERENCES Users      (Id),
+    CONSTRAINT FK_Events_AdminId       FOREIGN KEY (AdminId)   REFERENCES Users      (Id),
     CONSTRAINT CK_Events_Dates         CHECK (EndDateTime > StartDateTime),
     CONSTRAINT CK_Events_MaxPeople     CHECK (MaximumPeople IS NULL OR MaximumPeople > 0),
     CONSTRAINT CK_Events_SlowMode      CHECK (SlowModeSeconds IS NULL OR SlowModeSeconds > 0)
@@ -370,7 +370,7 @@ CREATE TABLE Notifications (
 -- Events: frequently filtered/sorted by date, category, creator
 CREATE INDEX IX_Events_StartDateTime ON Events (StartDateTime);
 CREATE INDEX IX_Events_CategoryId    ON Events (CategoryId);
-CREATE INDEX IX_Events_CreatedBy     ON Events (CreatedBy);
+CREATE INDEX IX_Events_AdminId       ON Events (AdminId);
 
 -- AttendedEvents: look up all events for a user
 CREATE INDEX IX_AttendedEvents_UserId  ON AttendedEvents (UserId);
