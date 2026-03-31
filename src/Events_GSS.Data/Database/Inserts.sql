@@ -14,16 +14,22 @@ DBCC CHECKIDENT ('Memories', RESEED, 0);
 SET IDENTITY_INSERT Users ON;
 
 -- User 1 (va fi admin la event)
-INSERT INTO Users (Id, Name, Email, PasswordHash)
-VALUES (1, 'Alice Admin', '[alice@test.com](mailto:alice@test.com)', 'hash123');
+INSERT INTO Users (Id, Name, Email, PasswordHash, ReputationPoints)
+VALUES (1, 'Alice Admin', '[alice@test.com](mailto:alice@test.com)', 'hash123', 340);
 
 -- User 2 (user normal)
-INSERT INTO Users (Id, Name, Email, PasswordHash)
-VALUES (2, 'Bob User', '[bob@test.com](mailto:bob@test.com)', 'hash456');
+INSERT INTO Users (Id, Name, Email, PasswordHash, ReputationPoints)
+VALUES (2, 'Bob User', '[bob@test.com](mailto:bob@test.com)', 'hash456', 120);
 
 -- User 3 (alt user normal)
-INSERT INTO Users (Id, Name, Email, PasswordHash)
-VALUES (3, 'Carol User', '[carol@test.com](mailto:carol@test.com)', 'hash789');
+INSERT INTO Users (Id, Name, Email, PasswordHash, ReputationPoints)
+VALUES (3, 'Carol User', '[carol@test.com](mailto:carol@test.com)', 'hash789', 75);
+
+INSERT INTO Users (Id, Name, Email, PasswordHash, ReputationPoints)
+VALUES
+(4, 'Dan Gheorghe', '[dan@test.com](mailto:dan@test.com)', 'blah', 510),
+(5, 'Elena Moldovan', '[elena@test.com](mailto:elena@test.com)', 'blah', 0),
+(6, 'Florin Stanescu', '[florin@test.com](mailto:florin@test.com)', 'blah', -50);
 
 SET IDENTITY_INSERT Users OFF;
 
@@ -45,26 +51,16 @@ INSERT INTO Events (
     -- Per-event slow-mode for discussions; NULL = slow mode off
     SlowModeSeconds
     )
-VALUES (
-        1,
-        'Test Event Cluj',
-        'RO',
-        '2026-04-01 10:00',
-        '2026-04-01 20:00',
-        1,
-        'dhfs',
-        20,
-        'sudb',
-        1,
-        1,
-        1
-        );
+VALUES 
+(1, 'Test Event Cluj', 'RO', '2026-04-01 10:00', '2026-04-01 20:00', 1, 'dhfs', 20, 'sudb', 1, 1, 1),
+(2, 'Book Meet', 'Cluj-Napoca', '2025-09-15 10:00', '2025-09-15 14:00', 1, 'A meeting about books', 10, 'bannerpath',  5, 1, NULL),
+(3, 'Art Club', 'Bucharest', '2026-03-31 10:00', '2026-04-01 15:00', 1, 'A meeting about art', 10, 'bannerpath',  5, 1, NULL);
 
 SET IDENTITY_INSERT Events OFF;
 
 -- Toti trei joined la event
 INSERT INTO AttendedEvents (EventId, UserId)
-VALUES (1, 1), (1, 2), (1, 3);
+VALUES (1, 1), (1, 2), (1, 3), (2, 1), (2, 2), (3, 1), (3, 3);
 
 -- Memories
 -- Memory cu doar text (de la Bob)
