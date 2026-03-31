@@ -57,6 +57,8 @@ namespace Events_GSS
 
             services.AddTransient<IQuestRepository,QuestRepository>();
             services.AddTransient<IQuestService,QuestService>();
+            services.AddTransient<IMemoryRepository,MemoryRepository>();
+            services.AddTransient<IMemoryService,MemoryService>();
 
             Services = services.BuildServiceProvider();
         }

@@ -14,7 +14,8 @@
     </Window.SystemBackdrop>
 
     <Grid>
-        <views:QuestAdminControl
-            ViewModel="{x:Bind QuestViewModel}" />
+        <views:MemoryView x:Name="MemoriesView" 
+                  ViewModel="{x:Bind MemoriesViewModel}" />
+
     </Grid>
 </Window>
