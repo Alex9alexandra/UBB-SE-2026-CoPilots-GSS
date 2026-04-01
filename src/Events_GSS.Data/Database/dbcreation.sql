@@ -86,7 +86,7 @@ CREATE TABLE Events (
 CREATE TABLE AttendedEvents (
     EventId      INT       NOT NULL,
     UserId       INT       NOT NULL,
-    JoinDate     DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    EnrollmentDate     DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     IsArchived   BIT       NOT NULL DEFAULT 0,
     IsFavourite  BIT       NOT NULL DEFAULT 0,
 
