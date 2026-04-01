@@ -46,6 +46,20 @@ namespace Events_GSS.ViewModels
             private set { _favouriteEvents = value; OnPropertyChanged(); }
         }
 
+        private ObservableCollection<User> _filteredFriends = new();
+        public ObservableCollection<User> FilteredFriends
+        {
+            get => _filteredFriends;
+            private set { _filteredFriends = value; OnPropertyChanged(); }
+        }
+
+        private ObservableCollection<AttendedEvent> _commonEvents = new();
+        public ObservableCollection<AttendedEvent> CommonEvents
+        {
+            get => _commonEvents;
+            private set { _commonEvents = value; OnPropertyChanged(); }
+        }
+
         // ─── Search & filter state ────────────────────────────────────────
 
         private string _searchQuery = string.Empty;
@@ -57,6 +71,18 @@ namespace Events_GSS.ViewModels
                 _searchQuery = value;
                 OnPropertyChanged();
                 ApplyFiltersAndSort();
+            }
+        }
+
+        private string _friendSearchQuery = string.Empty;
+        public string FriendSearchQuery
+        {
+            get => _friendSearchQuery;
+            set
+            {
+                _friendSearchQuery = value;
+                OnPropertyChanged();
+                FilteredFriends = new ObservableCollection<User>(_userService.SearchFriends(CurrentUser.UserId, _friendSearchQuery));
             }
         }
 
@@ -161,8 +187,10 @@ namespace Events_GSS.ViewModels
                     .ToList();
 
                 AvailableCategories = new ObservableCollection<Category>(categories);
+                FilteredFriends = new ObservableCollection<User>(_userService.GetFriends(CurrentUser.UserId));
 
                 ApplyFiltersAndSort();
+
             }
             catch (Exception ex)
             {
@@ -172,6 +200,12 @@ namespace Events_GSS.ViewModels
             {
                 IsLoading = false;
             }
+        }
+
+        public async Task LoadCommonEventsAsync(User friend)
+        {
+            var common_events = await _attendedEventService.GetCommonEventsAsync(CurrentUser.UserId, friend.UserId);
+            CommonEvents = new ObservableCollection<AttendedEvent>(common_events);
         }
 
         // ─── Filtering & sorting ──────────────────────────────────────────

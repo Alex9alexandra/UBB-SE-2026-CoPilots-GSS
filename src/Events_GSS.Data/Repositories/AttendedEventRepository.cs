@@ -198,7 +198,7 @@ namespace Events_GSS.Data.Repositories
             // We join AttendedEvents twice — once for the current user, once for the friend —
             // and return the current user's AttendedEvent rows for the matching events.
             string query = SelectBase + @"
-                INNER JOIN AttendedEvents ae2 ON e.Id = ae2.EventId
+                INNER JOIN AttendedEvents ae2 ON e.EventId = ae2.EventId
                 WHERE ae.UserId = @UserId AND ae2.UserId = @FriendId";
 
             using var connection = _factory.CreateConnection();
