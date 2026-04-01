@@ -122,6 +122,10 @@
 
                                         <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="4">
                                             <Button
+                                            Content="Details"
+                                            Tag="{Binding Event}"
+                                            Click="DetailsButton_Click" />
+                                            <Button
                                                 Content="{Binding IsFavourite, Converter={StaticResource FavouriteButtonTextConverter}}"
                                                 Tag="{Binding}"
                                                 Click="FavouriteButton_Click"

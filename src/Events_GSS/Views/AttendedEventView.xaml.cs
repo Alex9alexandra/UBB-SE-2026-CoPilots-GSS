@@ -1,6 +1,7 @@
 using Events_GSS.Data.Models;
-using Events_GSS.ViewModels;
+using Events_GSS.Services;
 using Events_GSS.Services.Interfaces;
+using Events_GSS.ViewModels;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
@@ -56,6 +57,15 @@ namespace Events_GSS.Views
                 await ViewModel.LeaveAsync(ae);
         }
 
+        private void DetailsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is Event ev)
+            {
+                var nav = App.Services.GetRequiredService<INavigationService>();
+                nav.NavigateTo(PageKeys.EventDetail, ev);
+            }
+        }
+
         private async void FriendBox_Chosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
         {
             if (args.SelectedItem is User friend)
@@ -64,6 +74,6 @@ namespace Events_GSS.Views
                 await ViewModel.LoadCommonEventsAsync(friend);
             }
         }
-        
+
     }
 }
