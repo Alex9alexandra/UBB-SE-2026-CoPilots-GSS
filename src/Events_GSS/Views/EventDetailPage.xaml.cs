@@ -48,9 +48,14 @@ public sealed partial class EventDetailPage : Page
         DiscussionTab.ViewModel = discVm;
         _ = discVm.InitializeAsync();
 
-        var questService = App.Services.GetRequiredService<IQuestService>();
-        var questVm = new QuestAdminViewModel(ev, questService);
-        QuestTab.ViewModel = questVm;
+        
+        QuestAdminTab.ViewModel = new QuestApprovalViewModel(new QuestAdminViewModel(ev));
+        QuestUserTab.ViewModel = new QuestUserViewModel(ev);
+        if(isAdmin)
+        {
+            QuestAdminTab.Visibility = Visibility.Visible;
+            QuestUserTab.Visibility = Visibility.Collapsed;
+        }
 
         var memService = App.Services.GetRequiredService<IMemoryService>();
         var memVm = new MemoryViewModel(memService);

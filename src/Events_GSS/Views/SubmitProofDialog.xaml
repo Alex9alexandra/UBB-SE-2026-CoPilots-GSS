@@ -1,0 +1,33 @@
+<ContentDialog
+    x:Class="Events_GSS.Views.SubmitProofDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    PrimaryButtonText="Submit"
+    CloseButtonText="Cancel"
+    DefaultButton="Primary"
+    PrimaryButtonClick="OnSubmitClicked">
+
+    <StackPanel Spacing="12" MinWidth="360">
+        <TextBlock x:Name="QuestNameText" Style="{StaticResource SubtitleTextBlockStyle}"/>
+
+        <StackPanel Spacing="8">
+            <TextBlock Text="Photo Proof" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+            <Button Content="Choose Photo..." Click="OnPickPhotoClicked" HorizontalAlignment="Stretch"/>
+            <TextBlock x:Name="FileNameText" Style="{StaticResource CaptionTextBlockStyle}" Foreground="Gray"/>
+            <Image x:Name="ImagePreview" MaxHeight="200" Visibility="Collapsed" Stretch="Uniform"/>
+        </StackPanel>
+
+        <TextBox x:Name="DescriptionBox"
+                 Header="Description"
+                 PlaceholderText="Describe how you completed this quest..."
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 MinHeight="80"/>
+
+        <TextBlock x:Name="ValidationText"
+                   Foreground="Red"
+                   FontSize="12"
+                   TextWrapping="Wrap"
+                   Visibility="Collapsed"/>
+    </StackPanel>
+</ContentDialog>

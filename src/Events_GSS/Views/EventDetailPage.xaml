@@ -45,7 +45,12 @@
             </PivotItem>
 
             <PivotItem Header="Quests">
-                <views:QuestAdminControl x:Name="QuestTab" />
+                <StackPanel>
+                    <views:QuestUserPage x:Name="QuestUserTab"
+                                         Visibility="Visible"/>
+                    <views:QuestApprovalPage x:Name="QuestAdminTab" 
+                                             Visibility="Collapsed"/>
+                </StackPanel>
             </PivotItem>
 
             <PivotItem Header="Memories">

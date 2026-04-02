@@ -10,18 +10,18 @@ using Microsoft.UI.Xaml;
 using Events_GSS.Data.Models;
 using Events_GSS.Data.Services.Interfaces;
 
+using Microsoft.Extensions.DependencyInjection;
+
 namespace Events_GSS.ViewModels;
 
 public partial class QuestAdminViewModel : ObservableObject
 {
-    private readonly IQuestService _questService;
+    private readonly IQuestService _questService = App.Services.GetRequiredService<IQuestService>();
     private readonly Event _event;
-
-    public QuestAdminViewModel(Event forEvent, IQuestService questService)
+    
+    public QuestAdminViewModel(Event forEvent)
     {
         _event = forEvent;
-        _questService = questService;
-
         Quests = new ObservableCollection<Quest>();
         PresetQuests = new ObservableCollection<Quest>();
 

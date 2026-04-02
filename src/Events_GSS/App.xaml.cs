@@ -49,6 +49,7 @@ public partial class App : Application
         services.AddTransient<IEventRepository, EventRepository>();
         services.AddTransient<ICategoryRepository, CategoryRepository>();
         services.AddTransient<IQuestRepository, QuestRepository>();
+        services.AddTransient<IQuestMemoryRepository, QuestMemoryRepository>();
         services.AddTransient<IAnnouncementRepository, AnnouncementRepository>();
         services.AddTransient<IDiscussionRepository, DiscussionRepository>();
         services.AddTransient<IMemoryRepository, MemoryRepository>();
@@ -58,6 +59,7 @@ public partial class App : Application
         services.AddTransient<IEventService, EventService>();
         services.AddTransient<ICategoryServices, CategoryServices>();
         services.AddTransient<IQuestService, QuestService>();
+        services.AddTransient<IQuestApprovalService, QuestApprovalService>();
         services.AddTransient<IAnnouncementService, AnnouncementService>();
         services.AddTransient<IDiscussionService, DiscussionService>();
         services.AddTransient<IMemoryService, MemoryService>();
@@ -74,6 +76,7 @@ public partial class App : Application
 
         Services = services.BuildServiceProvider();
     }
+    
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
