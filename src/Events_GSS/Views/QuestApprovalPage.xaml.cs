@@ -1,3 +1,5 @@
+using Events_GSS.Data.Models;
+
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -27,10 +29,8 @@ public sealed partial class QuestApprovalPage : Page
     }
     private void ApproveButton_Click(object sender, RoutedEventArgs e)
     {
-        // 1. Get the button that was clicked
-        if (sender is Button btn && btn.DataContext is Events_GSS.Data.Models.QuestMemory item)
+        if (sender is Button btn && btn.DataContext is QuestMemory item)
         {
-            // 2. Call the ViewModel command directly
             ViewModel.ApproveCommand.Execute(item);
         }
     }
@@ -38,9 +38,16 @@ public sealed partial class QuestApprovalPage : Page
 
     private void DenyButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button btn && btn.DataContext is Events_GSS.Data.Models.QuestMemory item)
+        if (sender is Button btn && btn.DataContext is QuestMemory item)
         {
             ViewModel.DenyCommand.Execute(item);
+        }
+    }
+    private async void DeleteMenuFlyoutItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem menuItem && menuItem.CommandParameter is QuestMemory selectedItem)
+        {
+            await ViewModel.DeleteAsync(selectedItem);
         }
     }
 }

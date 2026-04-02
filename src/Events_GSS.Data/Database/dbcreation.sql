@@ -228,20 +228,6 @@ CREATE TABLE DiscussionMutes (
 
 
 -- ============================================================
--- 11. PRESET QUESTS  (global library, not tied to an event)
--- ============================================================
-CREATE TABLE PresetQuests (
-    PresetId    INT            NOT NULL IDENTITY(1,1),
-    Name        NVARCHAR(200)  NOT NULL,
-    Description NVARCHAR(MAX)  NOT NULL,
-    Difficulty  INT            NOT NULL,
-
-    CONSTRAINT PK_PresetQuests           PRIMARY KEY (PresetId),
-    CONSTRAINT CK_PresetQuests_Difficulty CHECK (Difficulty BETWEEN 1 AND 5)
-);
-
-
--- ============================================================
 -- 12. QUESTS  (event-specific instances)
 -- ============================================================
 CREATE TABLE Quests (
@@ -293,8 +279,8 @@ CREATE TABLE QuestMemories (
     Status         NVARCHAR(20)  NOT NULL DEFAULT 'Submitted',
 
     CONSTRAINT PK_QuestMemories          PRIMARY KEY (QuestMemoryId),
-    CONSTRAINT FK_QuestMemories_Quest    FOREIGN KEY (QuestId)  REFERENCES Quests  (QuestId)  ON DELETE CASCADE,
-    CONSTRAINT FK_QuestMemories_Memory   FOREIGN KEY (MemoryId) REFERENCES Memories (MemoryId),
+    CONSTRAINT FK_QuestMemories_Quest    FOREIGN KEY (QuestId)  REFERENCES Quests  (QuestId),
+    CONSTRAINT FK_QuestMemories_Memory   FOREIGN KEY (MemoryId) REFERENCES Memories (MemoryId) ON DELETE CASCADE ,
     CONSTRAINT UQ_QuestMemories_Pair     UNIQUE (QuestId, MemoryId),
     CONSTRAINT CK_QuestMemories_Status   CHECK (Status IN ('Submitted', 'Approved', 'Rejected'))
 );

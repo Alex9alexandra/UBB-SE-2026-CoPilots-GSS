@@ -130,11 +130,15 @@ public class QuestRepository : IQuestRepository
         using var connection = _connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
-        const string query = "DELETE FROM Quests WHERE QuestId = @QuestId";
+        const string queryQuests = "DELETE FROM Quests WHERE QuestId = @QuestId";
+        const string queryInter = "DELETE FROM QuestMemory WHERE QuestId = @QuestId";
 
-        using var command = new SqlCommand(query, connection);
+        using var command = new SqlCommand(queryInter, connection);
         command.Parameters.AddWithValue("@QuestId", quest.Id);
+        await command.ExecuteNonQueryAsync();
 
+        using var commandQuests = new SqlCommand(queryQuests, connection);
+        command.Parameters.AddWithValue("@QuestId", quest.Id);
         await command.ExecuteNonQueryAsync();
     }
 

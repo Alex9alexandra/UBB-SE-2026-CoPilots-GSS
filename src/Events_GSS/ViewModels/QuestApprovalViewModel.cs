@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 
 using Events_GSS.Data.Models;
 using Events_GSS.Data.Services.Interfaces;
+using Events_GSS.Services.Interfaces;
 using Events_GSS.ViewModels;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +17,8 @@ namespace Events_GSS.ViewModels;
 public partial class QuestApprovalViewModel : ObservableObject
 {
     private readonly IQuestApprovalService _questService = App.Services.GetRequiredService<IQuestApprovalService>();
-    public string Title => "Admin Mode";
+    private readonly IUserService _userService = App.Services.GetRequiredService<IUserService>();
+    
     public QuestAdminViewModel QuestAdminVM { get; }
 
     public ObservableCollection<QuestMemory> Submissions { get; set; } = new();
@@ -77,6 +79,12 @@ public partial class QuestApprovalViewModel : ObservableObject
     {
         proof.ProofStatus = QuestMemoryStatus.Rejected;
         await _questService.ChangeProofStatusAsync(proof);
+        Submissions.Remove(proof);
+    }
+    [RelayCommand]
+    public async Task DeleteAsync(QuestMemory proof)
+    {
+        await _questService.DeleteSubmissionAsync(proof,_userService.GetCurrentUser());
         Submissions.Remove(proof);
     }
 }

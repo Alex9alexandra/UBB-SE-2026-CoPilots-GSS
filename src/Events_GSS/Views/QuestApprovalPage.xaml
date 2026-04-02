@@ -48,7 +48,28 @@
                                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                         CornerRadius="8">
 
-                                <TextBlock Text="{x:Bind Proof.Author.Name, TargetNullValue='No descr'}" FontWeight="Bold"/>
+                                <FlyoutBase.AttachedFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="Delete" 
+                                                        Icon="Delete"
+                                                        Command="{Binding ElementName=Root, Path=ViewModel.DeleteCommand}"
+                                                        CommandParameter="{x:Bind}"/>
+                                    </MenuFlyout>
+                                </FlyoutBase.AttachedFlyout>
+
+                                <StackPanel.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="Delete" 
+                                                        Foreground="Red"
+                                                        Click="DeleteMenuFlyoutItem_Click"
+                                                        CommandParameter="{x:Bind}">
+                                            <MenuFlyoutItem.Icon>
+                                                <SymbolIcon Symbol="Delete" />
+                                            </MenuFlyoutItem.Icon>
+                                        </MenuFlyoutItem>
+                                    </MenuFlyout>
+                                </StackPanel.ContextFlyout>
+                                    <TextBlock Text="{x:Bind Proof.Author.Name, TargetNullValue='No descr'}" FontWeight="Bold"/>
 
                                 <Image Source="{x:Bind local:QuestApprovalPage.GetImageSource(Proof.PhotoPath)}"
                                        Visibility="{x:Bind local:QuestApprovalPage.GetVisibility(Proof.PhotoPath)}"
