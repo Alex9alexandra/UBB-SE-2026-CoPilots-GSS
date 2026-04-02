@@ -5,13 +5,14 @@ using Events_GSS.Data.Repositories;
 using Events_GSS.Data.Repositories.announcementRepository;
 using Events_GSS.Data.Repositories.categoriesRepository;
 using Events_GSS.Data.Repositories.eventRepository;
-
+using Events_GSS.Data.Repositories.notificationRepository;
 using Events_GSS.Data.Services;
 using Events_GSS.Data.Services.announcementServices;
 using Events_GSS.Data.Services.categoryServices;
 using Events_GSS.Data.Services.discussionService;
 using Events_GSS.Data.Services.eventServices;
 using Events_GSS.Data.Services.Interfaces;
+using Events_GSS.Data.Services.notificationServices;
 using Events_GSS.Services;
 using Events_GSS.Services.Interfaces;
 using Events_GSS.Views;
@@ -52,6 +53,7 @@ public partial class App : Application
         services.AddTransient<IDiscussionRepository, DiscussionRepository>();
         services.AddTransient<IMemoryRepository, MemoryRepository>();
         services.AddTransient<IAttendedEventRepository, AttendedEventRepository>();
+        services.AddTransient<INotificationRepository, NotificationRepository>();
 
         services.AddTransient<IEventService, EventService>();
         services.AddTransient<ICategoryServices, CategoryServices>();
@@ -61,6 +63,7 @@ public partial class App : Application
         services.AddTransient<IMemoryService, MemoryService>();
         services.AddTransient<IAttendedEventService, AttendedEventService>();
         services.AddTransient<IUserService, MockUserService>();
+        services.AddTransient<INotificationService, NotificationService>();
 
         var navService = new NavigationService();
         navService.RegisterPage(PageKeys.EventListing, typeof(EventListingPage));
