@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+using CommunityToolkit.Mvvm.Messaging;
+using Events_GSS.Data.Messaging;
 using Events_GSS.Data.Models;
 using Events_GSS.Data.Repositories;
 using Events_GSS.Data.Services.Interfaces;
+using Events_GSS.Data.Services.reputationService;
 using Events_GSS.Services.Interfaces;
 
 namespace Events_GSS.Data.Services
@@ -14,11 +17,13 @@ namespace Events_GSS.Data.Services
     {
         private readonly IMemoryRepository _memoryRepo;
         private readonly IAttendedEventRepository _attendedEventRepo;
+        private readonly IReputationService _reputationService;
 
-        public MemoryService(IMemoryRepository memoryRepo, IAttendedEventRepository attEveRepo)
+        public MemoryService(IMemoryRepository memoryRepo, IAttendedEventRepository attEveRepo, IReputationService reputationService)
         {
             _memoryRepo = memoryRepo;
             _attendedEventRepo = attEveRepo;
+            _reputationService = reputationService;
         }
 
         public async Task<List<Memory>> GetByEventAsync(Event forEvent, User currentUser)
@@ -59,9 +64,12 @@ namespace Events_GSS.Data.Services
 
         public async Task AddAsync(Event forEvent, User author, string? photoPath, string? text)
         {
-            var attendance = await _attendedEventRepo.GetAsync(forEvent.EventId, author.UserId);
-            if (attendance == null)
-                throw new InvalidOperationException("You must first enroll to this event!.");
+if (!await _reputationService.CanPostMemoriesAsync(author.UserId))
+    throw new InvalidOperationException("Your reputation is too low to post memories (below -300 RP).");
+
+var attendance = await _attendedEventRepo.GetAsync(forEvent.EventId, author.UserId);
+if (attendance == null)
+    throw new InvalidOperationException("You must first enroll to this event!.");
 
             bool hasPhoto = !string.IsNullOrWhiteSpace(photoPath);
             bool hasText = !string.IsNullOrWhiteSpace(text);
@@ -80,6 +88,12 @@ namespace Events_GSS.Data.Services
             };
 
             await _memoryRepo.AddAsync(memory);
+
+            var action = hasPhoto
+                ? ReputationAction.MemoryAddedWithPhoto
+                : ReputationAction.MemoryAddedTextOnly;
+            WeakReferenceMessenger.Default.Send(
+                new ReputationMessage(author.UserId, action));
         }
 
         public async Task DeleteAsync(Memory memory, User requestingUser)

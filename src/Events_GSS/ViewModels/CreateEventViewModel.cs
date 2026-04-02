@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 
 using Events_GSS.Data.Models;
+using Events_GSS.Data.Services.eventServices;
 using Events_GSS.Services.Interfaces;
 
 namespace Events_GSS.ViewModels;
@@ -15,10 +16,12 @@ namespace Events_GSS.ViewModels;
 public partial class CreateEventViewModel : ObservableObject
 {
     private readonly IUserService _userService;
+    private readonly IEventService _eventService;
 
-    public CreateEventViewModel(IUserService userService)
+    public CreateEventViewModel(IUserService userService, IEventService eventService)
     {
         _userService = userService;
+        _eventService = eventService;
     }
 
     //VM1
@@ -51,11 +54,11 @@ public partial class CreateEventViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GoToStep2Command))]
-    public partial DateTimeOffset EndDate { get; set; } = DateTimeOffset.Now;
+    public partial DateTimeOffset EndDate { get; set; } = DateTimeOffset.Now.AddDays(1);
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GoToStep2Command))]
-    public partial TimeSpan EndTime { get; set; } = DateTime.Now.TimeOfDay;
+    public partial TimeSpan EndTime { get; set; } = DateTime.Now.AddHours(1).TimeOfDay;
 
     [ObservableProperty]
     public partial bool IsPublic { get; set; } = true;
@@ -91,11 +94,14 @@ public partial class CreateEventViewModel : ObservableObject
 
     public ObservableCollection<Category> AvailableCategories { get; } = new()
     {
-        new Category { CategoryId = 1, Title = "Party" },
-        new Category { CategoryId = 2, Title = "Conference" },
-        new Category { CategoryId = 3, Title = "Workshop" },
-        new Category { CategoryId = 4, Title = "Birthday" },
-        new Category { CategoryId = 5, Title = "Other" }
+        new Category { CategoryId = 1, Title = "NATURE" },
+        new Category { CategoryId = 2, Title = "FITNESS" },
+        new Category { CategoryId = 3, Title = "MUSIC" },
+        new Category { CategoryId = 4, Title = "SOCIAL" },
+        new Category { CategoryId = 5, Title = "ART" },
+        new Category { CategoryId = 6, Title = "PETS" },
+        new Category { CategoryId = 7, Title = "TECH" },
+        new Category { CategoryId = 8, Title = "FUN" },
     };
 
     //VM3
@@ -216,10 +222,23 @@ public event Action<CreateEventDto?>? CloseRequested;
 
 
     [RelayCommand]
-    private void CreateEvent()
+    private async System.Threading.Tasks.Task CreateEvent()
     {
         var dto = BuildDto();
-        // TODO: hand off to service/repo when ready
+        var eventEntity = new Event
+        {
+            Name = dto.Name,
+            Location = dto.Location,
+            StartDateTime = dto.StartDateTime,
+            EndDateTime = dto.EndDateTime,
+            IsPublic = dto.IsPublic,
+            Description = dto.Description,
+            MaximumPeople = dto.MaximumPeople,
+            EventBannerPath = dto.EventBannerPath,
+            Category = dto.Category,
+            Admin = dto.Admin!,
+        };
+        await _eventService.CreateEventAsync(eventEntity);
         CloseRequested?.Invoke(dto);
     }
 

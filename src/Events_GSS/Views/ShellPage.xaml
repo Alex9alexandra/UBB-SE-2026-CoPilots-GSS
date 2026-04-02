@@ -36,6 +36,14 @@
                     <FontIcon Glyph="&#xE787;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="Reputation"
+                Tag="Reputation">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE735;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
         </NavigationView.MenuItems>
 
         <Frame x:Name="ContentFrame" />

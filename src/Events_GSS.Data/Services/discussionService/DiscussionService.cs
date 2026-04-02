@@ -4,11 +4,14 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
+using CommunityToolkit.Mvvm.Messaging;
+using Events_GSS.Data.Messaging;
 using Events_GSS.Data.Models;
 using Events_GSS.Data.Repositories;
 using Events_GSS.Data.Repositories.eventRepository;
 using Events_GSS.Data.Services.discussionService;
 using Events_GSS.Data.Services.Interfaces;
+using Events_GSS.Data.Services.reputationService;
 
 namespace Events_GSS.Data.Services;
 
@@ -16,13 +19,16 @@ public class DiscussionService : IDiscussionService
 {
     private readonly IDiscussionRepository _repo;
     private readonly IEventRepository _eventRepo;
+    private readonly IReputationService _reputationService;
 
     public DiscussionService(
         IDiscussionRepository repo,
-        IEventRepository eventRepo)
+        IEventRepository eventRepo,
+        IReputationService reputationService)
     {
         _repo = repo;
         _eventRepo = eventRepo;
+        _reputationService = reputationService;
     }
 
     // ── Messages ──────────────────────────────────────────────────────────────
@@ -51,6 +57,9 @@ public class DiscussionService : IDiscussionService
     {
         if (string.IsNullOrWhiteSpace(text) && string.IsNullOrWhiteSpace(mediaPath))
             throw new ArgumentException("A message must contain text, a media attachment, or both.");
+
+        if (!await _reputationService.CanPostMessagesAsync(userId))
+            throw new InvalidOperationException("Your reputation is too low to post messages (below -500 RP).");
 
         var ev = await GetEventOrThrowAsync(eventId);
         bool isAdmin = ev.Admin?.UserId == userId;
@@ -105,6 +114,9 @@ public class DiscussionService : IDiscussionService
 
         await _repo.AddAsync(message);
 
+        WeakReferenceMessenger.Default.Send(
+            new ReputationMessage(userId, ReputationAction.DiscussionMessagePosted));
+
         // ── Parse @mentions ──────────────────────────────────
         if (!string.IsNullOrWhiteSpace(text))
         {
@@ -138,7 +150,14 @@ public class DiscussionService : IDiscussionService
         if (message.Author?.UserId != userId && !isAdmin)
             throw new UnauthorizedAccessException("You can only delete your own messages.");
 
+        bool isAdminDeletingOther = isAdmin && message.Author?.UserId != userId;
         await _repo.DeleteAsync(messageId);
+
+        if (isAdminDeletingOther && message.Author != null)
+        {
+            WeakReferenceMessenger.Default.Send(
+                new ReputationMessage(message.Author.UserId, ReputationAction.DiscussionMessageRemovedByAdmin));
+        }
     }
 
     // ── Reactions ─────────────────────────────────────────────────────────────

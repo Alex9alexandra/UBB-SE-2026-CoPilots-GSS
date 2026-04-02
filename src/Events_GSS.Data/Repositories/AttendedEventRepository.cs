@@ -72,15 +72,17 @@ namespace Events_GSS.Data.Repositories
             e.Description, e.MaximumPeople, e.EventBannerPath,
             e.SlowModeSeconds,
             c.CategoryId, c.Title AS CategoryTitle,
-            u.Id AS UserId, u.Name AS UserName, urp.ReputationPoints,
-            a.Id AS AdminId, a.Name AS AdminName, arp.ReputationPoints AS AdminRP
+            u.Id AS UserId, u.Name AS UserName,
+            ISNULL(urp.ReputationPoints, 0) AS ReputationPoints,
+            a.Id AS AdminId, a.Name AS AdminName,
+            ISNULL(arp.ReputationPoints, 0) AS AdminRP
             FROM AttendedEvents ae
             INNER JOIN Events e ON ae.EventId = e.EventId
             INNER JOIN Users u ON ae.UserId = u.Id
-            LEFT JOIN users_RP_scores urp ON u.Id = urp.UserId
+            LEFT JOIN users_RP_scores urp ON urp.UserId = u.Id
             LEFT JOIN Categories c ON e.CategoryId = c.CategoryId
             INNER JOIN Users a ON e.AdminId = a.Id
-            LEFT JOIN users_RP_scores arp ON a.Id = arp.UserId";
+            LEFT JOIN users_RP_scores arp ON arp.UserId = a.Id";
 
         public async Task AddAsync(AttendedEvent attendedEvent)
         {
@@ -217,6 +219,20 @@ namespace Events_GSS.Data.Repositories
                 results.Add(MapRow(reader));
 
             return results;
+        }
+
+        public async Task<int> GetAttendeeCountAsync(int eventId)
+        {
+            const string query = "SELECT COUNT(*) FROM AttendedEvents WHERE EventId = @EventId";
+
+            using var connection = _factory.CreateConnection();
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@EventId", eventId);
+
+            var result = await command.ExecuteScalarAsync();
+            return result is int count ? count : 0;
         }
     }
 }

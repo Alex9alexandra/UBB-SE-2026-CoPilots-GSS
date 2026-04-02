@@ -13,29 +13,17 @@
         <converters:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
         <converters:UpcomingEventConverter x:Key="UpcomingEventConverter"/>
         <converters:FavouriteButtonTextConverter x:Key="FavouriteButtonTextConverter"/>
+        <converters:AchievementOpacityConverter x:Key="AchievementOpacityConverter"/>
+        <converters:AchievementBadgeConverter x:Key="AchievementBadgeConverter"/>
+        <converters:AchievementStatusConverter x:Key="AchievementStatusConverter"/>
     </Page.Resources>
 
     <Grid RowDefinitions="Auto,Auto,*" Padding="24" RowSpacing="16">
 
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-            <TextBlock
-                Grid.Column="0"
-                Text="My Events"
-                Style="{StaticResource TitleTextBlockStyle}" />
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <TextBlock Text="⭐" FontSize="18" VerticalAlignment="Center"/>
-                <TextBlock
-                    Text="{Binding CurrentUser.ReputationPoints}"
-                    FontSize="18"
-                    FontWeight="SemiBold"
-                    VerticalAlignment="Center"/>
-                <TextBlock
-                    Text="RP"
-                    FontSize="14"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    VerticalAlignment="Center"/>
-            </StackPanel>
-        </Grid>
+        <TextBlock
+            Grid.Row="0"
+            Text="My Events"
+            Style="{StaticResource TitleTextBlockStyle}" />
 
         <!-- Search, filter and sort bar -->
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
@@ -250,47 +238,77 @@
                     </ListView>
                 </TabViewItem>
 
-                <TabViewItem Header="Common Events">
-                    <StackPanel>
-                        <AutoSuggestBox
-                        Grid.Column="3"
-                        Text="{Binding FriendSearchQuery, Mode=TwoWay}"
-                        ItemsSource="{Binding FilteredFriends}"
-                        PlaceholderText="Friend"
-                        DisplayMemberPath="Name"
-                        SuggestionChosen="FriendBox_Chosen"
-                        MinWidth="240"
-                        >
-                        </AutoSuggestBox>
-                        <ListView ItemsSource="{Binding CommonEvents}">
-                            <ListView.ItemTemplate>
-                                <DataTemplate x:DataType="models:AttendedEvent">
-                                    <Border Padding="16,12" Margin="0,4" CornerRadius="8"
-                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                    BorderThickness="1">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Event.Name}"
-                                       Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                                            <StackPanel Orientation="Horizontal" Spacing="16">
-                                                <TextBlock Text="{Binding Event.Category.Title}"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                           FontSize="13"/>
-                                                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                           FontSize="13">
-                                    <Run Text="{Binding Event.StartDateTime}"/>
-                                    <Run Text=" → "/>
-                                    <Run Text="{Binding Event.EndDateTime}"/>
-                                                </TextBlock>
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
-                    </StackPanel>
-                </TabViewItem>
-                
+<TabViewItem Header="Reputation">
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center"
+          DataContext="{Binding DataContext.ReputationViewModel, ElementName=Root}">
+        <Border CornerRadius="12" Padding="48,32"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                HorizontalAlignment="Stretch"
+                Margin="24">
+            <StackPanel HorizontalAlignment="Center" Spacing="10">
+                <TextBlock Text="{Binding UserName}" FontSize="16"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           HorizontalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
+                    <TextBlock Text="{Binding ReputationPoints}" FontSize="40"
+                               FontWeight="Bold" HorizontalAlignment="Center"/>
+                    <TextBlock Text="RP" FontSize="20" VerticalAlignment="Bottom"
+                               Margin="0,0,0,6"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+                <Border Background="{ThemeResource AccentFillColorDefaultBrush}"
+                        CornerRadius="14" Padding="16,6" HorizontalAlignment="Center">
+                    <TextBlock Text="{Binding CurrentTier}" FontSize="16"
+                               FontWeight="SemiBold" Foreground="White"
+                               HorizontalAlignment="Center"/>
+                </Border>
+            </StackPanel>
+        </Border>
+    </Grid>
+</TabViewItem>
+
+<TabViewItem Header="Common Events">
+    <StackPanel>
+        <AutoSuggestBox
+        Grid.Column="3"
+        Text="{Binding FriendSearchQuery, Mode=TwoWay}"
+        ItemsSource="{Binding FilteredFriends}"
+        PlaceholderText="Friend"
+        DisplayMemberPath="Name"
+        SuggestionChosen="FriendBox_Chosen"
+        MinWidth="240"
+        >
+        </AutoSuggestBox>
+        <ListView ItemsSource="{Binding CommonEvents}">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="models:AttendedEvent">
+                    <Border Padding="16,12" Margin="0,4" CornerRadius="8"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Event.Name}"
+                       Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                            <StackPanel Orientation="Horizontal" Spacing="16">
+                                <TextBlock Text="{Binding Event.Category.Title}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           FontSize="13"/>
+                                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           FontSize="13">
+                    <Run Text="{Binding Event.StartDateTime}"/>
+                    <Run Text=" → "/>
+                    <Run Text="{Binding Event.EndDateTime}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </StackPanel>
+</TabViewItem>
+
             </TabView>
         </Grid>
     </Grid>

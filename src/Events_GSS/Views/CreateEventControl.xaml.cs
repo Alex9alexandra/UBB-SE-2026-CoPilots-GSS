@@ -1,11 +1,13 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.Extensions.DependencyInjection;
 
 using Events_GSS.ViewModels;
 using Events_GSS.Services;
-using Events_GSS.Services.Interfaces;
 
 using Microsoft.Extensions.DependencyInjection;
+using Events_GSS.Data.Services.eventServices;
+using Events_GSS.Services.Interfaces;
 
 namespace Events_GSS.Views;
 
@@ -16,7 +18,8 @@ public sealed partial class CreateEventControl : UserControl
     public CreateEventControl()
     {
         var userService = App.Services.GetRequiredService<IUserService>();
-        ViewModel = new CreateEventViewModel(userService);
+        var eventService = App.Services.GetRequiredService<IEventService>();
+        ViewModel = new CreateEventViewModel(userService, eventService);
         this.InitializeComponent();
 
         Step1View.ViewModel = ViewModel;

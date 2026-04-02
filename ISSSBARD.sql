@@ -39,51 +39,18 @@ CREATE TABLE Users (
     Name              NVARCHAR(100) NOT NULL,
     Email             NVARCHAR(254) NOT NULL,
     PasswordHash      NVARCHAR(512) NOT NULL,
-
-    CONSTRAINT PK_Users          PRIMARY KEY (Id),
-    CONSTRAINT UQ_Users_Email    UNIQUE (Email)
-);
-
--- Seed users
-SET IDENTITY_INSERT Users ON;
-INSERT INTO Users (Id, Name, Email, PasswordHash) VALUES
-    (1, 'Alice Popescu',      'alice@test.com',      'hash1'),
-    (2, 'Bob Ionescu',        'bob@test.com',        'hash2'),
-    (3, 'Carol Popa',         'carol@test.com',      'hash3'),
-    (4, 'Dan Gheorghe',       'dan@test.com',        'hash4'),
-    (5, 'Elena Moldovan',     'elena@test.com',      'hash5'),
-    (6, 'Florin Stanescu',    'florin@test.com',      'hash6'),
-    (7, 'TestUser Penalized', 'penalized@test.com',  'hash7');
-SET IDENTITY_INSERT Users OFF;
-GO
-
-
--- ============================================================
--- 2b. USERS_RP_SCORES  (reputation kept separate from core Users)
--- ============================================================
-CREATE TABLE users_RP_scores (
-    UserId            INT           NOT NULL,
     ReputationPoints  INT           NOT NULL DEFAULT 0,
+    -- Tier is derived from RP but cached here to avoid recalculating on every read.
+    -- Values: Newcomer | Contributor | Organizer | Community Leader | Event Master
     Tier              NVARCHAR(50)  NOT NULL DEFAULT 'Newcomer',
 
-    CONSTRAINT PK_users_RP_scores       PRIMARY KEY (UserId),
-    CONSTRAINT FK_users_RP_scores_User  FOREIGN KEY (UserId) REFERENCES Users (Id) ON DELETE CASCADE,
-    CONSTRAINT CK_users_RP_Floor        CHECK (ReputationPoints >= -1000),
-    CONSTRAINT CK_users_RP_Tier         CHECK (Tier IN (
+    CONSTRAINT PK_Users          PRIMARY KEY (Id),
+    CONSTRAINT UQ_Users_Email    UNIQUE (Email),
+    CONSTRAINT CK_Users_RP_Floor CHECK (ReputationPoints >= -1000),
+    CONSTRAINT CK_Users_Tier     CHECK (Tier IN (
         'Newcomer', 'Contributor', 'Organizer', 'Community Leader', 'Event Master'
     ))
 );
-
--- Seed RP scores
-INSERT INTO users_RP_scores (UserId, ReputationPoints, Tier) VALUES
-    (1,  340,   'Organizer'),
-    (2,  120,   'Contributor'),
-    (3,   75,   'Contributor'),
-    (4,  510,   'Community Leader'),
-    (5,    0,   'Newcomer'),
-    (6,  -50,   'Newcomer'),
-    (7, -1000,  'Newcomer');
-GO
 
 
 -- ============================================================
@@ -252,6 +219,20 @@ CREATE TABLE DiscussionMutes (
 
 
 -- ============================================================
+-- 11. PRESET QUESTS  (global library, not tied to an event)
+-- ============================================================
+CREATE TABLE PresetQuests (
+    PresetId    INT            NOT NULL IDENTITY(1,1),
+    Name        NVARCHAR(200)  NOT NULL,
+    Description NVARCHAR(MAX)  NOT NULL,
+    Difficulty  INT            NOT NULL,
+
+    CONSTRAINT PK_PresetQuests           PRIMARY KEY (PresetId),
+    CONSTRAINT CK_PresetQuests_Difficulty CHECK (Difficulty BETWEEN 1 AND 5)
+);
+
+
+-- ============================================================
 -- 12. QUESTS  (event-specific instances)
 -- ============================================================
 CREATE TABLE Quests (
@@ -303,8 +284,8 @@ CREATE TABLE QuestMemories (
     Status         NVARCHAR(20)  NOT NULL DEFAULT 'Submitted',
 
     CONSTRAINT PK_QuestMemories          PRIMARY KEY (QuestMemoryId),
-    CONSTRAINT FK_QuestMemories_Quest    FOREIGN KEY (QuestId)  REFERENCES Quests  (QuestId),
-    CONSTRAINT FK_QuestMemories_Memory   FOREIGN KEY (MemoryId) REFERENCES Memories (MemoryId) ON DELETE CASCADE ,
+    CONSTRAINT FK_QuestMemories_Quest    FOREIGN KEY (QuestId)  REFERENCES Quests  (QuestId)  ON DELETE CASCADE,
+    CONSTRAINT FK_QuestMemories_Memory   FOREIGN KEY (MemoryId) REFERENCES Memories (MemoryId),
     CONSTRAINT UQ_QuestMemories_Pair     UNIQUE (QuestId, MemoryId),
     CONSTRAINT CK_QuestMemories_Status   CHECK (Status IN ('Submitted', 'Approved', 'Rejected'))
 );

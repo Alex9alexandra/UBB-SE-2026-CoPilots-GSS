@@ -3,10 +3,15 @@ using System.Collections.Generic;
 using System.Security.Cryptography.Pkcs;
 using System.Text;
 
+using CommunityToolkit.Mvvm.Messaging;
+
+using Events_GSS;
+using Events_GSS.Data.Messaging;
 using Events_GSS.Data.Models;
 using Events_GSS.Data.Repositories;
 using Events_GSS.Data.Services.Interfaces;
-using Events_GSS;
+
+using static System.Collections.Specialized.BitVector32;
 
 namespace Events_GSS.Data.Services;
 
@@ -30,6 +35,10 @@ public class QuestApprovalService: IQuestApprovalService
         int memoryId = await _approvalRepository.AddMemoryAsync(proof);
         proof.MemoryId = memoryId;
         await _approvalRepository.SubmitProofAsync(quest, proof);
+
+        WeakReferenceMessenger.Default.Send(
+            new ReputationMessage(proof.Author.UserId, ReputationAction.QuestSubmitted, proof.Event.EventId));
+
         return;
     }
 
@@ -75,8 +84,16 @@ public class QuestApprovalService: IQuestApprovalService
     /// <param name="proof"></param>
     /// <returns></returns>
     public async Task ChangeProofStatusAsync(QuestMemory proof)
+
     {
         await _approvalRepository.ChangeProofStatusAsync(proof);
+
+        ReputationAction action = ReputationAction.QuestSubmitted;//default value, should not be used
+
+        if (proof.ProofStatus == QuestMemoryStatus.Approved) action = ReputationAction.QuestApproved;
+        else if (proof.ProofStatus == QuestMemoryStatus.Rejected) action = ReputationAction.QuestDenied;
+        WeakReferenceMessenger.Default.Send(
+            new ReputationMessage(proof.Proof.Author.UserId, action, proof.Proof.Event.EventId));
     }
 
     public async Task DeleteSubmissionAsync(QuestMemory proof,User user)

@@ -74,8 +74,8 @@ public class EventRepository: IEventRepository
 
         cmd.Parameters.AddWithValue("@Name", eventEntity.Name);
         cmd.Parameters.AddWithValue("@Location", eventEntity.Location);
-        cmd.Parameters.AddWithValue("@Start", eventEntity.StartDateTime);
-        cmd.Parameters.AddWithValue("@End", eventEntity.EndDateTime);
+        cmd.Parameters.Add("@Start", System.Data.SqlDbType.DateTime2).Value = eventEntity.StartDateTime;
+        cmd.Parameters.Add("@End", System.Data.SqlDbType.DateTime2).Value = eventEntity.EndDateTime;
         cmd.Parameters.AddWithValue("@IsPublic", eventEntity.IsPublic);
         cmd.Parameters.AddWithValue("@Desc", (object?)eventEntity.Description ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@MaxPeople", (object?)eventEntity.MaximumPeople ?? DBNull.Value);

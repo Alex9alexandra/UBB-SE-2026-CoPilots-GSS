@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 
 using Events_GSS.Data.Models;
+using Events_GSS.Data.Services.reputationService;
 using Events_GSS.Services;
 using Events_GSS.Services.Interfaces;
 
@@ -18,6 +19,7 @@ namespace Events_GSS.ViewModels
 
         private readonly IAttendedEventService _attendedEventService;
         private readonly IUserService _userService;
+        private readonly IReputationService _reputationService;
 
         // The full unfiltered list — never modify this directly after loading.
         // Always filter/sort from this source.
@@ -127,7 +129,14 @@ namespace Events_GSS.ViewModels
             private set { _currentUser = value; OnPropertyChanged(); }
         }
 
-        // ─── UI state ─────────────────────────────────────────────────────
+        private ReputationViewModel? _reputationViewModel;
+        public ReputationViewModel? ReputationViewModel
+        {
+            get => _reputationViewModel;
+            private set { _reputationViewModel = value; OnPropertyChanged(); }
+        }
+
+        // ─── UI state
 
         private bool _isLoading;
         public bool IsLoading
@@ -153,10 +162,11 @@ namespace Events_GSS.ViewModels
 
         // ─── Constructor ──────────────────────────────────────────────────
 
-        public AttendedEventViewModel(IAttendedEventService attendedEventService, IUserService userService)
+        public AttendedEventViewModel(IAttendedEventService attendedEventService, IUserService userService, IReputationService reputationService)
         {
             _attendedEventService = attendedEventService;
             _userService = userService;
+            _reputationService = reputationService;
 
             LoadCommand = new RelayCommandAttEv(async _ => await LoadAsync());
             LeaveCommand = new RelayCommandAttEv(async p => await LeaveAsync(p), p => p is AttendedEvent);
@@ -175,6 +185,9 @@ namespace Events_GSS.ViewModels
             try
             {
                 CurrentUser = _userService.GetCurrentUser();
+
+                ReputationViewModel = new ReputationViewModel(_userService, _reputationService);
+                await ReputationViewModel.LoadAsync();
 
                 var all = await _attendedEventService.GetAttendedEventsAsync(CurrentUser.UserId);
                 _allEvents = all;

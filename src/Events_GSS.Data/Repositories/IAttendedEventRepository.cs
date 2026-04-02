@@ -16,5 +16,6 @@ namespace Events_GSS.Data.Repositories
         Task<AttendedEvent?> GetAsync(int eventId, int userId);
         Task<List<AttendedEvent>> GetByUserIdAsync(int userId);
         Task<List<AttendedEvent>> GetCommonEventsAsync(int userId, int friendId);
+        Task<int> GetAttendeeCountAsync(int eventId);
     }
 }
