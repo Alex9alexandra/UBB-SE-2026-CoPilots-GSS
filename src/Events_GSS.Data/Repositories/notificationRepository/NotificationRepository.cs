@@ -22,7 +22,7 @@ namespace Events_GSS.Data.Repositories.notificationRepository
         {
             const string query = @"
                 INSERT INTO Notifications (UserId, Title, Description, CreatedAt)
-                VALUES (@Id, @UserId, @Title, @Description, @CreatedAt)";
+                VALUES (@UserId, @Title, @Description, @CreatedAt)";
 
             using var connection = _factory.CreateConnection();
             await connection.OpenAsync();

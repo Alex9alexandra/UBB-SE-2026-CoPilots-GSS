@@ -10,6 +10,7 @@ using Events_GSS.Data.Messaging;
 using Events_GSS.Data.Models;
 using Events_GSS.Data.Repositories;
 using Events_GSS.Data.Services.Interfaces;
+using Events_GSS.Data.Services.notificationServices;
 
 using static System.Collections.Specialized.BitVector32;
 
@@ -21,12 +22,14 @@ public class QuestApprovalService: IQuestApprovalService
     private readonly IQuestMemoryRepository _approvalRepository;
     private readonly IQuestService _questService;
     private readonly IMemoryService _memoryService;
+    private readonly INotificationService _notificationService;
 
-    public QuestApprovalService(IQuestMemoryRepository repository,IQuestService questService, IMemoryService memoryService)
+    public QuestApprovalService(IQuestMemoryRepository repository,IQuestService questService, IMemoryService memoryService,INotificationService notificationService)
     {
         _approvalRepository = repository;
         _questService = questService;
         _memoryService = memoryService;
+        _notificationService = notificationService;
     }
 
     public async Task SubmitProofAsync(Quest quest, Memory proof)
@@ -94,6 +97,12 @@ public class QuestApprovalService: IQuestApprovalService
         else if (proof.ProofStatus == QuestMemoryStatus.Rejected) action = ReputationAction.QuestDenied;
         WeakReferenceMessenger.Default.Send(
             new ReputationMessage(proof.Proof.Author.UserId, action, proof.Proof.Event.EventId));
+
+        await _notificationService.NotifyAsync(
+            proof.Proof.Author.UserId,
+            "Quest results back!",
+            $"Your submission for the quest '{proof.ForQuest.Name}' has been {proof.ProofStatus.ToString().ToLower()}."
+            );
     }
 
     public async Task DeleteSubmissionAsync(QuestMemory proof,User user)
