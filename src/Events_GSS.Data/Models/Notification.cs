@@ -13,9 +13,8 @@ namespace Events_GSS.Data.Models
         public string Description { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public Notification(int id, User user, string title, string description)
+        public Notification(User user, string title, string description)
         {
-            Id = id;
             User = user;
             Title = title;
             Description = description;
