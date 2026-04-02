@@ -21,6 +21,7 @@
     <None Remove="Views\AttendedEventView.xaml" />
     <None Remove="Views\EventDetailPage.xaml" />
     <None Remove="Views\EventListingPage.xaml" />
+    <None Remove="Views\NotificationView.xaml" />
     <None Remove="Views\QuestAdminControl.xaml" />
     <None Remove="Views\QuestApprovalPage.xaml" />
     <None Remove="Views\SubmitProofDialog.xaml" />
@@ -77,6 +78,39 @@
     <None Update="appsettings.local.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <Page Update="Views\NotificationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Views\CreateEventPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Views\EventListingPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Views\EventDetailPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Views\ShellPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Views\AnnouncementControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="ViewModels\AnnouncementControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Views\DiscussionControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Views\CreateEventStep2View.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Views\CreateEventControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Views\CreateEventStep1View.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Update="Views\QuestAdminControl.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>

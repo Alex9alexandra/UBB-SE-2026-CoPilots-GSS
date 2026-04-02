@@ -28,6 +28,14 @@
                     <FontIcon Glyph="&#xE787;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="Notifications"
+                Tag="Notifications">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE787;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
         </NavigationView.MenuItems>
 
         <Frame x:Name="ContentFrame" />

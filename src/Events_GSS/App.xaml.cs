@@ -72,6 +72,7 @@ public partial class App : Application
         navService.RegisterPage(PageKeys.MyEvents, typeof(AttendedEventView));
         navService.RegisterPage(PageKeys.EventDetail, typeof(EventDetailPage));
         navService.RegisterPage(PageKeys.CreateEvent, typeof(CreateEventPage));
+        navService.RegisterPage(PageKeys.Notifications, typeof(NotificationView));
         services.AddSingleton<INavigationService>(navService);
 
         Services = services.BuildServiceProvider();

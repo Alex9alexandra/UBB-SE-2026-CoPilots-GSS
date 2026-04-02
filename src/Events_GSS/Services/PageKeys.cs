@@ -6,4 +6,5 @@ public static class PageKeys
     public const string MyEvents = "MyEvents";
     public const string EventDetail = "EventDetail";
     public const string CreateEvent = "CreateEvent";
+    public const string Notifications = "Notifications";
 }
