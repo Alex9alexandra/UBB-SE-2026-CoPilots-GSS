@@ -61,13 +61,14 @@ VALUES (1, 1), (1, 2), (1, 3),
        (3, 1), (3, 3);
 
 INSERT INTO Memories (EventId, UserId, Text, CreatedAt)
-VALUES (1, 2, 'Ce seara frumoasa a fost!', GETUTCDATE());
+VALUES (1, 2, 'What a great night!', GETUTCDATE());
 
 INSERT INTO Memories (EventId, UserId, PhotoPath, CreatedAt)
-VALUES (1, 3, 'C:\Users\test\Pictures\photo1.jpg', GETUTCDATE());
+VALUES (1, 3, 'https://img.freepik.com/free-photo/beautiful-scenery-emerald-lake-yoho-national-park-british-columbia-canada_181624-6877.jpg?semt=ais_incoming&w=740&q=80', GETUTCDATE());
 
 INSERT INTO Memories (EventId, UserId, PhotoPath, Text, CreatedAt)
-VALUES (1, 1, 'C:\Users\test\Pictures\photo2.jpg', 'O amintire draguta!', GETUTCDATE());
+VALUES (1, 1, 'https://www.visitscotland.com/binaries/content/gallery/visitscotland/cms-images/2025/05/02/ballastbank-troon-header.jpg', 'A nice memory!', GETUTCDATE());
+
 
 INSERT INTO MemoryLikes (MemoryId, UserId) VALUES (2, 2);
 INSERT INTO MemoryLikes (MemoryId, UserId) VALUES (1, 1);
