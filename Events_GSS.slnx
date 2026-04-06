@@ -1,0 +1,19 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="src/Events_GSS.Data/Events_GSS.Data.csproj" Id="bd29e0c2-cb96-4ce7-a706-e1926a044d23">
+    <Platform Solution="Debug|x64" Project="x64" />
+  </Project>
+  <Project Path="src/Events_GSS.Test/Events_GSS.Test.csproj" Id="1c606f58-0210-4482-9be2-fb6fc2b75156">
+    <Platform Solution="Debug|x64" Project="x64" />
+  </Project>
+  <Project Path="src/Events_GSS/Events_GSS.csproj">
+    <Platform Solution="*|ARM64" Project="ARM64" />
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|x86" Project="x86" />
+    <Deploy />
+  </Project>
+</Solution>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Events_GSS.Views.CreateEventStep1View"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewmodels="using:Events_GSS.ViewModels">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <Grid Padding="24" MaxWidth="500">
+        <StackPanel Spacing="16">
+
+            <TextBlock Text="Create Event"
+                       Style="{ThemeResource TitleTextBlockStyle}" />
+
+            <TextBlock Text="Step 1 of 3 — Basic Information"
+                       Style="{ThemeResource BodyTextBlockStyle}"
+                       Foreground="{ThemeResource SystemFillColorNeutralBrush}" />
+
+            <Border Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}"
+                    CornerRadius="4"
+                    Padding="12,8"
+                    Visibility="{x:Bind ViewModel.ErrorVisibility, Mode=OneWay}">
+                <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                           Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                           TextWrapping="Wrap" />
+            </Border>
+
+
+            <TextBox Header="Event Name *"
+                     PlaceholderText="Enter event name"
+                     Text="{x:Bind ViewModel.EventName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBox Header="Location *"
+                     PlaceholderText="Enter location"
+                     Text="{x:Bind ViewModel.Location, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+
+            <TextBlock Text="Start *" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+            <Grid ColumnDefinitions="*,16,*">
+                <CalendarDatePicker Grid.Column="0"
+                                    Header="Date"
+                                    Date="{x:Bind ViewModel.StartDate, Mode=TwoWay}"
+                                    HorizontalAlignment="Stretch" />
+                <TimePicker Grid.Column="2"
+                            Header="Time"
+                            Time="{x:Bind ViewModel.StartTime, Mode=TwoWay}" />
+            </Grid>
+
+            <TextBlock Text="End *" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+            <Grid ColumnDefinitions="*,16,*">
+                <CalendarDatePicker Grid.Column="0"
+                                    Header="Date"
+                                    Date="{x:Bind ViewModel.EndDate, Mode=TwoWay}"
+                                    HorizontalAlignment="Stretch" />
+                <TimePicker Grid.Column="2"
+                            Header="Time"
+                            Time="{x:Bind ViewModel.EndTime, Mode=TwoWay}" />
+            </Grid>
+
+            <ToggleSwitch Header="Event Visibility"
+                          OnContent="Public"
+                          OffContent="Private"
+                          IsOn="{x:Bind ViewModel.IsPublic, Mode=TwoWay}" />
+
+            <Grid ColumnDefinitions="*,Auto,8,Auto" Margin="0,8,0,0">
+                <Button Grid.Column="1"
+                        Content="Cancel"
+                        Click="Cancel_Click" />
+                <Button Grid.Column="3"
+                        Content="Next"
+                        Style="{ThemeResource AccentButtonStyle}"
+                        Command="{x:Bind ViewModel.GoToStep2Command}" />
+            </Grid>
+
+        </StackPanel>
+    </Grid>
+    </ScrollViewer>
+
+</UserControl>

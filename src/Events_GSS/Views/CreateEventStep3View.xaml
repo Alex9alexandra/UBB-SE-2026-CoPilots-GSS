@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<UserControl
+    x:Class="Events_GSS.Views.CreateEventStep3View"
+    x:Name="Root"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewmodels="using:Events_GSS.ViewModels"
+    xmlns:models="using:Events_GSS.Data.Models"
+    xmlns:local="using:Events_GSS.Views">
+
+    <UserControl.Resources>
+        <local:QuestSelectedConverter x:Key="QuestSelectedConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer x:Name="MainContent" VerticalScrollBarVisibility="Auto">
+        <Grid Padding="24" MaxWidth="600" HorizontalAlignment="Center">
+            <StackPanel Spacing="16" HorizontalAlignment="Stretch" MinWidth="450">
+
+                <TextBlock Text="Create Event"
+                           Style="{ThemeResource TitleTextBlockStyle}" />
+
+                <TextBlock Text="Step 3 of 3 — Quest Configuration"
+                           Style="{ThemeResource BodyTextBlockStyle}"
+                           Foreground="{ThemeResource SystemFillColorNeutralBrush}" />
+
+                <!-- PRESET QUESTS -->
+                <TextBlock Text="Select quests for your event:" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                <ItemsControl ItemsSource="{x:Bind ViewModel.AvailableQuests, Mode=OneWay}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:Quest">
+                            <CheckBox Content="{x:Bind Name}"
+                                      IsChecked="{Binding Converter={StaticResource QuestSelectedConverter}, ConverterParameter={Binding DataContext, ElementName=Root}, Mode=OneWay}"
+                                      Checked="QuestCheckBox_Checked"
+                                      Unchecked="QuestCheckBox_Unchecked"
+                                      ToolTipService.ToolTip="{x:Bind Description}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- CUSTOM QUEST -->
+                <TextBlock Text="Add a custom quest:" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox Width="160" PlaceholderText="Quest name"
+                             Text="{x:Bind ViewModel.CustomQuestName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox Width="220" PlaceholderText="Description"
+                             Text="{x:Bind ViewModel.CustomQuestDescription, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Content="Add"
+                            Command="{x:Bind ViewModel.AddCustomQuestCommand}" />
+                </StackPanel>
+
+                <TextBlock Text="Selected quests:" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                <ItemsControl ItemsSource="{x:Bind ViewModel.SelectedQuests, Mode=OneWay}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:Quest">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center" />
+                                <Button Content="Remove" Click="RemoveQuest_Click" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Grid ColumnDefinitions="Auto,*,Auto,8,Auto" Margin="0,8,0,0">
+                    <Button Grid.Column="0"
+                            Content="Back"
+                            Command="{x:Bind ViewModel.GoBackToStep2Command}" />
+                    <Button Grid.Column="2"
+                            Content="Cancel"
+                            Click="Cancel_Click" />
+                    <Button Grid.Column="4"
+                            Content="Create Event"
+                            Style="{ThemeResource AccentButtonStyle}"
+                            Command="{x:Bind ViewModel.CreateEventCommand}" />
+                </Grid>
+
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+
+</UserControl>

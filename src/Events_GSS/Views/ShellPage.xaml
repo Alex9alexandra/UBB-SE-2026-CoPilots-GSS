@@ -1,0 +1,52 @@
+<Page
+    x:Class="Events_GSS.Views.ShellPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <NavigationView
+        x:Name="NavView"
+        IsBackButtonVisible="Auto"
+        IsBackEnabled="{x:Bind CanGoBack, Mode=OneWay}"
+        ItemInvoked="OnNavItemInvoked"
+        BackRequested="OnBackRequested"
+        PaneDisplayMode="Left"
+        OpenPaneLength="200">
+
+        <NavigationView.MenuItems>
+            <NavigationViewItem
+                Content="Events"
+                Tag="EventListing">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE716;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="My Events"
+                Tag="MyEvents">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE787;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="Notifications"
+                Tag="Notifications">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE787;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+
+            <NavigationViewItem
+                Content="Reputation"
+                Tag="Reputation">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE735;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.MenuItems>
+
+        <Frame x:Name="ContentFrame" />
+
+    </NavigationView>
+</Page>

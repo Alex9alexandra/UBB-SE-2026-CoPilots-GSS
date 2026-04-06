@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Events_GSS.Views.CreateEventControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Events_GSS.Views"
+    xmlns:viewmodels="using:Events_GSS.ViewModels">
+
+    <Grid>
+        <!-- Step 1 -->
+        <local:CreateEventStep1View x:Name="Step1View"
+                                     Visibility="{x:Bind ViewModel.IsStep1Visible, Mode=OneWay}" />
+
+        <!-- Step 2 -->
+        <local:CreateEventStep2View x:Name="Step2View"
+                                     Visibility="{x:Bind ViewModel.IsStep2Visible, Mode=OneWay}" />
+
+        <!-- Step 3 -->
+        <local:CreateEventStep3View x:Name="Step3View"
+                                     Visibility="{x:Bind ViewModel.IsStep3Visible, Mode=OneWay}" />
+    </Grid>
+
+</UserControl>

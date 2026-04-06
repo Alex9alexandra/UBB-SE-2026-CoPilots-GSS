@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Events_GSS.Views.CreateEventStep2View"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:viewmodels="using:Events_GSS.ViewModels"
+    xmlns:models="using:Events_GSS.Data.Models">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Padding="24" MaxWidth="500" HorizontalAlignment="Center">
+            <StackPanel Spacing="16" HorizontalAlignment="Stretch" MinWidth="450">
+
+                <TextBlock Text="Create Event"
+                           Style="{ThemeResource TitleTextBlockStyle}" />
+
+                <TextBlock Text="Step 2 of 3 — Event Details"
+                           Style="{ThemeResource BodyTextBlockStyle}"
+                           Foreground="{ThemeResource SystemFillColorNeutralBrush}" />
+
+                <!-- Description -->
+                <TextBox Header="Description"
+                         PlaceholderText="No description yet"
+                         Text="{x:Bind ViewModel.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         TextWrapping="Wrap"
+                         AcceptsReturn="True"
+                         Height="120" />
+
+                <!-- Maximum Attendees -->
+                <TextBox Header="Maximum Attendees"
+                         PlaceholderText="Leave empty for no limit"
+                         Text="{x:Bind ViewModel.MaximumPeopleText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         InputScope="Number"
+                         BeforeTextChanging="MaximumAttendees_BeforeTextChanging" />
+
+
+                <!-- Category -->
+                <ComboBox Header="Category"
+                          PlaceholderText="Select a category"
+                          ItemsSource="{x:Bind ViewModel.AvailableCategories, Mode=OneWay}"
+                          SelectedItem="{x:Bind ViewModel.SelectedCategory, Mode=TwoWay}"
+                          DisplayMemberPath="Title"
+                          HorizontalAlignment="Stretch" />
+
+                <!-- Event Banner -->
+                <TextBlock Text="Event Banner" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                <Button Content="Browse Image..."
+                        Click="BrowseImage_Click" />
+
+                <!-- Banner Preview -->
+                <Image x:Name="BannerPreview"
+                       MaxHeight="200"
+                       Stretch="Uniform"
+                       HorizontalAlignment="Left"
+                       Visibility="{x:Bind ViewModel.BannerImageVisibility, Mode=OneWay}" />
+
+                <!-- Action Buttons -->
+                <Grid ColumnDefinitions="Auto,*,Auto,8,Auto" Margin="0,8,0,0">
+                    <Button Grid.Column="0"
+                            Content="Back"
+                            Command="{x:Bind ViewModel.GoBackToStep1Command}" />
+                    <Button Grid.Column="2"
+                            Content="Cancel"
+                            Click="Cancel_Click" />
+                    <Button Grid.Column="4"
+                            Content="Next"
+                            Style="{ThemeResource AccentButtonStyle}"
+                            Command="{x:Bind ViewModel.GoToStep3Command}" />
+                </Grid>
+
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+
+</UserControl>
