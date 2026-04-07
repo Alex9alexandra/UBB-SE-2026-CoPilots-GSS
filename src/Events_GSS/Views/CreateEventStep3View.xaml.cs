@@ -62,8 +62,7 @@ public sealed partial class CreateEventStep3View : UserControl
 
         var dialog = new ContentDialog
         {
-            Title = "Event Created",
-            Content = new ScrollViewer { Content = new TextBlock { Text = details, TextWrapping = TextWrapping.Wrap } },
+            Title = details,
             CloseButtonText = "OK",
             XamlRoot = this.XamlRoot
         };
