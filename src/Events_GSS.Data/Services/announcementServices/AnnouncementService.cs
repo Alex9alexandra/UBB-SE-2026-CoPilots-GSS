@@ -122,4 +122,15 @@ public class AnnouncementService : IAnnouncementService
         if (selectedEvent.Admin?.UserId != userId)
             throw new UnauthorizedAccessException("Only the EventAdmin can perform this action.");
     }
+
+    // Updates or adds reaction emoji and, in the case the user selects the same one as before, it removes it entirely
+    public async Task ToggleReactionAsync(int announcementId, int userId, string emoji)
+    {
+        var existingEmoji = await _repo.GetUserReactionAsync(announcementId, userId);
+
+        if (existingEmoji == emoji)
+            await _repo.RemoveReactionAsync(announcementId, userId);
+        else
+            await _repo.AddOrUpdateReactionAsync(announcementId, userId, emoji);
+    }
 }

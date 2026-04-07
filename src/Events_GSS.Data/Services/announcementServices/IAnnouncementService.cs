@@ -20,5 +20,6 @@ public interface IAnnouncementService
     Task RemoveReactionAsync(int announcementId, int userId);
     Task<Dictionary<int, int>> GetUnreadCountsForUserAsync(int userId);
     Task<List<User>> GetAllParticipantsAsync(int eventId);
+    Task ToggleReactionAsync(int announcementId, int userId, string emoji);
 
 }

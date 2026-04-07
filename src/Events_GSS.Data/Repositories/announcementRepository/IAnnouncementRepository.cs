@@ -32,6 +32,7 @@ public interface IAnnouncementRepository
 
     Task AddOrUpdateReactionAsync(int announcementId, int userId, string emoji);
     Task RemoveReactionAsync(int announcementId, int userId);
+    Task<string?> GetUserReactionAsync(int announcementId, int userId);
 
 
 }

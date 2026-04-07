@@ -249,12 +249,7 @@ public partial class AnnouncementViewModel : ObservableObject
 
         await RunGuardedAsync(async () =>
         {
-            var currentEmoji = payload.Announcement.CurrentUserEmoji;
-
-            if (currentEmoji == payload.Emoji)
-                await _service.RemoveReactionAsync(payload.Announcement.Id, _currentUserId);
-            else
-                await _service.AddOrUpdateReactAsync(payload.Announcement.Id, _currentUserId, payload.Emoji);
+            await _service.ToggleReactionAsync(payload.Announcement.Id, _currentUserId, payload.Emoji);
 
             await LoadAnnouncementsAsync();
         });
