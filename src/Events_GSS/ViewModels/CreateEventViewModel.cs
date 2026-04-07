@@ -14,93 +14,140 @@ using Events_GSS.Services.Interfaces;
 
 namespace Events_GSS.ViewModels;
 
+/// <summary>
+/// ViewModel for creating a new event.
+/// </summary>
 public partial class CreateEventViewModel : ObservableObject
 {
-    private readonly IUserService _userService;
-    private readonly IEventService _eventService;
-    private readonly IQuestService _questService;
-    private readonly IAttendedEventService _attendedEventService;
+    private readonly IUserService userService;
+    private readonly IEventService eventService;
+    private readonly IQuestService questService;
+    private readonly IAttendedEventService attendedEventService;
 
     public CreateEventViewModel(IUserService userService, IEventService eventService, IQuestService questService, IAttendedEventService attendedEventService)
     {
-        _userService = userService;
-        _eventService = eventService;
-        _questService = questService;
-        _attendedEventService = attendedEventService;
+        this.userService = userService;
+        this.eventService = eventService;
+        this.questService = questService;
+        this.attendedEventService = attendedEventService;
     }
 
     //VM1
 
+    /// <summary>
+    /// Gets or sets the current step in the event creation wizard.
+    /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsStep1Visible))]
     [NotifyPropertyChangedFor(nameof(IsStep2Visible))]
     [NotifyPropertyChangedFor(nameof(IsStep3Visible))]
     public partial int CurrentStep { get; set; } = 1;
 
+    /// <summary>
+    /// Gets or sets the event creation details text.
+    /// </summary>
     [ObservableProperty]
     public partial string EventCreationDetailsText { get; set; } = string.Empty;
 
-    public Visibility IsStep1Visible => CurrentStep == 1 ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility IsStep2Visible => CurrentStep == 2 ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility IsStep3Visible => CurrentStep == 3 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility IsStep1Visible => this.CurrentStep == 1 ? Visibility.Visible : Visibility.Collapsed;
 
+    public Visibility IsStep2Visible => this.CurrentStep == 2 ? Visibility.Visible : Visibility.Collapsed;
+
+    public Visibility IsStep3Visible => this.CurrentStep == 3 ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>
+    /// Gets or sets the name of the event.
+    /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GoToStep2Command))]
     public partial string EventName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the location of the event.
+    /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GoToStep2Command))]
     public partial string Location { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the start date of the event.
+    /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GoToStep2Command))]
     public partial DateTimeOffset StartDate { get; set; } = DateTimeOffset.Now;
 
+    /// <summary>
+    /// Gets or sets the start time of the event.
+    /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GoToStep2Command))]
     public partial TimeSpan StartTime { get; set; } = DateTime.Now.TimeOfDay;
 
+    /// <summary>
+    /// Gets or sets the end date of the event.
+    /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GoToStep2Command))]
     public partial DateTimeOffset EndDate { get; set; } = DateTimeOffset.Now.AddDays(1);
 
+    /// <summary>
+    /// Gets or sets the end time of the event.
+    /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GoToStep2Command))]
     public partial TimeSpan EndTime { get; set; } = DateTime.Now.AddHours(1).TimeOfDay;
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the event is public.
+    /// </summary>
     [ObservableProperty]
     public partial bool IsPublic { get; set; } = true;
 
-    //VALIDATION PART
-
+    // VALIDATION PART
+    /// <summary>
+    /// Gets or sets the error message.
+    /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]
     [NotifyPropertyChangedFor(nameof(ErrorVisibility))]
     public partial string? ErrorMessage { get; set; }
 
-    public bool HasError => ErrorMessage is not null;
-    public Visibility ErrorVisibility => HasError ? Visibility.Visible : Visibility.Collapsed;
+    public bool HasError => this.ErrorMessage is not null;
 
-    //VM 2
+    public Visibility ErrorVisibility => this.HasError ? Visibility.Visible : Visibility.Collapsed;
 
+    // VM 2
+    /// <summary>
+    /// Gets or sets the description of the event.
+    /// </summary>
     [ObservableProperty]
     public partial string Description { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the maximum number of people as text.
+    /// </summary>
     [ObservableProperty]
     public partial string MaximumPeopleText { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the event banner path.
+    /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasBannerImage))]
     [NotifyPropertyChangedFor(nameof(BannerImageVisibility))]
     public partial string? EventBannerPath { get; set; }
 
-    public bool HasBannerImage => !string.IsNullOrEmpty(EventBannerPath);
-    public Visibility BannerImageVisibility => HasBannerImage ? Visibility.Visible : Visibility.Collapsed;
+    public bool HasBannerImage => !string.IsNullOrEmpty(this.EventBannerPath);
 
+    public Visibility BannerImageVisibility => this.HasBannerImage ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>
+    /// Gets or sets the selected category for the event.
+    /// </summary>
     [ObservableProperty]
     public partial Category? SelectedCategory { get; set; }
 
-    public ObservableCollection<Category> AvailableCategories { get; } = new()
+    public ObservableCollection<Category> AvailableCategories { get; } = new ()
     {
         new Category { CategoryId = 1, Title = "NATURE" },
         new Category { CategoryId = 2, Title = "FITNESS" },
@@ -112,50 +159,55 @@ public partial class CreateEventViewModel : ObservableObject
         new Category { CategoryId = 8, Title = "FUN" },
     };
 
-    //VM3
+    // VM3
+    public ObservableCollection<Quest> AvailableQuests { get; } = new ();
 
-    public ObservableCollection<Quest> AvailableQuests { get; } = new();
-    public ObservableCollection<Quest> SelectedQuests { get; } = new();
+    public ObservableCollection<Quest> SelectedQuests { get; } = new ();
 
+    /// <summary>
+    /// Gets or sets the custom quest name.
+    /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddCustomQuestCommand))]
     public partial string CustomQuestName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the custom quest description.
+    /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddCustomQuestCommand))]
     public partial string CustomQuestDescription { get; set; } = string.Empty;
 
-public event Action<CreateEventDto?>? CloseRequested;
+    public event Action<CreateEventDto?>? CloseRequested;
 
-    //Commands
-
+    // Commands
     [RelayCommand(CanExecute = nameof(CanGoToStep2))]
     private void GoToStep2()
     {
-        ErrorMessage = null;
+        this.ErrorMessage = null;
 
-        if (string.IsNullOrWhiteSpace(EventName))
+        if (string.IsNullOrWhiteSpace(this.EventName))
         {
-            ErrorMessage = "Event name is required.";
+            this.ErrorMessage = "Event name is required.";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(Location))
+        if (string.IsNullOrWhiteSpace(this.Location))
         {
-            ErrorMessage = "Location is required.";
+            this.ErrorMessage = "Location is required.";
             return;
         }
 
-        var start = StartDate.Date + StartTime;
-        var end = EndDate.Date + EndTime;
+        var start = this.StartDate.Date + this.StartTime;
+        var end = this.EndDate.Date + this.EndTime;
 
         if (end <= start)
         {
-            ErrorMessage = "End date/time must be after start date/time.";
+            this.ErrorMessage = "End date/time must be after start date/time.";
             return;
         }
 
-        CurrentStep = 2;
+        this.CurrentStep = 2;
     }
 
     public string BuildEventCreationDetailsText(CreateEventDto? createEventDto)
@@ -206,26 +258,26 @@ public event Action<CreateEventDto?>? CloseRequested;
     [RelayCommand]
     private void GoToStep3()
     {
-        CurrentStep = 3;
+        this.CurrentStep = 3;
     }
 
     [RelayCommand]
     private void GoBackToStep1()
     {
-        CurrentStep = 1;
+        this.CurrentStep = 1;
     }
 
     [RelayCommand]
     private void GoBackToStep2()
     {
-        CurrentStep = 2;
+        this.CurrentStep = 2;
     }
 
     [RelayCommand]
     private void Cancel()
     {
         this.EventCreationDetailsText = this.BuildEventCreationDetailsText(null);
-        CloseRequested?.Invoke(null);
+        this.CloseRequested?.Invoke(null);
     }
 
     [RelayCommand(CanExecute = nameof(CanAddCustomQuest))]
@@ -233,40 +285,40 @@ public event Action<CreateEventDto?>? CloseRequested;
     {
         var quest = new Quest
         {
-            Name = CustomQuestName.Trim(),
-            Description = CustomQuestDescription.Trim(),
+            Name = this.CustomQuestName.Trim(),
+            Description = this.CustomQuestDescription.Trim(),
             Difficulty = 3,
         };
 
-        SelectedQuests.Add(quest);
-        CustomQuestName = string.Empty;
-        CustomQuestDescription = string.Empty;
+        this.SelectedQuests.Add(quest);
+        this.CustomQuestName = string.Empty;
+        this.CustomQuestDescription = string.Empty;
     }
 
     private bool CanAddCustomQuest() =>
-        !string.IsNullOrWhiteSpace(CustomQuestName) &&
-        !string.IsNullOrWhiteSpace(CustomQuestDescription);
+        !string.IsNullOrWhiteSpace(this.CustomQuestName) &&
+        !string.IsNullOrWhiteSpace(this.CustomQuestDescription);
 
 
     [RelayCommand]
     private void ToggleQuestSelection(Quest quest)
     {
-        if (SelectedQuests.Contains(quest))
+        if (this.SelectedQuests.Contains(quest))
         {
-            SelectedQuests.Remove(quest);
+            this.SelectedQuests.Remove(quest);
         }
         else
         {
-            SelectedQuests.Add(quest);
+            this.SelectedQuests.Add(quest);
         }
     }
 
     [RelayCommand]
     private void RemoveQuest(Quest quest)
     {
-        if (SelectedQuests.Contains(quest))
+        if (this.SelectedQuests.Contains(quest))
         {
-            SelectedQuests.Remove(quest);
+            this.SelectedQuests.Remove(quest);
         }
     }
 
@@ -274,7 +326,7 @@ public event Action<CreateEventDto?>? CloseRequested;
     [RelayCommand]
     private async System.Threading.Tasks.Task CreateEvent()
     {
-        var dto = BuildDto();
+        var dto = this.BuildDto();
         var eventEntity = new Event
         {
             Name = dto.Name,
@@ -288,35 +340,35 @@ public event Action<CreateEventDto?>? CloseRequested;
             Category = dto.Category,
             Admin = dto.Admin!,
         };
-        int newEventId = await _eventService.CreateEventAsync(eventEntity);
+        int newEventId = await this.eventService.CreateEventAsync(eventEntity);
         eventEntity.EventId = newEventId;
-        await _attendedEventService.AttendEventAsync(newEventId, _userService.GetCurrentUser().UserId);
+        await this.attendedEventService.AttendEventAsync(newEventId, this.userService.GetCurrentUser().UserId);
 
         foreach (var quest in dto.SelectedQuests)
         {
-            await _questService.AddQuestAsync(eventEntity, quest);
+            await this.questService.AddQuestAsync(eventEntity, quest);
         }
 
         this.EventCreationDetailsText = this.BuildEventCreationDetailsText(dto);
-        CloseRequested?.Invoke(dto);
+        this.CloseRequested?.Invoke(dto);
     }
 
     public CreateEventDto BuildDto()
     {
-        int? maxPeople = int.TryParse(MaximumPeopleText, out var parsed) ? parsed : null;
+        int? maxPeople = int.TryParse(this.MaximumPeopleText, out var parsed) ? parsed : null;
 
         return new CreateEventDto
         {
-            Name = EventName.Trim(),
-            Location = Location.Trim(),
-            StartDateTime = StartDate.Date + StartTime,
-            EndDateTime = EndDate.Date + EndTime,
-            IsPublic = IsPublic,
-            Description = string.IsNullOrWhiteSpace(Description) ? "No description yet" : Description.Trim(),
+            Name = this.EventName.Trim(),
+            Location = this.Location.Trim(),
+            StartDateTime = this.StartDate.Date + this.StartTime,
+            EndDateTime = this.EndDate.Date + this.EndTime,
+            IsPublic = this.IsPublic,
+            Description = string.IsNullOrWhiteSpace(this.Description) ? "No description yet" : this.Description.Trim(),
             MaximumPeople = maxPeople,
-            EventBannerPath = EventBannerPath,
-            Category = SelectedCategory,
-            Admin = _userService.GetCurrentUser(),
+            EventBannerPath = this.EventBannerPath,
+            Category = this.SelectedCategory,
+            Admin = this.userService.GetCurrentUser(),
             SelectedQuests = new List<Quest>(SelectedQuests),
         };
     }
@@ -324,15 +376,15 @@ public event Action<CreateEventDto?>? CloseRequested;
     public async System.Threading.Tasks.Task LoadPresetQuestsAsync(IQuestService questService)
     {
         var quests = await questService.GetPresetQuestsAsync();
-        AvailableQuests.Clear();
+        this.AvailableQuests.Clear();
         foreach (var quest in quests)
         {
-            AvailableQuests.Add(quest);
+            this.AvailableQuests.Add(quest);
         }
     }
 
     public bool IsQuestSelected(Quest quest)
     {
-        return SelectedQuests.Contains(quest);
+        return this.SelectedQuests.Contains(quest);
     }
 }
