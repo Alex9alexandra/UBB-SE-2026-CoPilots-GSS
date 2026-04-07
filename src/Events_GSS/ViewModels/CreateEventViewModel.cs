@@ -37,6 +37,9 @@ public partial class CreateEventViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsStep3Visible))]
     public partial int CurrentStep { get; set; } = 1;
 
+    [ObservableProperty]
+    public partial string EventCreationDetailsText { get; set; } = string.Empty;
+
     public Visibility IsStep1Visible => CurrentStep == 1 ? Visibility.Visible : Visibility.Collapsed;
     public Visibility IsStep2Visible => CurrentStep == 2 ? Visibility.Visible : Visibility.Collapsed;
     public Visibility IsStep3Visible => CurrentStep == 3 ? Visibility.Visible : Visibility.Collapsed;
@@ -155,6 +158,47 @@ public event Action<CreateEventDto?>? CloseRequested;
         CurrentStep = 2;
     }
 
+    public string BuildEventCreationDetailsText(CreateEventDto? createEventDto)
+    {
+        if (createEventDto == null)
+        {
+            return "Event creation cancelled.";
+        }
+
+        string selectedQuestNamesText =
+            createEventDto.SelectedQuests.Count == 0
+                ? "None"
+                : string.Join(", ", createEventDto.SelectedQuests.Select(quest => quest.Name));
+
+        string categoryTitleText = createEventDto.Category?.Title ?? "None";
+
+        string createdByText =
+            createEventDto.Admin != null
+                ? $"{createEventDto.Admin.Name} (ID: {createEventDto.Admin.UserId})"
+                : "Unknown";
+
+        string maximumPeopleText =
+            createEventDto.MaximumPeople.HasValue
+                ? createEventDto.MaximumPeople.Value.ToString()
+                : "No limit";
+
+        string bannerPathText = createEventDto.EventBannerPath ?? "None";
+
+        return
+            "Event created successfully!\n\n" +
+            $"Name: {createEventDto.Name}\n" +
+            $"Location: {createEventDto.Location}\n" +
+            $"Start: {createEventDto.StartDateTime}\n" +
+            $"End: {createEventDto.EndDateTime}\n" +
+            $"Public: {createEventDto.IsPublic}\n" +
+            $"Description: {createEventDto.Description}\n" +
+            $"Maximum People: {maximumPeopleText}\n" +
+            $"Banner Path: {bannerPathText}\n" +
+            $"Category: {categoryTitleText}\n" +
+            $"Selected Quests: {selectedQuestNamesText}\n" +
+            $"Created By: {createdByText}";
+    }
+
     private bool CanGoToStep2() =>
         !string.IsNullOrWhiteSpace(EventName) &&
         !string.IsNullOrWhiteSpace(Location);
@@ -180,6 +224,7 @@ public event Action<CreateEventDto?>? CloseRequested;
     [RelayCommand]
     private void Cancel()
     {
+        this.EventCreationDetailsText = this.BuildEventCreationDetailsText(null);
         CloseRequested?.Invoke(null);
     }
 
@@ -252,6 +297,7 @@ public event Action<CreateEventDto?>? CloseRequested;
             await _questService.AddQuestAsync(eventEntity, quest);
         }
 
+        this.EventCreationDetailsText = this.BuildEventCreationDetailsText(dto);
         CloseRequested?.Invoke(dto);
     }
 

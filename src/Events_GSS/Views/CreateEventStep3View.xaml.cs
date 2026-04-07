@@ -30,35 +30,7 @@ public sealed partial class CreateEventStep3View : UserControl
         // Hide the main content
         MainContent.Visibility = Visibility.Collapsed;
 
-        string details;
-        if (dto == null)
-        {
-            details = "Event creation cancelled.";
-        }
-        else
-        {
-            string quests = dto.SelectedQuests.Count == 0
-                ? "None"
-                : string.Join(", ", dto.SelectedQuests.Select(q => q.Name));
-            string category = dto.Category?.Title ?? "None";
-            string createdBy = dto.Admin != null 
-                ? $"{dto.Admin.Name} (ID: {dto.Admin.UserId})" 
-                : "Unknown";
-
-            details =
-                $"Event created successfully!\n\n" +
-                $"Name: {dto.Name}\n" +
-                $"Location: {dto.Location}\n" +
-                $"Start: {dto.StartDateTime}\n" +
-                $"End: {dto.EndDateTime}\n" +
-                $"Public: {dto.IsPublic}\n" +
-                $"Description: {dto.Description}\n" +
-                $"Maximum People: {(dto.MaximumPeople.HasValue ? dto.MaximumPeople.Value.ToString() : "No limit")}\n" +
-                $"Banner Path: {dto.EventBannerPath ?? "None"}\n" +
-                $"Category: {category}\n" +
-                $"Selected Quests: {quests}\n" +
-                $"Created By: {createdBy}";
-        }
+        string details = this.ViewModel.EventCreationDetailsText;
 
         var dialog = new ContentDialog
         {
