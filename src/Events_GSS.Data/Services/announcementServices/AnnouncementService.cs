@@ -25,7 +25,7 @@ public class AnnouncementService : IAnnouncementService
 
     public async Task<List<Announcement>> GetAnnouncementsAsync(int eventId, int userId)
     {
-        return await _repo.GetByEventAsync(eventId, userId);
+        return await _repo.GetAnnouncementsByEventAsync(eventId, userId);
     }
 
     public async Task CreateAnnouncementAsync(string message, int eventId, int userId)
@@ -36,7 +36,7 @@ public class AnnouncementService : IAnnouncementService
             throw new ArgumentException("Announcement message cannot be empty.");
 
         var announcement = new Announcement(0, message.Trim(), DateTime.UtcNow);
-        await _repo.AddAsync(announcement, eventId, userId);
+        await _repo.AddAnnouncementAsync(announcement, eventId, userId);
     }
 
     public async Task UpdateAnnouncementAsync(int annId, string newMessage, int userId, int eventId)
@@ -46,22 +46,22 @@ public class AnnouncementService : IAnnouncementService
         if (string.IsNullOrWhiteSpace(newMessage))
             throw new ArgumentException("Announcement message cannot be empty.");
 
-        var existing = await _repo.GetByIdAsync(annId);
+        var existing = await _repo.GetAnnouncementByIdAsync(annId);
         if (existing is null)
             throw new KeyNotFoundException($"Announcement with ID {annId} does not exist.");
 
-        await _repo.UpdateAsync(annId, newMessage.Trim());
+        await _repo.UpdateAnnouncementAsync(annId, newMessage.Trim());
     }
 
     public async Task DeleteAnnouncementAsync(int annId, int userId, int eventId)
     {
         await EnsureAdminAsync(eventId, userId);
 
-        var existing = await _repo.GetByIdAsync(annId);
+        var existing = await _repo.GetAnnouncementByIdAsync(annId);
         if (existing is null)
             throw new KeyNotFoundException($"Announcement with ID {annId} does not exist.");
 
-        await _repo.DeleteAsync(annId);
+        await _repo.DeleteAnnouncementAsync(annId);
     }
 
     public async Task PinAnnouncementAsync(int annId, int eventId, int userId)
@@ -69,7 +69,7 @@ public class AnnouncementService : IAnnouncementService
         await EnsureAdminAsync(eventId, userId);
 
         // Unpin any currently pinned announcement for this event
-        await _repo.UnpinAsync(eventId);
+        await _repo.UnpinAnnouncementAsync(eventId);
         // Pin the new one
         await _repo.PinAsync(annId, eventId);
     }
@@ -92,7 +92,7 @@ public class AnnouncementService : IAnnouncementService
 
     public async Task ReactAsync(int annId, int userId, string emoji)
     {
-        await _repo.AddReactionAsync(annId, userId, emoji);
+        await _repo.AddOrUpdateReactionAsync(annId, userId, emoji);
     }
 
     public async Task RemoveReactionAsync(int annId, int userId)

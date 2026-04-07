@@ -10,15 +10,15 @@ namespace Events_GSS.Data.Repositories;
 public interface IAnnouncementRepository
 {
     // ── Announcements ─────────────────────────────────────────
-    Task<List<Announcement>> GetByEventAsync(int eventId, int userId);
-    Task<int> AddAsync(Announcement announcement, int eventId, int userId);
-    Task UpdateAsync(int annId, string newMessage);
-    Task DeleteAsync(int announcementId);
-    Task<Announcement?> GetByIdAsync(int annId);
+    Task<List<Announcement>> GetAnnouncementsByEventAsync(int eventId, int userId);
+    Task<int> AddAnnouncementAsync(Announcement announcement, int eventId, int userId);
+    Task UpdateAnnouncementAsync(int annId, string newMessage);
+    Task DeleteAnnouncementAsync(int announcementId);
+    Task<Announcement?> GetAnnouncementByIdAsync(int annId);
 
     // ── Pinning ─────────────────────────────────────────
     Task PinAsync(int announcementId, int eventId);
-    Task UnpinAsync(int eventId);
+    Task UnpinAnnouncementAsync(int eventId);
     
     // ── Read Receipts ─────────────────────────────────────────
 
@@ -30,7 +30,7 @@ public interface IAnnouncementRepository
 
     // ── Reactions ─────────────────────────────────────────
 
-    Task AddReactionAsync(int announcementId, int userId, string emoji);
+    Task AddOrUpdateReactionAsync(int announcementId, int userId, string emoji);
     Task RemoveReactionAsync(int announcementId, int userId);
 
 
