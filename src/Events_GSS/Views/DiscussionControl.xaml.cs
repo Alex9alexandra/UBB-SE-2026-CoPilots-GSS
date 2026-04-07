@@ -209,19 +209,10 @@ public sealed partial class DiscussionControl : UserControl
         var result = await dialog.ShowAsync();
         if (result == ContentDialogResult.Primary && combo.SelectedItem is string selected)
         {
-            DateTime? until = selected switch
-            {
-                "1 hour" => DateTime.UtcNow.AddHours(1),
-                "24 hours" => DateTime.UtcNow.AddHours(24),
-                "Permanent" => null,
-                "Custom" => DateTime.UtcNow
-                    .AddHours((int)hoursBox.Value)
-                    .AddMinutes((int)minutesBox.Value),
-                _ => DateTime.UtcNow.AddHours(1)
-            };
+            var expiry = ViewModel.CalculateMuteExpiry(selected, hoursBox.Value, minutesBox.Value);
 
             ViewModel.MuteUserCommand.Execute(
-                new MutePayload(item.Author!.UserId, until));
+                new MutePayload(item.Author!.UserId, expiry));
         }
     }
 
@@ -278,11 +269,10 @@ public sealed partial class DiscussionControl : UserControl
             XamlRoot = this.XamlRoot
         };
 
-        var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
         {
-            int seconds = (int)numberBox.Value;
-            ViewModel.SetSlowModeCommand.Execute(seconds as int?);
+            // Pass the raw double to the Command; let VM handle the casting/logic
+            ViewModel.SetSlowModeCommand.Execute(numberBox.Value);
         }
     }
 
@@ -312,17 +302,7 @@ public sealed partial class DiscussionControl : UserControl
         var file = await picker.PickSingleFileAsync();
         if (file is not null)
         {
-            var localFolder = Windows.Storage.ApplicationData.Current.LocalFolder;
-            var mediaFolder = await localFolder.CreateFolderAsync(
-                "DiscussionMedia",
-                Windows.Storage.CreationCollisionOption.OpenIfExists);
-
-            var copy = await file.CopyAsync(
-                mediaFolder,
-                file.Name,
-                Windows.Storage.NameCollisionOption.GenerateUniqueName);
-
-            ViewModel.MediaPath = copy.Path;
+            await ViewModel.HandleMediaFileAsync(file);
         }
     }
 

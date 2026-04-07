@@ -260,15 +260,17 @@ public partial class DiscussionViewModel : ObservableObject
     // ── Admin: Slow Mode ─────────────────────────────────────────────────────
 
     [RelayCommand]
-    private async Task SetSlowModeAsync(int? seconds)
+    public async Task SetSlowModeAsync(double? seconds)
     {
+        // Business Logic: Ensure we have a valid integer or null
+        int? roundedSeconds = seconds.HasValue ? (int)Math.Round(seconds.Value) : null;
+
         await RunGuardedAsync(async () =>
         {
-            await _service.SetSlowModeAsync(_event.EventId, seconds, _currentUserId);
-            CurrentSlowModeSeconds = seconds;
+            await _service.SetSlowModeAsync(_event.EventId, roundedSeconds, _currentUserId);
+            CurrentSlowModeSeconds = roundedSeconds;
         });
     }
-
     // ── Mention Helper ───────────────────────────────────────────────────────
 
     /// <summary>
@@ -289,6 +291,38 @@ public partial class DiscussionViewModel : ObservableObject
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+    public DateTime? CalculateMuteExpiry(string selection, double hours, double minutes)
+    {
+        return selection switch
+        {
+            "1 hour" => DateTime.UtcNow.AddHours(1),
+            "24 hours" => DateTime.UtcNow.AddDays(1),
+            "Custom" => DateTime.UtcNow.AddHours(hours).AddMinutes(minutes),
+            "Permanent" => null,
+            _ => DateTime.UtcNow.AddMinutes(30) // Default fallback
+        };
+    }
+
+    [RelayCommand]
+    public async Task HandleMediaFileAsync(Windows.Storage.IStorageFile file)
+    {
+        await RunGuardedAsync(async () =>
+        {
+            // Business logic for where files are stored lives here or in a Service
+            var localFolder = Windows.Storage.ApplicationData.Current.LocalFolder;
+            var mediaFolder = await localFolder.CreateFolderAsync(
+                "DiscussionMedia",
+                Windows.Storage.CreationCollisionOption.OpenIfExists);
+
+            var copy = await file.CopyAsync(
+                mediaFolder,
+                file.Name,
+                Windows.Storage.NameCollisionOption.GenerateUniqueName);
+
+            MediaPath = copy.Path;
+        });
+    }
+    
 
     private async Task RunGuardedAsync(Func<Task> action)
     {
