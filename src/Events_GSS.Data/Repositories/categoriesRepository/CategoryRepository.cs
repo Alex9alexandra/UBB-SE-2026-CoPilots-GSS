@@ -13,13 +13,13 @@ namespace Events_GSS.Data.Repositories.categoriesRepository;
 /// </summary>
 public class CategoryRepository : ICategoryRepository
 {
-    private readonly ISqlConnectionFactory connectionFactory;
+    private readonly SqlConnectionFactory connectionFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CategoryRepository"/> class.
     /// </summary>
     /// <param name="connectionFactory">The SQL connection factory.</param>
-    public CategoryRepository(ISqlConnectionFactory connectionFactory)
+    public CategoryRepository(SqlConnectionFactory connectionFactory)
     {
         this.connectionFactory = connectionFactory;
     }
