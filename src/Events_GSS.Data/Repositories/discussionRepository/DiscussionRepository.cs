@@ -28,7 +28,7 @@ public class DiscussionRepository : IDiscussionRepository
         using var conn = _connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
-        const string msgQuery = @"
+        const string messageSelectionQuery = @"
             SELECT
                 d.DiscussionId,  d.Message,  d.MediaPath,
                 d.Date,          d.IsEdited,
@@ -45,7 +45,7 @@ public class DiscussionRepository : IDiscussionRepository
             WHERE d.EventId = @EventId
             ORDER BY d.Date ASC";
 
-        using (var cmd = new SqlCommand(msgQuery, conn))
+        using (var cmd = new SqlCommand(messageSelectionQuery, conn))
         {
             cmd.Parameters.AddWithValue("@EventId", eventId);
 
@@ -97,7 +97,7 @@ public class DiscussionRepository : IDiscussionRepository
         var messageIds = messages.Select(m => m.Id).ToList();
         var idParams = string.Join(",", messageIds.Select((_, i) => $"@mid{i}"));
 
-        var rxnQuery = $@"
+        var reactionSelectionQuery = $@"
             SELECT dr.Id, dr.MessageId, dr.Emoji, dr.UserId, u.Name AS UserName
             FROM DiscussionReactions dr
             INNER JOIN Users u ON dr.UserId = u.Id
@@ -105,7 +105,7 @@ public class DiscussionRepository : IDiscussionRepository
 
         var allReactions = new List<(int MessageId, DiscussionReaction Reaction)>();
 
-        using (var cmd = new SqlCommand(rxnQuery, conn))
+        using (var cmd = new SqlCommand(reactionSelectionQuery, conn))
         {
             for (int i = 0; i < messageIds.Count; i++)
                 cmd.Parameters.AddWithValue($"@mid{i}", messageIds[i]);
@@ -133,10 +133,10 @@ public class DiscussionRepository : IDiscussionRepository
             .GroupBy(r => r.MessageId)
             .ToDictionary(g => g.Key, g => g.Select(x => x.Reaction).ToList());
 
-        foreach (var msg in messages)
+        foreach (var message in messages)
         {
-            if (reactionsByMessage.TryGetValue(msg.Id, out var reactions))
-                msg.Reactions = reactions;
+            if (reactionsByMessage.TryGetValue(message.Id, out var reactions))
+                message.Reactions = reactions;
         }
 
         return messages;
@@ -188,11 +188,11 @@ public class DiscussionRepository : IDiscussionRepository
                 (@EventId, @UserId, @Message, @MediaPath, @Date, @ReplyToId, 0)";
 
         using var cmd = new SqlCommand(query, conn);
-        cmd.Parameters.AddWithValue("@EventId", message.Event!.EventId);
+        cmd.Parameters.AddWithValue("@EventId", message.AssociatedEvent!.EventId);
         cmd.Parameters.AddWithValue("@UserId", message.Author!.UserId);
         cmd.Parameters.AddWithValue("@Message", (object?)message.Message ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@MediaPath", (object?)message.MediaPath ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@Date", message.Date);
+        cmd.Parameters.AddWithValue("@Date", message.DateCreated);
         cmd.Parameters.AddWithValue("@ReplyToId",
             message.ReplyTo is not null ? message.ReplyTo.Id : DBNull.Value);
 

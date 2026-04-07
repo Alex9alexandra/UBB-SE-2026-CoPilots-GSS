@@ -39,7 +39,7 @@ public partial class DiscussionMessageItemViewModel : ObservableObject
     public int Id => Model.Id;
     public string? Message => Model.Message;
     public string? MediaPath => Model.MediaPath;
-    public DateTime Date => Model.Date;
+    public DateTime Date => Model.DateCreated;
     public bool IsEdited => Model.IsEdited;
     public bool CanDelete => Model.CanDelete;
     public User? Author => Model.Author;
