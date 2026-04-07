@@ -22,9 +22,6 @@ public partial class AnnouncementViewModel : ObservableObject
     private readonly Event _currentEvent;
     private readonly int _currentUserId;
 
-    public IAnnouncementService GetAnnouncementService() => _announcementService;
-    public int GetEventId() => _currentEvent.EventId;
-
     public AnnouncementViewModel(
         Event forEvent,
         IAnnouncementService service,
@@ -298,6 +295,18 @@ public partial class AnnouncementViewModel : ObservableObject
         {
             IsLoading = false;
         }
+    }
+
+    public async Task<List<User>> GetAllParticipantsAsync()
+    {
+        return await _announcementService.GetAllParticipantsAsync(_currentEvent.EventId);
+    }
+
+    public async Task<List<User>> GetNonReadersAsync(int announcementId)
+    {
+        return await _announcementService.GetNonReadersAsync(
+            announcementId,
+            _currentEvent.EventId);
     }
 
     partial void OnIsLoadingChanged(bool value) => NotifyCommandsChanged();

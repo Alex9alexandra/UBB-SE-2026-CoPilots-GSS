@@ -142,4 +142,20 @@ public class AnnouncementService : IAnnouncementService
         await _repo.MarkAsReadAsync(announcementId, userId);
         return true;
     }
+
+    public async Task<List<User>> GetNonReadersAsync(int announcementId, int eventId)
+    {
+        var readers = await _repo.GetReadReceiptsAsync(announcementId);
+        var participants = await _repo.GetAllParticipantsAsync(eventId);
+
+        var readerIds = readers
+            .Select(r => r.User.UserId)
+            .ToHashSet();
+
+        var nonReaders = participants
+            .Where(p => !readerIds.Contains(p.UserId))
+            .ToList();
+
+        return nonReaders;
+    }
 }

@@ -30,59 +30,77 @@ public sealed partial class AnnouncementControl : UserControl
         InitializeComponent();
     }
 
-    private static void OnViewModelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    // Handles ViewModel changes by subscribing to the Announcements collection and updates the UI
+    // to show or hide the empty state message based on whether the collection is empty
+    private static void OnViewModelChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs args)
     {
-        if (d is AnnouncementControl control && e.NewValue is AnnouncementViewModel vm)
+        if (dependencyObject is AnnouncementControl control &&
+            args.NewValue is AnnouncementViewModel viewModel)
         {
-            vm.Announcements.CollectionChanged += (_, _) =>
+            viewModel.Announcements.CollectionChanged += OnAnnouncementsCollectionChanged;
+
+            void OnAnnouncementsCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
             {
                 control.EmptyStateText.Visibility =
-                    vm.Announcements.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            };
+                    viewModel.Announcements.Count == 0
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+            }
         }
     }
 
-    private void OnAnnouncementHeaderTapped(object sender, TappedRoutedEventArgs e)
+    // Handles tapping on an announcement header and toggles its expanded state
+    private void OnAnnouncementHeaderTapped(object sender, TappedRoutedEventArgs eventArgs)
     {
-        if (sender is FrameworkElement fe
-            && fe.Tag is AnnouncementItemViewModel item
-            && ViewModel is not null)
+        if (sender is FrameworkElement frameworkElement &&
+            frameworkElement.Tag is AnnouncementItemViewModel announcementItem &&
+            ViewModel is not null)
         {
-            ViewModel.ToggleExpandCommand.Execute(item);
+            ViewModel.ToggleExpandCommand.Execute(announcementItem);
         }
     }
 
-    private void OnEmojiClicked(object sender, RoutedEventArgs e)
+    private void OnEmojiClicked(object sender, RoutedEventArgs eventArgs)
     {
-        if (sender is not Button btn || btn.Tag is not string emoji || ViewModel is null)
+        if (sender is not Button button ||
+            button.Tag is not string selectedEmoji ||
+            ViewModel is null)
+        {
             return;
+        }
 
-        var item = FindAncestorDataContext<AnnouncementItemViewModel>(btn);
-        if (item is not null)
+        var announcementItem = FindAncestorDataContext<AnnouncementItemViewModel>(button);
+
+        if (announcementItem is not null)
         {
-            ViewModel.ToggleReactionCommand.Execute(
-                new AnnouncementReactionPayload(item, emoji));
+            var reactionPayload = new AnnouncementReactionPayload(
+                announcementItem,
+                selectedEmoji);
+
+            ViewModel.ToggleReactionCommand.Execute(reactionPayload);
         }
     }
 
-    private void OnEditClicked(object sender, RoutedEventArgs e)
+    private void OnEditClicked(object sender, RoutedEventArgs eventArgs)
     {
-        if (sender is FrameworkElement fe
-            && fe.Tag is AnnouncementItemViewModel item
-            && ViewModel is not null)
+        if (sender is FrameworkElement frameworkElement &&
+            frameworkElement.Tag is AnnouncementItemViewModel announcementItem &&
+            ViewModel is not null)
         {
-            ViewModel.StartEditCommand.Execute(item);
+            ViewModel.StartEditCommand.Execute(announcementItem);
         }
     }
 
-    private async void OnDeleteClicked(object sender, RoutedEventArgs e)
+    private async void OnDeleteClicked(object sender, RoutedEventArgs eventArgs)
     {
-        if (sender is not FrameworkElement fe
-            || fe.Tag is not AnnouncementItemViewModel item
-            || ViewModel is null)
+        if (sender is not FrameworkElement frameworkElement ||
+            frameworkElement.Tag is not AnnouncementItemViewModel announcementItem ||
+            ViewModel is null)
+        {
             return;
+        }
 
-        var dialog = new ContentDialog
+        var confirmationDialog = new ContentDialog
         {
             Title = "Delete announcement",
             Content = "Are you sure? This will permanently remove this announcement and all its reactions and read records.",
@@ -92,63 +110,55 @@ public sealed partial class AnnouncementControl : UserControl
             XamlRoot = this.XamlRoot
         };
 
-        var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
+        var dialogResult = await confirmationDialog.ShowAsync();
+
+        if (dialogResult == ContentDialogResult.Primary)
         {
-            ViewModel.DeleteAnnouncementCommand.Execute(item);
+            ViewModel.DeleteAnnouncementCommand.Execute(announcementItem);
         }
     }
 
     private void OnPinClicked(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement fe
-            && fe.Tag is AnnouncementItemViewModel item
+        if (sender is FrameworkElement frameworkElement
+            && frameworkElement.Tag is AnnouncementItemViewModel announcementItem
             && ViewModel is not null)
         {
-            ViewModel.PinAnnouncementCommand.Execute(item);
+            ViewModel.PinAnnouncementCommand.Execute(announcementItem);
         }
     }
 
-    private static T? FindAncestorDataContext<T>(DependencyObject start) where T : class
+    private static T? FindAncestorDataContext<T>(DependencyObject startingElement) where T : class
     {
-        var current = start;
-        while (current is not null)
+        var currentElement = startingElement;
+
+        while (currentElement is not null)
         {
-            if (current is FrameworkElement fe && fe.DataContext is T found)
-                return found;
-            current = VisualTreeHelper.GetParent(current);
+            if (currentElement is FrameworkElement frameworkElement &&
+                frameworkElement.DataContext is T matchingDataContext)
+            {
+                return matchingDataContext;
+            }
+
+            currentElement = VisualTreeHelper.GetParent(currentElement);
         }
+
         return null;
     }
 
-    private async void OnReadReceiptsClicked(object sender, RoutedEventArgs e)
+    private async void OnReadReceiptsClicked(object sender, RoutedEventArgs eventArguments)
     {
-        if (sender is not FrameworkElement fe
-            || fe.Tag is not AnnouncementItemViewModel item
+        if (sender is not FrameworkElement frameworkElement
+            || frameworkElement.Tag is not AnnouncementItemViewModel announcementItem
             || ViewModel is null
             || !ViewModel.IsEventAdmin)
             return;
 
         // Load read receipts + all participants
-        await ViewModel.LoadReadReceiptsCommand.ExecuteAsync(item);
-
-        List<User> allParticipants;
-        try
-        {
-            var service = ViewModel.GetAnnouncementService();
-            allParticipants = await service.GetAllParticipantsAsync(ViewModel.GetEventId());
-        }
-        catch
-        {
-            allParticipants = new List<User>();
-        }
+        await ViewModel.LoadReadReceiptsCommand.ExecuteAsync(announcementItem);
 
         // Compute non-readers
-        var readerIds = new HashSet<int>(
-            ViewModel.ReadReceiptUsers.Select(r => r.User.UserId));
-        var nonReaders = allParticipants
-            .Where(p => !readerIds.Contains(p.UserId))
-            .ToList();
+        var nonReaders = await ViewModel.GetNonReadersAsync(announcementItem.Id);
 
         // Build dialog
         var panel = new StackPanel { Spacing = 8 };

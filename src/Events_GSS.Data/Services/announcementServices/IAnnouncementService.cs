@@ -22,5 +22,6 @@ public interface IAnnouncementService
     Task<List<User>> GetAllParticipantsAsync(int eventId);
     Task ToggleReactionAsync(int announcementId, int userId, string emoji);
     Task<bool> MarkAsReadIfNeededAsync(int announcementId, int userId, bool isAlreadyRead);
+    Task<List<User>> GetNonReadersAsync(int announcementId, int eventId);
 
 }
