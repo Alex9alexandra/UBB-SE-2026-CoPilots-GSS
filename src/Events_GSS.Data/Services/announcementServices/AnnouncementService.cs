@@ -133,4 +133,13 @@ public class AnnouncementService : IAnnouncementService
         else
             await _repo.AddOrUpdateReactionAsync(announcementId, userId, emoji);
     }
+
+    public async Task<bool> MarkAsReadIfNeededAsync(int announcementId, int userId, bool isAlreadyRead)
+    {
+        if (isAlreadyRead)
+            return false;
+
+        await _repo.MarkAsReadAsync(announcementId, userId);
+        return true;
+    }
 }

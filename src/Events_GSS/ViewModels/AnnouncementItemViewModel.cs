@@ -57,12 +57,12 @@ public partial class AnnouncementItemViewModel : ObservableObject
     // Reactions
     public List<ReactionGroup> ReactionGroups =>
         Model.Reactions
-            .GroupBy(r => r.Emoji)
-            .Select(g => new ReactionGroup
+            .GroupBy(reaction => reaction.Emoji)
+            .Select(group => new ReactionGroup
             {
-                Emoji = g.Key,
-                Count = g.Count(),
-                CurrentUserReacted = g.Any(r => r.Author.UserId == _currentUserId)
+                Emoji = group.Key,
+                Count = group.Count(),
+                CurrentUserReacted = group.Any(reaction => reaction.Author.UserId == _currentUserId)
             })
             .ToList();
 
@@ -70,7 +70,7 @@ public partial class AnnouncementItemViewModel : ObservableObject
 
     public string? CurrentUserEmoji =>
         Model.Reactions
-            .FirstOrDefault(r => r.Author.UserId == _currentUserId)?
+            .FirstOrDefault(reaction => reaction.Author.UserId == _currentUserId)?
             .Emoji;
 
     public bool IsUnread => !IsRead;

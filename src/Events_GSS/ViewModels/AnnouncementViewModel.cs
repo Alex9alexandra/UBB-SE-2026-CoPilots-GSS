@@ -18,12 +18,12 @@ public record AnnouncementReactionPayload(AnnouncementItemViewModel Announcement
 
 public partial class AnnouncementViewModel : ObservableObject
 {
-    private readonly IAnnouncementService _service;
-    private readonly Event _event;
+    private readonly IAnnouncementService _announcementService;
+    private readonly Event _currentEvent;
     private readonly int _currentUserId;
 
-    public IAnnouncementService GetAnnouncementService() => _service;
-    public int GetEventId() => _event.EventId;
+    public IAnnouncementService GetAnnouncementService() => _announcementService;
+    public int GetEventId() => _currentEvent.EventId;
 
     public AnnouncementViewModel(
         Event forEvent,
@@ -31,8 +31,8 @@ public partial class AnnouncementViewModel : ObservableObject
         int currentUserId,
         bool isAdmin)
     {
-        _event = forEvent;
-        _service = service;
+        _currentEvent = forEvent;
+        _announcementService = service;
         _currentUserId = currentUserId;
         IsEventAdmin = isAdmin;
 
@@ -54,13 +54,22 @@ public partial class AnnouncementViewModel : ObservableObject
     [ObservableProperty]
     private bool _isReadReceiptsLoading;
 
+    private const double percentageMultiplier = 100.0;
+
+    // Returns percentage of participants who have read the announcement
     public string ReadReceiptSummary
     {
         get
         {
-            if (ReadReceiptTotalCount == 0) return "No participants";
-            int pct = (int)Math.Round(100.0 * ReadReceiptReadCount / ReadReceiptTotalCount);
-            return $"{ReadReceiptReadCount} / {ReadReceiptTotalCount} read ({pct}%)";
+            if (ReadReceiptTotalCount == 0)
+            {
+                return "No participants";
+            }
+
+            var percentageOfUsersWhoReadAnnouncement = (int)Math.Round(
+                percentageMultiplier * ReadReceiptReadCount / ReadReceiptTotalCount);
+
+            return $"{ReadReceiptReadCount} / {ReadReceiptTotalCount} read ({percentageOfUsersWhoReadAnnouncement}%)";
         }
     }
 
@@ -101,19 +110,21 @@ public partial class AnnouncementViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadAnnouncementsAsync()
     {
-        var list = await _service.GetAnnouncementsAsync(
-            _event.EventId, _currentUserId);
+        var announcementsList = await _announcementService.GetAnnouncementsAsync(
+            _currentEvent.EventId, _currentUserId);
 
         Announcements.Clear();
-        foreach (var a in list)
+        foreach (var announcement in announcementsList)
         {
-            Announcements.Add(new AnnouncementItemViewModel(a, _currentUserId, IsEventAdmin));
+            Announcements.Add(new AnnouncementItemViewModel(announcement, _currentUserId, IsEventAdmin));
         }
 
         UpdateUnreadCount();
     }
 
     [RelayCommand]
+
+    // Creates or updates an announcement
     private async Task SubmitAnnouncementAsync()
     {
         if (string.IsNullOrWhiteSpace(NewMessage)) return;
@@ -122,11 +133,11 @@ public partial class AnnouncementViewModel : ObservableObject
         {
             await RunGuardedAsync(async () =>
             {
-                await _service.UpdateAnnouncementAsync(
+                await _announcementService.UpdateAnnouncementAsync(
                     EditingAnnouncement!.Id,
                     NewMessage.Trim(),
                     _currentUserId,
-                    _event.EventId);
+                    _currentEvent.EventId);
 
                 EditingAnnouncement = null;
                 NewMessage = string.Empty;
@@ -137,9 +148,9 @@ public partial class AnnouncementViewModel : ObservableObject
         {
             await RunGuardedAsync(async () =>
             {
-                await _service.CreateAnnouncementAsync(
+                await _announcementService.CreateAnnouncementAsync(
                     NewMessage.Trim(),
-                    _event.EventId,
+                    _currentEvent.EventId,
                     _currentUserId);
 
                 NewMessage = string.Empty;
@@ -149,6 +160,8 @@ public partial class AnnouncementViewModel : ObservableObject
     }
 
     [RelayCommand]
+
+    // When user clicks on edit button, this gets the announcement they're editing and pre-fills the box with the announcement's text
     private void StartEdit(AnnouncementItemViewModel? item)
     {
         if (item is null) return;
@@ -170,8 +183,8 @@ public partial class AnnouncementViewModel : ObservableObject
 
         await RunGuardedAsync(async () =>
         {
-            await _service.DeleteAnnouncementAsync(
-                item.Id, _currentUserId, _event.EventId);
+            await _announcementService.DeleteAnnouncementAsync(
+                item.Id, _currentUserId, _currentEvent.EventId);
 
             Announcements.Remove(item);
             UpdateUnreadCount();
@@ -185,8 +198,8 @@ public partial class AnnouncementViewModel : ObservableObject
 
         await RunGuardedAsync(async () =>
         {
-            await _service.PinAnnouncementAsync(
-                item.Id, _event.EventId, _currentUserId);
+            await _announcementService.PinAnnouncementAsync(
+                item.Id, _currentEvent.EventId, _currentUserId);
 
             await LoadAnnouncementsAsync();
         });
@@ -199,22 +212,23 @@ public partial class AnnouncementViewModel : ObservableObject
 
         item.IsExpanded = !item.IsExpanded;
 
-        if (item.IsExpanded && !item.IsRead)
+        if (item.IsExpanded)
         {
-            try
+            var wasMarked = await _announcementService.MarkAsReadIfNeededAsync(
+                item.Id,
+                _currentUserId,
+                item.IsRead);
+
+            if (wasMarked)
             {
-                await _service.MarkAsReadAsync(item.Id, _currentUserId);
                 item.IsRead = true;
                 UpdateUnreadCount();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Mark as read failed: {ex.Message}");
             }
         }
     }
 
     [RelayCommand]
+    // Returns a list with all the people who have read the current announcement (only for admins)
     private async Task LoadReadReceiptsAsync(AnnouncementItemViewModel? item)
     {
         if (item is null || !IsEventAdmin) return;
@@ -222,19 +236,19 @@ public partial class AnnouncementViewModel : ObservableObject
         IsReadReceiptsLoading = true;
         try
         {
-            var (readers, total) = await _service.GetReadReceiptsAsync(
-                item.Id, _event.EventId, _currentUserId);
+            var (readers, total) = await _announcementService.GetReadReceiptsAsync(
+                item.Id, _currentEvent.EventId, _currentUserId);
 
             ReadReceiptUsers.Clear();
-            foreach (var r in readers)
-                ReadReceiptUsers.Add(r);
+            foreach (var reader in readers)
+                ReadReceiptUsers.Add(reader);
 
             ReadReceiptReadCount = readers.Count;
             ReadReceiptTotalCount = total;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            System.Diagnostics.Debug.WriteLine($"Read receipts failed: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Read receipts failed: {exception.Message}");
         }
         finally
         {
@@ -249,7 +263,7 @@ public partial class AnnouncementViewModel : ObservableObject
 
         await RunGuardedAsync(async () =>
         {
-            await _service.ToggleReactionAsync(payload.Announcement.Id, _currentUserId, payload.Emoji);
+            await _announcementService.ToggleReactionAsync(payload.Announcement.Id, _currentUserId, payload.Emoji);
 
             await LoadAnnouncementsAsync();
         });
@@ -260,6 +274,7 @@ public partial class AnnouncementViewModel : ObservableObject
         UnreadCount = Announcements.Count(a => !a.IsRead);
     }
 
+    // Wraps an async operation to manage loading state and handle exceptions consistently across the ViewModel
     private async Task RunGuardedAsync(Func<Task> action)
     {
         IsLoading = true;
@@ -272,12 +287,12 @@ public partial class AnnouncementViewModel : ObservableObject
         {
             ErrorMessage = "You don't have permission for this action.";
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
             System.Diagnostics.Debug.WriteLine("========== FULL EXCEPTION ==========");
-            System.Diagnostics.Debug.WriteLine(ex.ToString());
+            System.Diagnostics.Debug.WriteLine(exception.ToString());
             System.Diagnostics.Debug.WriteLine("=====================================");
-            ErrorMessage = ex.Message;
+            ErrorMessage = exception.Message;
         }
         finally
         {
