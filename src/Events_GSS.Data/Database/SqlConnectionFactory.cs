@@ -5,7 +5,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Events_GSS.Data.Database;
 
-public class SqlConnectionFactory
+public class SqlConnectionFactory : ISqlConnectionFactory
 {
     private readonly string _connectionString;
      public SqlConnectionFactory(string connectionString)
