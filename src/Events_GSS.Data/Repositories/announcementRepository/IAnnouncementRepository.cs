@@ -12,9 +12,9 @@ public interface IAnnouncementRepository
     // ── Announcements ─────────────────────────────────────────
     Task<List<Announcement>> GetAnnouncementsByEventAsync(int eventId, int userId);
     Task<int> AddAnnouncementAsync(Announcement announcement, int eventId, int userId);
-    Task UpdateAnnouncementAsync(int annId, string newMessage);
-    Task DeleteAnnouncementAsync(int announcementId);
-    Task<Announcement?> GetAnnouncementByIdAsync(int annId);
+    Task UpdateAnnouncementAsync(int announcementId, string newMessage);
+    Task DeleteAnnouncementAsync(int selectedEvent);
+    Task<Announcement?> GetAnnouncementByIdAsync(int announcementId);
 
     // ── Pinning ─────────────────────────────────────────
     Task PinAsync(int announcementId, int eventId);

@@ -254,7 +254,7 @@ public partial class AnnouncementViewModel : ObservableObject
             if (currentEmoji == payload.Emoji)
                 await _service.RemoveReactionAsync(payload.Announcement.Id, _currentUserId);
             else
-                await _service.ReactAsync(payload.Announcement.Id, _currentUserId, payload.Emoji);
+                await _service.AddOrUpdateReactAsync(payload.Announcement.Id, _currentUserId, payload.Emoji);
 
             await LoadAnnouncementsAsync();
         });

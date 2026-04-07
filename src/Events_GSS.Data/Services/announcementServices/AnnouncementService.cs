@@ -28,77 +28,81 @@ public class AnnouncementService : IAnnouncementService
         return await _repo.GetAnnouncementsByEventAsync(eventId, userId);
     }
 
-    public async Task CreateAnnouncementAsync(string message, int eventId, int userId)
+    public async Task CreateAnnouncementAsync(string announcementMessage, int eventId, int userId)
     {
         await EnsureAdminAsync(eventId, userId);
 
-        if (string.IsNullOrWhiteSpace(message))
+        if (string.IsNullOrWhiteSpace(announcementMessage))
             throw new ArgumentException("Announcement message cannot be empty.");
 
-        var announcement = new Announcement(0, message.Trim(), DateTime.UtcNow);
+        var announcement = new Announcement(0, announcementMessage.Trim(), DateTime.UtcNow);
         await _repo.AddAnnouncementAsync(announcement, eventId, userId);
     }
 
-    public async Task UpdateAnnouncementAsync(int annId, string newMessage, int userId, int eventId)
+    public async Task UpdateAnnouncementAsync(int announcementId, string newAnnouncementMessage, int userId, int eventId)
     {
         await EnsureAdminAsync(eventId, userId);
 
-        if (string.IsNullOrWhiteSpace(newMessage))
+        if (string.IsNullOrWhiteSpace(newAnnouncementMessage))
             throw new ArgumentException("Announcement message cannot be empty.");
 
-        var existing = await _repo.GetAnnouncementByIdAsync(annId);
-        if (existing is null)
-            throw new KeyNotFoundException($"Announcement with ID {annId} does not exist.");
+        var existingAnnouncement = await _repo.GetAnnouncementByIdAsync(announcementId);
 
-        await _repo.UpdateAnnouncementAsync(annId, newMessage.Trim());
+        if (existingAnnouncement is null)
+            throw new KeyNotFoundException($"Announcement with ID {announcementId} does not exist.");
+
+        await _repo.UpdateAnnouncementAsync(announcementId, newAnnouncementMessage.Trim());
     }
 
-    public async Task DeleteAnnouncementAsync(int annId, int userId, int eventId)
+    public async Task DeleteAnnouncementAsync(int announcementId, int userId, int eventId)
     {
         await EnsureAdminAsync(eventId, userId);
 
-        var existing = await _repo.GetAnnouncementByIdAsync(annId);
-        if (existing is null)
-            throw new KeyNotFoundException($"Announcement with ID {annId} does not exist.");
+        var existingAnnouncement = await _repo.GetAnnouncementByIdAsync(announcementId);
+        if (existingAnnouncement is null)
+            throw new KeyNotFoundException($"Announcement with ID {announcementId} does not exist.");
 
-        await _repo.DeleteAnnouncementAsync(annId);
+        await _repo.DeleteAnnouncementAsync(announcementId);
     }
 
-    public async Task PinAnnouncementAsync(int annId, int eventId, int userId)
+    public async Task PinAnnouncementAsync(int announcementId, int eventId, int userId)
     {
         await EnsureAdminAsync(eventId, userId);
 
         // Unpin any currently pinned announcement for this event
         await _repo.UnpinAnnouncementAsync(eventId);
         // Pin the new one
-        await _repo.PinAsync(annId, eventId);
+        await _repo.PinAsync(announcementId, eventId);
     }
 
-    public async Task MarkAsReadAsync(int annId, int userId)
+    // Marks announcements as read
+    public async Task MarkAsReadAsync(int announcementId, int userId)
     {
-        await _repo.MarkAsReadAsync(annId, userId);
+        await _repo.MarkAsReadAsync(announcementId, userId);
     }
 
     public async Task<(List<AnnouncementReadReceipt> Readers, int TotalParticipants)> GetReadReceiptsAsync(
-        int annId, int eventId, int userId)
+        int announcementId, int eventId, int userId)
     {
         await EnsureAdminAsync(eventId, userId);
 
-        var readers = await _repo.GetReadReceiptsAsync(annId);
-        var total = await _repo.GetTotalParticipantsAsync(eventId);
+        var readers = await _repo.GetReadReceiptsAsync(announcementId);
+        var totalParticipants = await _repo.GetTotalParticipantsAsync(eventId);
 
-        return (readers, total);
+        return (readers, totalParticipants);
     }
 
-    public async Task ReactAsync(int annId, int userId, string emoji)
+    public async Task AddOrUpdateReactAsync(int announcementId, int userId, string emoji)
     {
-        await _repo.AddOrUpdateReactionAsync(annId, userId, emoji);
+        await _repo.AddOrUpdateReactionAsync(announcementId, userId, emoji);
     }
 
-    public async Task RemoveReactionAsync(int annId, int userId)
+    public async Task RemoveReactionAsync(int announcementId, int userId)
     {
-        await _repo.RemoveReactionAsync(annId, userId);
+        await _repo.RemoveReactionAsync(announcementId, userId);
     }
+
+    // Gets number of unread announcements for the current user (only for the events he's participating in)
     public async Task<Dictionary<int, int>> GetUnreadCountsForUserAsync(int userId)
     {
         return await _repo.GetUnreadCountsForUserAsync(userId);
@@ -109,12 +113,13 @@ public class AnnouncementService : IAnnouncementService
         return await _repo.GetAllParticipantsAsync(eventId);
     }
 
+    // Ensures the current user is the admin of the event before allowing restricted operations
     private async Task EnsureAdminAsync(int eventId, int userId)
     {
-        var ev = await _eventRepo.GetByIdAsync(eventId);
-        if (ev is null)
+        var selectedEvent = await _eventRepo.GetByIdAsync(eventId); 
+        if (selectedEvent is null)
             throw new ArgumentException($"Event with ID {eventId} does not exist.");
-        if (ev.Admin?.UserId != userId)
+        if (selectedEvent.Admin?.UserId != userId)
             throw new UnauthorizedAccessException("Only the EventAdmin can perform this action.");
     }
 }
