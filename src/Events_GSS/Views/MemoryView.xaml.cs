@@ -9,6 +9,7 @@ namespace Events_GSS.Views
 
     using Events_GSS.Data.Models;
     using Events_GSS.ViewModels;
+    using Events_GSS.Data.ViewModels;
 
     using Microsoft.UI.Xaml;
     using Microsoft.UI.Xaml.Controls;

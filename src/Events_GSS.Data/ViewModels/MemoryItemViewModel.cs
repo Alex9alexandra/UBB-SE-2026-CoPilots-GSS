@@ -2,7 +2,7 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-namespace Events_GSS.ViewModels
+namespace Events_GSS.Data.ViewModels
 {
     using System.ComponentModel;
     using System.Runtime.CompilerServices;
