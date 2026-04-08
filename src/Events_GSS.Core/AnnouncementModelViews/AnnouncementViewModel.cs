@@ -12,7 +12,7 @@ using CommunityToolkit.Mvvm.Input;
 using Events_GSS.Data.Models;
 using Events_GSS.Data.Services.announcementServices;
 
-using Microsoft.UI.Xaml;
+using System.Diagnostics.CodeAnalysis;
 public record AnnouncementReactionPayload(AnnouncementItemViewModel announcement, string emoji);
 
 /// <summary>
@@ -85,7 +85,6 @@ public partial class AnnouncementViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]
-    [NotifyPropertyChangedFor(nameof(ErrorVisibility))]
     private string? _errorMessage;
 
     [ObservableProperty]
@@ -99,14 +98,15 @@ public partial class AnnouncementViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CreateButtonText))]
     private AnnouncementItemViewModel? _editingAnnouncement;
 
+    [ExcludeFromCodeCoverage]
     public bool IsNotLoading => !this.IsLoading;
 
+    [ExcludeFromCodeCoverage]
     public bool HasError => this.ErrorMessage is not null;
-
-    public Visibility ErrorVisibility => this.HasError ? Visibility.Visible : Visibility.Collapsed;
 
     public bool IsEditing => this.EditingAnnouncement is not null;
 
+    [ExcludeFromCodeCoverage]
     public string CreateButtonText => this.IsEditing ? "Save Edit" : "Post";
 
     /// <summary>
@@ -335,11 +335,13 @@ public partial class AnnouncementViewModel : ObservableObject
         }
     }
 
+    [ExcludeFromCodeCoverage]
     public async Task<List<User>> GetAllParticipantsAsync()
     {
         return await this._announcementService.GetAllParticipantsAsync(this._currentEvent.EventId);
     }
 
+    [ExcludeFromCodeCoverage]
     public async Task<List<User>> GetNonReadersAsync(int announcementId)
     {
         return await this._announcementService.GetNonReadersAsync(

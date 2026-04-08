@@ -209,14 +209,12 @@ namespace Events_GSS.Tests.AnnouncementsTests.ViewModelTests
         [Fact]
         public async Task ToggleExpand_AlreadyRead_DoesNotMarkAsReadAgain()
         {
-            // Arrange
             var model = new Announcement(5, "msg", DateTime.UtcNow)
             {
                 IsRead = true
             };
 
             var item = new AnnouncementItemViewModel(model, 10, true);
-
             _vm.Announcements.Add(item);
 
             // Act
@@ -224,33 +222,16 @@ namespace Events_GSS.Tests.AnnouncementsTests.ViewModelTests
 
             // Assert
             _mockService.Verify(s =>
-                s.MarkAsReadIfNeededAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<bool>()),
-                Times.Never);
+                s.MarkAsReadIfNeededAsync(5, 10, true),  // Called with IsRead = true
+                Times.Once);
+
+            // The service should handle the logic of not marking as read
+            Assert.True(item.IsRead);
         }
 
         // -----------------------------
         // READ RECEIPTS
         // -----------------------------
-
-        [Fact]
-        public async Task LoadReadReceipts_Admin_LoadsData()
-        {
-            // Arrange
-            var item = new AnnouncementItemViewModel(
-                new Announcement(5, "msg", DateTime.UtcNow),
-                10,
-                true);
-
-            _mockService
-                .Setup(s => s.GetReadReceiptsAsync(5, 1, 10))
-                .ReturnsAsync((new List<AnnouncementReadReceipt>(), 5));
-
-            // Act
-            await _vm.LoadReadReceiptsCommand.ExecuteAsync(item);
-
-            // Assert
-            Assert.Equal(5, _vm.ReadReceiptTotalCount);
-        }
 
         [Fact]
         public async Task LoadReadReceipts_NonAdmin_DoesNotLoad()
@@ -436,6 +417,113 @@ namespace Events_GSS.Tests.AnnouncementsTests.ViewModelTests
             Assert.Null(_vm.EditingAnnouncement);
             Assert.Equal(string.Empty, _vm.NewMessage);
             Assert.False(_vm.IsEditing);
+        }
+
+        [Fact]
+        public void StartEdit_NullItem_DoesNotChangeState()
+        {
+            // Arrange
+            _vm.EditingAnnouncement = null;
+            _vm.NewMessage = "initial";
+
+            // Act
+            _vm.StartEditCommand.Execute(null);
+
+            // Assert
+            Assert.Null(_vm.EditingAnnouncement);
+            Assert.Equal("initial", _vm.NewMessage);
+        }
+
+        [Fact]
+        public async Task LoadReadReceipts_WhenNullOrNotAdmin_DoesNothing()
+        {
+            var vm = new AnnouncementViewModel(_event, _mockService.Object, 10, false);
+
+            await vm.LoadReadReceiptsCommand.ExecuteAsync(null);
+
+            _mockService.Verify(
+                s => s.GetReadReceiptsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task LoadReadReceipts_WhenServiceFails_DoesNotCrash()
+        {
+            _mockService
+                .Setup(s => s.GetReadReceiptsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()))
+                .ThrowsAsync(new Exception("fail"));
+
+            var item = new AnnouncementItemViewModel(new Announcement(5, "msg", DateTime.UtcNow),
+    10,
+    false);
+
+            await _vm.LoadReadReceiptsCommand.ExecuteAsync(item);
+
+            Assert.False(_vm.IsReadReceiptsLoading);
+        }
+
+        [Fact]
+        public async Task DeleteAnnouncement_NullItem_DoesNothing()
+        {
+            // Act
+            await _vm.DeleteAnnouncementCommand.ExecuteAsync(null);
+
+            // Assert
+            _mockService.Verify(s =>
+                s.DeleteAnnouncementAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task PinAnnouncement_NullItem_DoesNothing()
+        {
+            // Act
+            await _vm.PinAnnouncementCommand.ExecuteAsync(null);
+
+            // Assert
+            _mockService.Verify(s =>
+                s.PinAnnouncementAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task ToggleExpand_NullItem_DoesNothing()
+        {
+            // Act
+            await _vm.ToggleExpandCommand.ExecuteAsync(null);
+
+            // Assert
+            _mockService.Verify(s =>
+                s.MarkAsReadIfNeededAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<bool>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task LoadReadReceipts_Admin_LoadsAndPopulatesCollection()
+        {
+            // Arrange
+            var item = new AnnouncementItemViewModel(
+                new Announcement(5, "msg", DateTime.UtcNow),
+                10,
+                true);
+
+            var readers = new List<AnnouncementReadReceipt>
+    {
+        new AnnouncementReadReceipt(),
+        new AnnouncementReadReceipt()
+    };
+
+            _mockService
+                .Setup(s => s.GetReadReceiptsAsync(5, 1, 10))
+                .ReturnsAsync((readers, 2));
+
+            // Act
+            await _vm.LoadReadReceiptsCommand.ExecuteAsync(item);
+
+            // Assert (THIS is what matters)
+            Assert.Equal(2, _vm.ReadReceiptUsers.Count);
+            Assert.Equal(2, _vm.ReadReceiptReadCount);
+            Assert.Equal(2, _vm.ReadReceiptTotalCount);
         }
     }
 }

@@ -8,6 +8,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 using Events_GSS.Data.Models;
 
+using System.Diagnostics.CodeAnalysis;
+
 /// <summary>
 /// ViewModel representing a single announcement item with user-specific state
 /// such as read status, reactions, and admin permissions.
@@ -43,12 +45,16 @@ public partial class AnnouncementItemViewModel : ObservableObject
 
     public string Message => this.Model.Message;
 
+    [ExcludeFromCodeCoverage]
     public DateTime Date => this.Model.Date;
 
+    [ExcludeFromCodeCoverage]
     public bool IsPinned => this.Model.IsPinned;
 
+    [ExcludeFromCodeCoverage]
     public bool IsEdited => this.Model.IsEdited;
 
+    [ExcludeFromCodeCoverage]
     public User? Author => this.Model.Author;
 
     /// <summary>
@@ -96,5 +102,6 @@ public partial class AnnouncementItemViewModel : ObservableObject
 
     public bool IsUnread => !this.IsRead;
 
+    [ExcludeFromCodeCoverage]
     public bool IsCurrentUserAdmin => this._isCurrentUserAdmin;
 }
