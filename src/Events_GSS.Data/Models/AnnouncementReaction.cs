@@ -1,14 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿// <copyright file="AnnouncementReaction.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Events_GSS.Data.Models;
 
+/// <summary>
+/// Represents a reaction from a user on a specific announcement.
+/// </summary>
 public class AnnouncementReaction
-
 {
     public int Id { get; set; } = 0;
-    public required string Emoji { get; set; }
-    public int AnnouncementId { get; set; } 
-    public required User Author {  get; set; }
+
+    required public string Emoji { get; set; }
+
+    public int AnnouncementId { get; set; }
+
+    required public User Author { get; set; }
 }

@@ -1,4 +1,8 @@
-using System;
+// <copyright file="AnnouncementControl.xaml.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Events_GSS.Views;
 
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -6,10 +10,10 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 
 using Events_GSS.ViewModels;
-using Events_GSS.Data.Models;
 
-namespace Events_GSS.Views;
-
+/// <summary>
+/// AnnouncementControl manages the connection between the ViewModel and the UI.
+/// </summary>
 public sealed partial class AnnouncementControl : UserControl
 {
     public static readonly DependencyProperty ViewModelProperty =
@@ -21,13 +25,13 @@ public sealed partial class AnnouncementControl : UserControl
 
     public AnnouncementViewModel? ViewModel
     {
-        get => (AnnouncementViewModel?)GetValue(ViewModelProperty);
-        set => SetValue(ViewModelProperty, value);
+        get => (AnnouncementViewModel?)this.GetValue(ViewModelProperty);
+        set => this.SetValue(ViewModelProperty, value);
     }
 
     public AnnouncementControl()
     {
-        InitializeComponent();
+        this.InitializeComponent();
     }
 
     // Handles ViewModel changes by subscribing to the Announcements collection and updates the UI
@@ -49,86 +53,18 @@ public sealed partial class AnnouncementControl : UserControl
         }
     }
 
-    // Handles tapping on an announcement header and toggles its expanded state
-    private void OnAnnouncementHeaderTapped(object sender, TappedRoutedEventArgs eventArgs)
-    {
-        if (sender is FrameworkElement frameworkElement &&
-            frameworkElement.Tag is AnnouncementItemViewModel announcementItem &&
-            ViewModel is not null)
-        {
-            ViewModel.ToggleExpandCommand.Execute(announcementItem);
-        }
-    }
-
-    private void OnEmojiClicked(object sender, RoutedEventArgs eventArgs)
-    {
-        if (sender is not Button button ||
-            button.Tag is not string selectedEmoji ||
-            ViewModel is null)
-        {
-            return;
-        }
-
-        var announcementItem = FindAncestorDataContext<AnnouncementItemViewModel>(button);
-
-        if (announcementItem is not null)
-        {
-            var reactionPayload = new AnnouncementReactionPayload(
-                announcementItem,
-                selectedEmoji);
-
-            ViewModel.ToggleReactionCommand.Execute(reactionPayload);
-        }
-    }
-
-    private void OnEditClicked(object sender, RoutedEventArgs eventArgs)
-    {
-        if (sender is FrameworkElement frameworkElement &&
-            frameworkElement.Tag is AnnouncementItemViewModel announcementItem &&
-            ViewModel is not null)
-        {
-            ViewModel.StartEditCommand.Execute(announcementItem);
-        }
-    }
-
-    private async void OnDeleteClicked(object sender, RoutedEventArgs eventArgs)
-    {
-        if (sender is not FrameworkElement frameworkElement ||
-            frameworkElement.Tag is not AnnouncementItemViewModel announcementItem ||
-            ViewModel is null)
-        {
-            return;
-        }
-
-        var confirmationDialog = new ContentDialog
-        {
-            Title = "Delete announcement",
-            Content = "Are you sure? This will permanently remove this announcement and all its reactions and read records.",
-            PrimaryButtonText = "Delete",
-            CloseButtonText = "Cancel",
-            DefaultButton = ContentDialogButton.Close,
-            XamlRoot = this.XamlRoot
-        };
-
-        var dialogResult = await confirmationDialog.ShowAsync();
-
-        if (dialogResult == ContentDialogResult.Primary)
-        {
-            ViewModel.DeleteAnnouncementCommand.Execute(announcementItem);
-        }
-    }
-
-    private void OnPinClicked(object sender, RoutedEventArgs e)
-    {
-        if (sender is FrameworkElement frameworkElement
-            && frameworkElement.Tag is AnnouncementItemViewModel announcementItem
-            && ViewModel is not null)
-        {
-            ViewModel.PinAnnouncementCommand.Execute(announcementItem);
-        }
-    }
-
-    private static T? FindAncestorDataContext<T>(DependencyObject startingElement) where T : class
+    /// <summary>
+    /// Traverses the visual tree upward starting from the specified element
+    /// and searches for the first matching DataContext of type <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">The type of DataContext to search for.</typeparam>
+    /// <param name="startingElement">The element from which to begin the search.</param>
+    /// <returns>
+    /// The first matching DataContext of type <typeparamref name="T"/> if found;
+    /// otherwise, <see langword="null"/>.
+    /// </returns>
+    private static T? FindAncestorDataContext<T>(DependencyObject startingElement)
+        where T : class
     {
         var currentElement = startingElement;
 
@@ -146,19 +82,100 @@ public sealed partial class AnnouncementControl : UserControl
         return null;
     }
 
+    // Handles tapping on an announcement header and toggles its expanded state
+    private void OnAnnouncementHeaderTapped(object sender, TappedRoutedEventArgs eventArgs)
+    {
+        if (sender is FrameworkElement frameworkElement &&
+            frameworkElement.Tag is AnnouncementItemViewModel announcementItem &&
+            this.ViewModel is not null)
+        {
+            this.ViewModel.ToggleExpandCommand.Execute(announcementItem);
+        }
+    }
+
+    private void OnEmojiClicked(object sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is not Button button ||
+            button.Tag is not string selectedEmoji ||
+            this.ViewModel is null)
+        {
+            return;
+        }
+
+        var announcementItem = FindAncestorDataContext<AnnouncementItemViewModel>(button);
+
+        if (announcementItem is not null)
+        {
+            var reactionPayload = new AnnouncementReactionPayload(
+                announcementItem,
+                selectedEmoji);
+
+            this.ViewModel.ToggleReactionCommand.Execute(reactionPayload);
+        }
+    }
+
+    private void OnEditClicked(object sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is FrameworkElement frameworkElement &&
+            frameworkElement.Tag is AnnouncementItemViewModel announcementItem &&
+            this.ViewModel is not null)
+        {
+            this.ViewModel.StartEditCommand.Execute(announcementItem);
+        }
+    }
+
+    private async void OnDeleteClicked(object sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is not FrameworkElement frameworkElement ||
+            frameworkElement.Tag is not AnnouncementItemViewModel announcementItem ||
+            this.ViewModel is null)
+        {
+            return;
+        }
+
+        var confirmationDialog = new ContentDialog
+        {
+            Title = "Delete announcement",
+            Content = "Are you sure? This will permanently remove this announcement and all its reactions and read records.",
+            PrimaryButtonText = "Delete",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = this.XamlRoot,
+        };
+
+        var dialogResult = await confirmationDialog.ShowAsync();
+
+        if (dialogResult == ContentDialogResult.Primary)
+        {
+            this.ViewModel.DeleteAnnouncementCommand.Execute(announcementItem);
+        }
+    }
+
+    private void OnPinClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement frameworkElement
+            && frameworkElement.Tag is AnnouncementItemViewModel announcementItem
+            && this.ViewModel is not null)
+        {
+            this.ViewModel.PinAnnouncementCommand.Execute(announcementItem);
+        }
+    }
+
     private async void OnReadReceiptsClicked(object sender, RoutedEventArgs eventArguments)
     {
         if (sender is not FrameworkElement frameworkElement
             || frameworkElement.Tag is not AnnouncementItemViewModel announcementItem
-            || ViewModel is null
-            || !ViewModel.IsEventAdmin)
+            || this.ViewModel is null
+            || !this.ViewModel.IsEventAdmin)
+        {
             return;
+        }
 
         // Load read receipts + all participants
-        await ViewModel.LoadReadReceiptsCommand.ExecuteAsync(announcementItem);
+        await this.ViewModel.LoadReadReceiptsCommand.ExecuteAsync(announcementItem);
 
         // Compute non-readers
-        var nonReaders = await ViewModel.GetNonReadersAsync(announcementItem.Id);
+        var nonReaders = await this.ViewModel.GetNonReadersAsync(announcementItem.Id);
 
         // Build dialog
         var panel = new StackPanel { Spacing = 8 };
@@ -166,22 +183,22 @@ public sealed partial class AnnouncementControl : UserControl
         // Summary
         panel.Children.Add(new TextBlock
         {
-            Text = ViewModel.ReadReceiptSummary,
-            Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"]
+            Text = this.ViewModel.ReadReceiptSummary,
+            Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
         });
 
         // ── Readers section ──
         panel.Children.Add(new TextBlock
         {
-            Text = $"Read ({ViewModel.ReadReceiptUsers.Count}):",
+            Text = $"Read ({this.ViewModel.ReadReceiptUsers.Count}):",
             Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
             FontSize = 13,
-            Margin = new Thickness(0, 12, 0, 4)
+            Margin = new Thickness(0, 12, 0, 4),
         });
 
-        if (ViewModel.ReadReceiptUsers.Count > 0)
+        if (this.ViewModel.ReadReceiptUsers.Count > 0)
         {
-            foreach (var receipt in ViewModel.ReadReceiptUsers)
+            foreach (var receipt in this.ViewModel.ReadReceiptUsers)
             {
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
                 row.Children.Add(new FontIcon
@@ -189,19 +206,19 @@ public sealed partial class AnnouncementControl : UserControl
                     Glyph = "\uE73E", // Checkmark
                     FontSize = 12,
                     Foreground = new SolidColorBrush(Microsoft.UI.Colors.Green),
-                    VerticalAlignment = VerticalAlignment.Center
+                    VerticalAlignment = VerticalAlignment.Center,
                 });
                 row.Children.Add(new TextBlock
                 {
                     Text = receipt.User.Name,
-                    Style = (Style)Application.Current.Resources["BodyTextBlockStyle"]
+                    Style = (Style)Application.Current.Resources["BodyTextBlockStyle"],
                 });
                 row.Children.Add(new TextBlock
                 {
                     Text = receipt.ReadAt.ToString("MMM dd, HH:mm"),
                     Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
                     FontSize = 12,
-                    VerticalAlignment = VerticalAlignment.Center
+                    VerticalAlignment = VerticalAlignment.Center,
                 });
                 panel.Children.Add(row);
             }
@@ -212,7 +229,7 @@ public sealed partial class AnnouncementControl : UserControl
             {
                 Text = "No one has read this announcement yet.",
                 FontStyle = Windows.UI.Text.FontStyle.Italic,
-                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
             });
         }
 
@@ -222,7 +239,7 @@ public sealed partial class AnnouncementControl : UserControl
             Text = $"Not yet read ({nonReaders.Count}):",
             Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
             FontSize = 13,
-            Margin = new Thickness(0, 12, 0, 4)
+            Margin = new Thickness(0, 12, 0, 4),
         });
 
         if (nonReaders.Count > 0)
@@ -235,13 +252,13 @@ public sealed partial class AnnouncementControl : UserControl
                     Glyph = "\uE711", // X mark
                     FontSize = 12,
                     Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
-                    VerticalAlignment = VerticalAlignment.Center
+                    VerticalAlignment = VerticalAlignment.Center,
                 });
                 row.Children.Add(new TextBlock
                 {
                     Text = user.Name,
                     Style = (Style)Application.Current.Resources["BodyTextBlockStyle"],
-                    Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+                    Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
                 });
                 panel.Children.Add(row);
             }
@@ -252,7 +269,7 @@ public sealed partial class AnnouncementControl : UserControl
             {
                 Text = "Everyone has read this announcement!",
                 FontStyle = Windows.UI.Text.FontStyle.Italic,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.Green)
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.Green),
             });
         }
 
@@ -262,10 +279,10 @@ public sealed partial class AnnouncementControl : UserControl
             Content = new ScrollViewer
             {
                 Content = panel,
-                MaxHeight = 400
+                MaxHeight = 400,
             },
             CloseButtonText = "Close",
-            XamlRoot = this.XamlRoot
+            XamlRoot = this.XamlRoot,
         };
 
         await dialog.ShowAsync();

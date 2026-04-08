@@ -1,79 +1,100 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿// <copyright file="AnnouncementItemViewModel.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Events_GSS.ViewModels;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
 using Events_GSS.Data.Models;
 
-namespace Events_GSS.ViewModels;
-
+/// <summary>
+/// ViewModel representing a single announcement item with user-specific state
+/// such as read status, reactions, and admin permissions.
+/// </summary>
 public partial class AnnouncementItemViewModel : ObservableObject
 {
     public Announcement Model { get; }
+
     private readonly int _currentUserId;
     private readonly bool _isCurrentUserAdmin;
-
-    public AnnouncementItemViewModel(Announcement model, int currentUserId, bool isAdmin)
-    {
-        Model = model;
-        _currentUserId = currentUserId;
-        _isCurrentUserAdmin = isAdmin;
-        _isRead = model.IsRead;
-        _isExpanded = false;
-    }
-
     [ObservableProperty]
     private bool _isExpanded;
 
     [ObservableProperty]
     private bool _isRead;
 
-    public int Id => Model.Id;
-    public string Message => Model.Message;
-    public DateTime Date => Model.Date;
-    public bool IsPinned => Model.IsPinned;
-    public bool IsEdited => Model.IsEdited;
-    public User? Author => Model.Author;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AnnouncementItemViewModel"/> class.
+    /// </summary>
+    /// <param name="model">The announcement model.</param>
+    /// <param name="currentUserId">The ID of the current user.</param>
+    /// <param name="isAdmin">Whether the current user is an admin.</param>
+    public AnnouncementItemViewModel(Announcement model, int currentUserId, bool isAdmin)
+    {
+        this.Model = model;
+        this._currentUserId = currentUserId;
+        this._isCurrentUserAdmin = isAdmin;
+        this._isRead = model.IsRead;
+        this._isExpanded = false;
+    }
+
+    public int Id => this.Model.Id;
+
+    public string Message => this.Model.Message;
+
+    public DateTime Date => this.Model.Date;
+
+    public bool IsPinned => this.Model.IsPinned;
+
+    public bool IsEdited => this.Model.IsEdited;
+
+    public User? Author => this.Model.Author;
 
     /// <summary>
-    /// First line of the message, used as the collapsed preview (REQ-ANN-02).
+    /// Gets first line of the message, used as the collapsed preview (REQ-ANN-02).
     /// </summary>
     public string PreviewText
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(Message)) return string.Empty;
-            var firstLine = Message.Split('\n', 2)[0];
+            if (string.IsNullOrWhiteSpace(this.Message))
+            {
+                return string.Empty;
+            }
+
+            var firstLine = this.Message.Split('\n', 2)[0];
             return firstLine.Length > 120 ? firstLine[..120] + "…" : firstLine;
         }
     }
 
     /// <summary>
-    /// Whether the message has more content beyond the first line.
+    /// Gets a value indicating whether the message has more content beyond the first line.
     /// </summary>
-    public bool HasFullContent => Message.Contains('\n') || Message.Length > 120;
+    public bool HasFullContent => this.Message.Contains('\n') || this.Message.Length > 120;
 
-    // Reactions
+    /// <summary>
+    /// Gets reactions from all users on a specific announcement.
+    /// </summary>
     public List<ReactionGroup> ReactionGroups =>
-        Model.Reactions
+        this.Model.Reactions
             .GroupBy(reaction => reaction.Emoji)
             .Select(group => new ReactionGroup
             {
                 Emoji = group.Key,
                 Count = group.Count(),
-                CurrentUserReacted = group.Any(reaction => reaction.Author.UserId == _currentUserId)
+                CurrentUserReacted = group.Any(reaction => reaction.Author.UserId == this._currentUserId),
             })
             .ToList();
 
-    public bool HasReactions => Model.Reactions.Count > 0;
+    public bool HasReactions => this.Model.Reactions.Count > 0;
 
     public string? CurrentUserEmoji =>
-        Model.Reactions
-            .FirstOrDefault(reaction => reaction.Author.UserId == _currentUserId)?
+        this.Model.Reactions
+            .FirstOrDefault(reaction => reaction.Author.UserId == this._currentUserId)?
             .Emoji;
 
-    public bool IsUnread => !IsRead;
+    public bool IsUnread => !this.IsRead;
 
-    public bool IsCurrentUserAdmin => _isCurrentUserAdmin;
+    public bool IsCurrentUserAdmin => this._isCurrentUserAdmin;
 }

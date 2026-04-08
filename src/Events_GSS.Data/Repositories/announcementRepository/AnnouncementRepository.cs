@@ -1,27 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
+﻿// <copyright file="AnnouncementRepository.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Events_GSS.Data.Repositories.announcementRepository;
+
 using System.Data;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 using Events_GSS.Data.Database;
 using Events_GSS.Data.Models;
 
 using Microsoft.Data.SqlClient;
 
-using static System.Runtime.InteropServices.JavaScript.JSType;
-namespace Events_GSS.Data.Repositories.announcementRepository;
-
+/// <summary>
+/// A repository to hold all announcements.
+/// </summary>
 public class AnnouncementRepository : IAnnouncementRepository
 {
     private readonly SqlConnectionFactory _connectionFactory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AnnouncementRepository"/> class.
+    /// </summary>
+    /// <param name="connectionFactory"> Initializes connection with database. </param>
     public AnnouncementRepository(SqlConnectionFactory connectionFactory)
     {
-        _connectionFactory = connectionFactory;
+        this._connectionFactory = connectionFactory;
     }
-    
+
+    /// <inheritdoc/>
     public async Task<int> AddAnnouncementAsync(Announcement announcement, int eventId, int userId)
     {
         using (SqlConnection connection = _connectionFactory.CreateConnection())
@@ -45,6 +51,7 @@ public class AnnouncementRepository : IAnnouncementRepository
         }
     }
 
+    /// <inheritdoc/>
     public async Task AddOrUpdateReactionAsync(int announcementId, int userId, string emoji)
     {
         using (SqlConnection connection = _connectionFactory.CreateConnection())
@@ -71,7 +78,7 @@ public class AnnouncementRepository : IAnnouncementRepository
                         VALUES (@AnnouncementId, @UserId, @Emoji)
                     END";
 
-            using (SqlCommand command = new SqlCommand(query, connection))
+                using (SqlCommand command = new SqlCommand(query, connection))
                 {
                     command.Parameters.Add("@AnnouncementId", SqlDbType.Int).Value = announcementId;
                     command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
@@ -81,6 +88,7 @@ public class AnnouncementRepository : IAnnouncementRepository
         }
     }
 
+    /// <inheritdoc/>
     public async Task DeleteAnnouncementAsync(int announcementId)
     {
         using (SqlConnection connection = _connectionFactory.CreateConnection())
@@ -117,7 +125,9 @@ public class AnnouncementRepository : IAnnouncementRepository
         using var command = new SqlCommand(query, connection);
 
         for (int i = 0; i < announcementIds.Count; i++)
+        {
             command.Parameters.AddWithValue($"@id{i}", announcementIds[i]);
+        }
 
         using var reader = await command.ExecuteReaderAsync();
 
@@ -133,8 +143,8 @@ public class AnnouncementRepository : IAnnouncementRepository
                 Author = new User
                 {
                     UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
-                    Name = reader.GetString(reader.GetOrdinal("UserName"))
-                }
+                    Name = reader.GetString(reader.GetOrdinal("UserName")),
+                },
             };
 
             result.Add((announcementId, reaction));
@@ -154,7 +164,9 @@ public class AnnouncementRepository : IAnnouncementRepository
         foreach (var announcement in announcements)
         {
             if (grouped.TryGetValue(announcement.Id, out var listOfReactions))
+            {
                 announcement.Reactions = listOfReactions;
+            }
         }
     }
 
@@ -174,55 +186,12 @@ public class AnnouncementRepository : IAnnouncementRepository
             Author = new User
             {
                 UserId = reader.GetInt32(reader.GetOrdinal("AuthorId")),
-                Name = reader.GetString(reader.GetOrdinal("AuthorName"))
-            }
+                Name = reader.GetString(reader.GetOrdinal("AuthorName")),
+            },
         };
     }
 
-    private async Task<List<Announcement>> GetAnnouncementsAsync(
-    SqlConnection connection,
-    int eventId,
-    int userId)
-    {
-        var result = new List<Announcement>();
-
-        // gets all announcements and sorts them based on pinned ones
-        // returns 0 if there are no announcements
-        const string query = @"
-                            SELECT 
-                                a.AnnId,
-                                a.Message,
-                                a.Date,
-                                a.IsPinned,
-                                a.IsEdited,
-                                u.Id AS AuthorId,
-                                u.Name AS AuthorName,
-                                CAST(CASE 
-                                    WHEN r.UserId IS NOT NULL THEN 1 
-                                    ELSE 0 
-                                END AS BIT) AS IsRead
-                            FROM Announcements a
-                            INNER JOIN Users u ON a.UserId = u.Id
-                            LEFT JOIN AnnouncementReadReceipts r 
-                                ON a.AnnId = r.AnnouncementId 
-                                AND r.UserId = @UserId
-                            WHERE a.EventId = @EventId
-                            ORDER BY a.IsPinned DESC, a.Date DESC";
-
-        using var command = new SqlCommand(query, connection);
-        command.Parameters.Add("@EventId", SqlDbType.Int).Value = eventId;
-        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
-
-        using var reader = await command.ExecuteReaderAsync();
-
-        while (await reader.ReadAsync())
-        {
-            result.Add(MapAnnouncement(reader));
-        }
-
-        return result;
-    }
-
+    /// <inheritdoc/>
     public async Task<List<Announcement>> GetAnnouncementsByEventAsync(int eventId, int userId)
     {
         using var connection = _connectionFactory.CreateConnection();
@@ -391,6 +360,7 @@ public class AnnouncementRepository : IAnnouncementRepository
         }
     }
 
+    /// <inheritdoc/>
     public async Task<Announcement?> GetAnnouncementByIdAsync(int announcementId)
     {
         using var connection = _connectionFactory.CreateConnection();
@@ -407,7 +377,10 @@ public class AnnouncementRepository : IAnnouncementRepository
         command.Parameters.Add("@AnnId", SqlDbType.Int).Value = announcementId;
 
         using var reader = await command.ExecuteReaderAsync();
-        if (!await reader.ReadAsync()) return null;
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
 
         return new Announcement(
             id: reader.GetInt32(reader.GetOrdinal("AnnId")),
@@ -419,11 +392,12 @@ public class AnnouncementRepository : IAnnouncementRepository
                 Author = new User
                 {
                     UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
-                    Name = reader.GetString(reader.GetOrdinal("AuthorName"))
-                }
+                    Name = reader.GetString(reader.GetOrdinal("AuthorName")),
+                },
             };
     }
 
+    /// <inheritdoc/>
     public async Task<int> GetTotalParticipantsAsync(int eventId)
     {
         using var connection= _connectionFactory.CreateConnection();
@@ -439,6 +413,7 @@ public class AnnouncementRepository : IAnnouncementRepository
         return Convert.ToInt32(result);
     }
 
+    /// <inheritdoc/>
     public async Task<Dictionary<int, int>> GetUnreadCountsForUserAsync(int userId)
     {
         var counts = new Dictionary<int, int>();
@@ -469,6 +444,7 @@ public class AnnouncementRepository : IAnnouncementRepository
         return counts;
     }
 
+    /// <inheritdoc/>
     public async Task<List<User>> GetAllParticipantsAsync(int eventId)
     {
         var users = new List<User>();
@@ -492,13 +468,14 @@ public class AnnouncementRepository : IAnnouncementRepository
             users.Add(new User
             {
                 UserId = reader.GetInt32(reader.GetOrdinal("Id")),
-                Name = reader.GetString(reader.GetOrdinal("Name"))
+                Name = reader.GetString(reader.GetOrdinal("Name")),
             });
         }
 
         return users;
     }
 
+    /// <inheritdoc/>
     public async Task<string?> GetUserReactionAsync(int announcementId, int userId)
     {
         using var connection = _connectionFactory.CreateConnection();
@@ -519,4 +496,47 @@ public class AnnouncementRepository : IAnnouncementRepository
         return result as string;
     }
 
+    private async Task<List<Announcement>> GetAnnouncementsAsync(
+    SqlConnection connection,
+    int eventId,
+    int userId)
+    {
+        var result = new List<Announcement>();
+
+        // gets all announcements and sorts them based on pinned ones
+        // returns 0 if there are no announcements
+        const string query = @"
+                            SELECT 
+                                a.AnnId,
+                                a.Message,
+                                a.Date,
+                                a.IsPinned,
+                                a.IsEdited,
+                                u.Id AS AuthorId,
+                                u.Name AS AuthorName,
+                                CAST(CASE 
+                                    WHEN r.UserId IS NOT NULL THEN 1 
+                                    ELSE 0 
+                                END AS BIT) AS IsRead
+                            FROM Announcements a
+                            INNER JOIN Users u ON a.UserId = u.Id
+                            LEFT JOIN AnnouncementReadReceipts r 
+                                ON a.AnnId = r.AnnouncementId 
+                                AND r.UserId = @UserId
+                            WHERE a.EventId = @EventId
+                            ORDER BY a.IsPinned DESC, a.Date DESC";
+
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@EventId", SqlDbType.Int).Value = eventId;
+        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+
+        using var reader = await command.ExecuteReaderAsync();
+
+        while (await reader.ReadAsync())
+        {
+            result.Add(this.MapAnnouncement(reader));
+        }
+
+        return result;
+    }
 }

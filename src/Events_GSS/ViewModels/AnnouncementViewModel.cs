@@ -1,21 +1,24 @@
-﻿using System;
+﻿// <copyright file="AnnouncementViewModel.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Events_GSS.ViewModels;
+
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using Events_GSS.Data.Models;
 using Events_GSS.Data.Services.announcementServices;
-using Events_GSS.Data.Services.Interfaces;
 
 using Microsoft.UI.Xaml;
+public record AnnouncementReactionPayload(AnnouncementItemViewModel announcement, string emoji);
 
-namespace Events_GSS.ViewModels;
-
-public record AnnouncementReactionPayload(AnnouncementItemViewModel Announcement, string Emoji);
-
+/// <summary>
+/// AnnouncementViewModel responsible for managing announcements for a single event,
+/// including CRUD operations, read receipts, pinning, reactions, and UI state.
+/// </summary>
 public partial class AnnouncementViewModel : ObservableObject
 {
     private readonly IAnnouncementService _announcementService;
@@ -28,16 +31,17 @@ public partial class AnnouncementViewModel : ObservableObject
         int currentUserId,
         bool isAdmin)
     {
-        _currentEvent = forEvent;
-        _announcementService = service;
-        _currentUserId = currentUserId;
-        IsEventAdmin = isAdmin;
+        this._currentEvent = forEvent;
+        this._announcementService = service;
+        this._currentUserId = currentUserId;
+        this.IsEventAdmin = isAdmin;
 
-        Announcements = new ObservableCollection<AnnouncementItemViewModel>();
-        ReadReceiptUsers = new ObservableCollection<AnnouncementReadReceipt>();
+        this.Announcements = new ObservableCollection<AnnouncementItemViewModel>();
+        this.ReadReceiptUsers = new ObservableCollection<AnnouncementReadReceipt>();
     }
 
     public ObservableCollection<AnnouncementItemViewModel> Announcements { get; }
+
     public ObservableCollection<AnnouncementReadReceipt> ReadReceiptUsers { get; }
 
     [ObservableProperty]
@@ -53,20 +57,22 @@ public partial class AnnouncementViewModel : ObservableObject
 
     private const double percentageMultiplier = 100.0;
 
-    // Returns percentage of participants who have read the announcement
+    /// <summary>
+    /// Gets percentage of participants who have read the announcement.
+    /// </summary>
     public string ReadReceiptSummary
     {
         get
         {
-            if (ReadReceiptTotalCount == 0)
+            if (this.ReadReceiptTotalCount == 0)
             {
                 return "No participants";
             }
 
             var percentageOfUsersWhoReadAnnouncement = (int)Math.Round(
-                percentageMultiplier * ReadReceiptReadCount / ReadReceiptTotalCount);
+                percentageMultiplier * this.ReadReceiptReadCount / this.ReadReceiptTotalCount);
 
-            return $"{ReadReceiptReadCount} / {ReadReceiptTotalCount} read ({percentageOfUsersWhoReadAnnouncement}%)";
+            return $"{this.ReadReceiptReadCount} / {this.ReadReceiptTotalCount} read ({percentageOfUsersWhoReadAnnouncement}%)";
         }
     }
 
@@ -93,30 +99,37 @@ public partial class AnnouncementViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CreateButtonText))]
     private AnnouncementItemViewModel? _editingAnnouncement;
 
-    public bool IsNotLoading => !IsLoading;
-    public bool HasError => ErrorMessage is not null;
-    public Visibility ErrorVisibility => HasError ? Visibility.Visible : Visibility.Collapsed;
-    public bool IsEditing => EditingAnnouncement is not null;
-    public string CreateButtonText => IsEditing ? "Save Edit" : "Post";
+    public bool IsNotLoading => !this.IsLoading;
 
+    public bool HasError => this.ErrorMessage is not null;
+
+    public Visibility ErrorVisibility => this.HasError ? Visibility.Visible : Visibility.Collapsed;
+
+    public bool IsEditing => this.EditingAnnouncement is not null;
+
+    public string CreateButtonText => this.IsEditing ? "Save Edit" : "Post";
+
+    /// <summary>
+    /// Initializes the ViewModel and loads announcements for the current event.
+    /// </summary>
     public async Task InitializeAsync()
     {
-        await RunGuardedAsync(LoadAnnouncementsAsync);
+        await this.RunGuardedAsync(this.LoadAnnouncementsAsync);
     }
 
     [RelayCommand]
     private async Task LoadAnnouncementsAsync()
     {
-        var announcementsList = await _announcementService.GetAnnouncementsAsync(
-            _currentEvent.EventId, _currentUserId);
+        var announcementsList = await this._announcementService.GetAnnouncementsAsync(
+            this._currentEvent.EventId, this._currentUserId);
 
-        Announcements.Clear();
+        this.Announcements.Clear();
         foreach (var announcement in announcementsList)
         {
-            Announcements.Add(new AnnouncementItemViewModel(announcement, _currentUserId, IsEventAdmin));
+            this.Announcements.Add(new AnnouncementItemViewModel(announcement, this._currentUserId, this.IsEventAdmin));
         }
 
-        UpdateUnreadCount();
+        this.UpdateUnreadCount();
     }
 
     [RelayCommand]
@@ -124,34 +137,37 @@ public partial class AnnouncementViewModel : ObservableObject
     // Creates or updates an announcement
     private async Task SubmitAnnouncementAsync()
     {
-        if (string.IsNullOrWhiteSpace(NewMessage)) return;
-
-        if (IsEditing)
+        if (string.IsNullOrWhiteSpace(this.NewMessage))
         {
-            await RunGuardedAsync(async () =>
-            {
-                await _announcementService.UpdateAnnouncementAsync(
-                    EditingAnnouncement!.Id,
-                    NewMessage.Trim(),
-                    _currentUserId,
-                    _currentEvent.EventId);
+            return;
+        }
 
-                EditingAnnouncement = null;
-                NewMessage = string.Empty;
-                await LoadAnnouncementsAsync();
+        if (this.IsEditing)
+        {
+            await this.RunGuardedAsync(async () =>
+            {
+                await this._announcementService.UpdateAnnouncementAsync(
+                    this.EditingAnnouncement!.Id,
+                    this.NewMessage.Trim(),
+                    this._currentUserId,
+                    this._currentEvent.EventId);
+
+                this.EditingAnnouncement = null;
+                this.NewMessage = string.Empty;
+                await this.LoadAnnouncementsAsync();
             });
         }
         else
         {
-            await RunGuardedAsync(async () =>
+            await this.RunGuardedAsync(async () =>
             {
-                await _announcementService.CreateAnnouncementAsync(
-                    NewMessage.Trim(),
-                    _currentEvent.EventId,
-                    _currentUserId);
+                await this._announcementService.CreateAnnouncementAsync(
+                    this.NewMessage.Trim(),
+                    this._currentEvent.EventId,
+                    this._currentUserId);
 
-                NewMessage = string.Empty;
-                await LoadAnnouncementsAsync();
+                this.NewMessage = string.Empty;
+                await this.LoadAnnouncementsAsync();
             });
         }
     }
@@ -161,87 +177,106 @@ public partial class AnnouncementViewModel : ObservableObject
     // When user clicks on edit button, this gets the announcement they're editing and pre-fills the box with the announcement's text
     private void StartEdit(AnnouncementItemViewModel? item)
     {
-        if (item is null) return;
-        EditingAnnouncement = item;
-        NewMessage = item.Message;
+        if (item is null)
+        {
+            return;
+        }
+
+        this.EditingAnnouncement = item;
+        this.NewMessage = item.Message;
     }
 
     [RelayCommand]
     private void CancelEdit()
     {
-        EditingAnnouncement = null;
-        NewMessage = string.Empty;
+        this.EditingAnnouncement = null;
+        this.NewMessage = string.Empty;
     }
 
     [RelayCommand]
     private async Task DeleteAnnouncementAsync(AnnouncementItemViewModel? item)
     {
-        if (item is null) return;
-
-        await RunGuardedAsync(async () =>
+        if (item is null)
         {
-            await _announcementService.DeleteAnnouncementAsync(
-                item.Id, _currentUserId, _currentEvent.EventId);
+            return;
+        }
 
-            Announcements.Remove(item);
-            UpdateUnreadCount();
+        await this.RunGuardedAsync(async () =>
+        {
+            await this._announcementService.DeleteAnnouncementAsync(
+                item.Id, this._currentUserId, this._currentEvent.EventId);
+
+            this.Announcements.Remove(item);
+            this.UpdateUnreadCount();
         });
     }
 
     [RelayCommand]
     private async Task PinAnnouncementAsync(AnnouncementItemViewModel? item)
     {
-        if (item is null) return;
-
-        await RunGuardedAsync(async () =>
+        if (item is null)
         {
-            await _announcementService.PinAnnouncementAsync(
-                item.Id, _currentEvent.EventId, _currentUserId);
+            return;
+        }
 
-            await LoadAnnouncementsAsync();
+        await this.RunGuardedAsync(async () =>
+        {
+            await this._announcementService.PinAnnouncementAsync(
+                item.Id, this._currentEvent.EventId, this._currentUserId);
+
+            await this.LoadAnnouncementsAsync();
         });
     }
 
     [RelayCommand]
     private async Task ToggleExpandAsync(AnnouncementItemViewModel? item)
     {
-        if (item is null) return;
+        if (item is null)
+        {
+            return;
+        }
 
         item.IsExpanded = !item.IsExpanded;
 
         if (item.IsExpanded)
         {
-            var wasMarked = await _announcementService.MarkAsReadIfNeededAsync(
+            var wasMarked = await this._announcementService.MarkAsReadIfNeededAsync(
                 item.Id,
-                _currentUserId,
+                this._currentUserId,
                 item.IsRead);
 
             if (wasMarked)
             {
                 item.IsRead = true;
-                UpdateUnreadCount();
+                this.UpdateUnreadCount();
             }
         }
     }
 
     [RelayCommand]
+
     // Returns a list with all the people who have read the current announcement (only for admins)
     private async Task LoadReadReceiptsAsync(AnnouncementItemViewModel? item)
     {
-        if (item is null || !IsEventAdmin) return;
+        if (item is null || !this.IsEventAdmin)
+        {
+            return;
+        }
 
-        IsReadReceiptsLoading = true;
+        this.IsReadReceiptsLoading = true;
         try
         {
-            var (readers, total) = await _announcementService.GetReadReceiptsAsync(
-                item.Id, _currentEvent.EventId, _currentUserId);
+            var (readers, total) = await this._announcementService.GetReadReceiptsAsync(
+                item.Id, this._currentEvent.EventId, this._currentUserId);
 
-            ReadReceiptUsers.Clear();
+            this.ReadReceiptUsers.Clear();
             foreach (var reader in readers)
-                ReadReceiptUsers.Add(reader);
+            {
+                this.ReadReceiptUsers.Add(reader);
+            }
 
-            ReadReceiptReadCount = readers.Count;
-            ReadReceiptTotalCount = total;
+            this.ReadReceiptReadCount = readers.Count;
+            this.ReadReceiptTotalCount = total;
         }
         catch (Exception exception)
         {
@@ -249,71 +284,75 @@ public partial class AnnouncementViewModel : ObservableObject
         }
         finally
         {
-            IsReadReceiptsLoading = false;
+            this.IsReadReceiptsLoading = false;
         }
     }
 
     [RelayCommand]
     private async Task ToggleReactionAsync(AnnouncementReactionPayload? payload)
     {
-        if (payload is null) return;
-
-        await RunGuardedAsync(async () =>
+        if (payload is null)
         {
-            await _announcementService.ToggleReactionAsync(payload.Announcement.Id, _currentUserId, payload.Emoji);
+            return;
+        }
 
-            await LoadAnnouncementsAsync();
+        await this.RunGuardedAsync(async () =>
+        {
+            await this._announcementService.ToggleReactionAsync(payload.announcement.Id, this._currentUserId, payload.emoji);
+
+            await this.LoadAnnouncementsAsync();
         });
     }
 
     private void UpdateUnreadCount()
     {
-        UnreadCount = Announcements.Count(a => !a.IsRead);
+        this.UnreadCount = this.Announcements.Count(a => !a.IsRead);
     }
 
     // Wraps an async operation to manage loading state and handle exceptions consistently across the ViewModel
     private async Task RunGuardedAsync(Func<Task> action)
     {
-        IsLoading = true;
-        ErrorMessage = null;
+        this.IsLoading = true;
+        this.ErrorMessage = null;
         try
         {
             await action();
         }
         catch (UnauthorizedAccessException)
         {
-            ErrorMessage = "You don't have permission for this action.";
+            this.ErrorMessage = "You don't have permission for this action.";
         }
         catch (Exception exception)
         {
             System.Diagnostics.Debug.WriteLine("========== FULL EXCEPTION ==========");
             System.Diagnostics.Debug.WriteLine(exception.ToString());
             System.Diagnostics.Debug.WriteLine("=====================================");
-            ErrorMessage = exception.Message;
+            this.ErrorMessage = exception.Message;
         }
         finally
         {
-            IsLoading = false;
+            this.IsLoading = false;
         }
     }
 
     public async Task<List<User>> GetAllParticipantsAsync()
     {
-        return await _announcementService.GetAllParticipantsAsync(_currentEvent.EventId);
+        return await this._announcementService.GetAllParticipantsAsync(this._currentEvent.EventId);
     }
 
     public async Task<List<User>> GetNonReadersAsync(int announcementId)
     {
-        return await _announcementService.GetNonReadersAsync(
+        return await this._announcementService.GetNonReadersAsync(
             announcementId,
-            _currentEvent.EventId);
+            this._currentEvent.EventId);
     }
 
     partial void OnIsLoadingChanged(bool value) => NotifyCommandsChanged();
+
     partial void OnNewMessageChanged(string value) => NotifyCommandsChanged();
 
     private void NotifyCommandsChanged()
     {
-        SubmitAnnouncementCommand.NotifyCanExecuteChanged();
+        this.SubmitAnnouncementCommand.NotifyCanExecuteChanged();
     }
 }
