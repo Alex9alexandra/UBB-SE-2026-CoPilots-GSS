@@ -1,4 +1,8 @@
-﻿namespace Events_GSS.Data.Repositories;
+﻿// <copyright file="IAnnouncementRepository.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Events_GSS.Data.Repositories;
 
 using Events_GSS.Data.Models;
 

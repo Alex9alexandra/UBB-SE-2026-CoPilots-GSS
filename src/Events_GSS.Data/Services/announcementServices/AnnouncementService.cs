@@ -26,12 +26,12 @@ public class AnnouncementService : IAnnouncementService
 
     public async Task<List<Announcement>> GetAnnouncementsAsync(int eventId, int userId)
     {
-        var announcements = await _repo.GetAnnouncementsByEventAsync(eventId, userId);
+        var announcements = await this._repo.GetAnnouncementsByEventAsync(eventId, userId);
 
-        var reactions = await _repo.GetReactionsAsync(
+        var reactions = await this._repo.GetReactionsAsync(
             announcements.Select(a => a.Id).ToList());
 
-        AttachReactions(announcements, reactions);
+        this.AttachReactions(announcements, reactions);
 
         return announcements;
     }
@@ -83,24 +83,24 @@ public class AnnouncementService : IAnnouncementService
 
     public async Task PinAnnouncementAsync(int announcementId, int eventId, int userId)
     {
-        await EnsureAdminAsync(eventId, userId);
+        await this.EnsureAdminAsync(eventId, userId);
 
         // business rule: only one pinned per event
-        await _repo.UnpinAnnouncementAsync(eventId);
+        await this._repo.UnpinAnnouncementAsync(eventId);
 
         // pin selected announcement
-        await _repo.PinAsync(announcementId);
+        await this._repo.PinAsync(announcementId);
     }
 
     // Marks announcements as read
     public async Task<bool> MarkAsReadAsync(int announcementId, int userId)
     {
-        var alreadyRead = await _repo.HasUserReadAsync(announcementId, userId);
+        var alreadyRead = await this._repo.HasUserReadAsync(announcementId, userId);
 
         if (alreadyRead)
             return false;
 
-        await _repo.InsertReadReceiptAsync(announcementId, userId);
+        await this._repo.InsertReadReceiptAsync(announcementId, userId);
         return true;
     }
 
@@ -117,21 +117,21 @@ public class AnnouncementService : IAnnouncementService
 
     public async Task AddOrUpdateReactAsync(int announcementId, int userId, string emoji)
     {
-        var existingEmoji = await _repo.GetUserReactionAsync(announcementId, userId);
+        var existingEmoji = await this._repo.GetUserReactionAsync(announcementId, userId);
 
         if (existingEmoji == null)
         {
-            await _repo.InsertReactionAsync(announcementId, userId, emoji);
+            await this._repo.InsertReactionAsync(announcementId, userId, emoji);
             return;
         }
 
         if (existingEmoji == emoji)
         {
-            await _repo.RemoveReactionAsync(announcementId, userId);
+            await this._repo.RemoveReactionAsync(announcementId, userId);
             return;
         }
 
-        await _repo.UpdateReactionAsync(announcementId, userId, emoji);
+        await this._repo.UpdateReactionAsync(announcementId, userId, emoji);
     }
 
     public async Task RemoveReactionAsync(int announcementId, int userId)
@@ -169,7 +169,7 @@ public class AnnouncementService : IAnnouncementService
     // Updates or adds reaction emoji and, in the case the user selects the same one as before, it removes it entirely
     public async Task ToggleReactionAsync(int announcementId, int userId, string emoji)
     {
-        var existingEmoji = await _repo.GetUserReactionAsync(announcementId, userId);
+        var existingEmoji = await this._repo.GetUserReactionAsync(announcementId, userId);
 
         if (existingEmoji == emoji)
         {
@@ -192,6 +192,7 @@ public class AnnouncementService : IAnnouncementService
         return true;
     }
 
+    /// <inheritdoc/>
     public async Task<List<User>> GetNonReadersAsync(int announcementId, int eventId)
     {
         var readers = await this._repo.GetReadReceiptsAsync(announcementId);
@@ -208,6 +209,7 @@ public class AnnouncementService : IAnnouncementService
         return nonReaders;
     }
 
+    /// <inheritdoc/>
     public void AttachReactions(
     List<Announcement> announcements,
     List<(int AnnouncementId, AnnouncementReaction Reaction)> reactions)

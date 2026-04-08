@@ -453,13 +453,12 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
         }
 
         [Fact]
-        public async Task GetAnnouncementsAsync_ReturnsAnnouncementsWithReactions()
+        public async Task GetAnnouncementsAsync_CallsRepositories()
         {
             // Arrange
             var announcements = new List<Announcement>
     {
-        new Announcement(1, "A1", DateTime.UtcNow),
-        new Announcement(2, "A2", DateTime.UtcNow)
+        new Announcement(1, "A1", DateTime.UtcNow)
     };
 
             _mockRepo
@@ -468,43 +467,63 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
 
             _mockRepo
                 .Setup(r => r.GetReactionsAsync(It.IsAny<List<int>>()))
-                .ReturnsAsync(new List<(int AnnouncementId, AnnouncementReaction Reaction)>
-                {
-            (1, new AnnouncementReaction
-            {
-                Id = 1,
-                Emoji = "👍",
-                AnnouncementId = 1,
-                Author = new User { UserId = 1, Name = "User1" }
-            }),
-            (1, new AnnouncementReaction
-            {
-                Id = 2,
-                Emoji = "🔥",
-                AnnouncementId = 1,
-                Author = new User { UserId = 2, Name = "User2" }
-            }),
-            (2, new AnnouncementReaction
-            {
-                Id = 3,
-                Emoji = "❤️",
-                AnnouncementId = 2,
-                Author = new User { UserId = 3, Name = "User3" }
-            })
-                });
-
-            var service = new AnnouncementService(
-                _mockRepo.Object,
-                _mockEventRepo.Object);
+                .ReturnsAsync(new List<(int, AnnouncementReaction)>());
 
             // Act
-            var result = await service.GetAnnouncementsAsync(1, 10);
+            await _service.GetAnnouncementsAsync(1, 10);
 
-            // Assert - repo calls
+            // Assert
             _mockRepo.Verify(r => r.GetAnnouncementsByEventAsync(1, 10), Times.Once);
             _mockRepo.Verify(r => r.GetReactionsAsync(It.IsAny<List<int>>()), Times.Once);
+        }
 
-            // Assert - reactions attached correctly
+        [Fact]
+        public async Task GetAnnouncementsAsync_AttachesReactionsCorrectly()
+        {
+            // Arrange
+            var announcements = new List<Announcement>
+            {
+                new Announcement(1, "A1", DateTime.UtcNow),
+                new Announcement(2, "A2", DateTime.UtcNow)
+            };
+
+            var reactions = new List<(int AnnouncementId, AnnouncementReaction Reaction)>
+            {
+                (1, new AnnouncementReaction
+                {
+                    Id = 1,
+                    Emoji = "👍",
+                    AnnouncementId = 1,
+                    Author = new User { UserId = 1, Name = "User1" }
+                }),
+                (1, new AnnouncementReaction
+                {
+                    Id = 2,
+                    Emoji = "🔥",
+                    AnnouncementId = 1,
+                    Author = new User { UserId = 2, Name = "User2" }
+                }),
+                (2, new AnnouncementReaction
+                {
+                    Id = 3,
+                    Emoji = "❤️",
+                    AnnouncementId = 2,
+                    Author = new User { UserId = 3, Name = "User3" }
+                })
+            };
+
+            _mockRepo
+                .Setup(r => r.GetAnnouncementsByEventAsync(1, 10))
+                .ReturnsAsync(announcements);
+
+            _mockRepo
+                .Setup(r => r.GetReactionsAsync(It.IsAny<List<int>>()))
+                .ReturnsAsync(reactions);
+
+            // Act
+            var result = await _service.GetAnnouncementsAsync(1, 10);
+
+            // Assert
             Assert.Equal(2, result.First(a => a.Id == 1).Reactions.Count);
             Assert.Single(result.First(a => a.Id == 2).Reactions);
         }
@@ -649,6 +668,24 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
             _mockRepo.Verify(r =>
                 r.InsertReadReceiptAsync(5, 10),
                 Times.Once);
+        }
+
+        [Fact]
+        public async Task AddOrUpdateReact_SameEmoji_RemovesReaction()
+        {
+            // Arrange
+            _mockRepo
+                .Setup(r => r.GetUserReactionAsync(5, 10))
+                .ReturnsAsync("👍");
+
+            // Act
+            await _service.AddOrUpdateReactAsync(5, 10, "👍");
+
+            // Assert
+            _mockRepo.Verify(r => r.RemoveReactionAsync(5, 10), Times.Once);
+
+            _mockRepo.Verify(r => r.InsertReactionAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+            _mockRepo.Verify(r => r.UpdateReactionAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
         }
     }
  }

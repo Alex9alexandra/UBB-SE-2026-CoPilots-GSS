@@ -30,7 +30,7 @@ public class AnnouncementRepository : IAnnouncementRepository
     /// <inheritdoc/>
     public async Task<int> AddAnnouncementAsync(Announcement announcement, int eventId, int userId)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
+        using (SqlConnection connection = this._connectionFactory.CreateConnection())
         {
                 await connection.OpenAsync();
 
@@ -54,7 +54,7 @@ public class AnnouncementRepository : IAnnouncementRepository
     /// <inheritdoc/>
     public async Task InsertReactionAsync(int announcementId, int userId, string emoji)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         const string query = @"
@@ -71,7 +71,7 @@ public class AnnouncementRepository : IAnnouncementRepository
 
     public async Task UpdateReactionAsync(int announcementId, int userId, string emoji)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         const string query = @"
@@ -90,7 +90,7 @@ public class AnnouncementRepository : IAnnouncementRepository
     /// <inheritdoc/>
     public async Task DeleteAnnouncementAsync(int announcementId)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
+        using (SqlConnection connection = this._connectionFactory.CreateConnection())
         {
                 await connection.OpenAsync();
 
@@ -130,15 +130,15 @@ public class AnnouncementRepository : IAnnouncementRepository
     /// <inheritdoc/>
     public async Task<List<Announcement>> GetAnnouncementsByEventAsync(int eventId, int userId)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
-        return await GetAnnouncementsAsync(connection, eventId, userId);
+        return await this.GetAnnouncementsAsync(connection, eventId, userId);
     }
 
     public async Task<List<AnnouncementReadReceipt>> GetReadReceiptsAsync(int announcementId)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         const string query = @"
@@ -156,9 +156,9 @@ public class AnnouncementRepository : IAnnouncementRepository
 
         var receipts = new List<AnnouncementReadReceipt>();
 
-        while (await reader.ReadAsync())   
+        while (await reader.ReadAsync())
         {
-            receipts.Add(MapReadReceipt(reader));
+            receipts.Add(this.MapReadReceipt(reader));
         }
 
         return receipts;
@@ -175,15 +175,15 @@ public class AnnouncementRepository : IAnnouncementRepository
             User = new User
             {
                 UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
-                Name = reader.GetString(reader.GetOrdinal("UserName"))
+                Name = reader.GetString(reader.GetOrdinal("UserName")),
             },
-            ReadAt = reader.GetDateTime(reader.GetOrdinal("ReadAt"))
+            ReadAt = reader.GetDateTime(reader.GetOrdinal("ReadAt")),
         };
     }
 
     public async Task InsertReadReceiptAsync(int announcementId, int userId)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         const string query = @"
@@ -197,9 +197,10 @@ public class AnnouncementRepository : IAnnouncementRepository
         await command.ExecuteNonQueryAsync();
     }
 
+    /// <inheritdoc/>
     public async Task<bool> HasUserReadAsync(int announcementId, int userId)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         const string query = @"
@@ -217,9 +218,10 @@ public class AnnouncementRepository : IAnnouncementRepository
         return result != null;
     }
 
+    /// <inheritdoc/>
     public async Task PinAsync(int announcementId)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         const string query = @"
@@ -233,9 +235,10 @@ public class AnnouncementRepository : IAnnouncementRepository
         await command.ExecuteNonQueryAsync();
     }
 
+    /// <inheritdoc/>
     public async Task RemoveReactionAsync(int announcementId, int userId)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
+        using (SqlConnection connection = this._connectionFactory.CreateConnection())
         {
             await connection.OpenAsync();
             string query = @"
@@ -250,9 +253,10 @@ public class AnnouncementRepository : IAnnouncementRepository
         }
     }
 
+    /// <inheritdoc/>
     public async Task UnpinAnnouncementAsync(int eventId)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
+        using (SqlConnection connection = this._connectionFactory.CreateConnection())
         {
             await connection.OpenAsync();
 
@@ -268,9 +272,10 @@ public class AnnouncementRepository : IAnnouncementRepository
         }
     }
 
+    /// <inheritdoc/>
     public async Task UpdateAnnouncementAsync(int announcementId, string newMessage)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
+        using (SqlConnection connection = this._connectionFactory.CreateConnection())
         {
             await connection.OpenAsync();
 
@@ -292,7 +297,7 @@ public class AnnouncementRepository : IAnnouncementRepository
     /// <inheritdoc/>
     public async Task<Announcement?> GetAnnouncementByIdAsync(int announcementId)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         const string query = @"
@@ -329,7 +334,7 @@ public class AnnouncementRepository : IAnnouncementRepository
     /// <inheritdoc/>
     public async Task<int> GetTotalParticipantsAsync(int eventId)
     {
-        using var connection= _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         const string query = @"
@@ -347,7 +352,7 @@ public class AnnouncementRepository : IAnnouncementRepository
     {
         var counts = new Dictionary<int, int>();
 
-        using var connection= _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         // For every event the user attends, count announcements they haven't read
@@ -378,7 +383,7 @@ public class AnnouncementRepository : IAnnouncementRepository
     {
         var users = new List<User>();
 
-        using var connection= _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         const string query = @"
@@ -407,7 +412,7 @@ public class AnnouncementRepository : IAnnouncementRepository
     /// <inheritdoc/>
     public async Task<string?> GetUserReactionAsync(int announcementId, int userId)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         const string query = @"
@@ -472,13 +477,15 @@ public class AnnouncementRepository : IAnnouncementRepository
     public async Task<List<(int AnnouncementId, AnnouncementReaction Reaction)>> GetReactionsAsync(
     List<int> announcementIds)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         var result = new List<(int, AnnouncementReaction)>();
 
         if (announcementIds == null || announcementIds.Count == 0)
+        {
             return result;
+        }
 
         var idParameters = string.Join(",", announcementIds.Select((_, i) => $"@id{i}"));
 
