@@ -2,60 +2,72 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using NUnit.Framework;
-
 using Events_GSS.ViewModels;
 using Events_GSS.Data.Models;
 
+using Xunit;
+
 namespace Events_GSS.Tests.AnnouncementsTests.ViewModelTests
 {
-    [TestFixture]
     public class AnnouncementItemViewModelTests
     {
-        [Test]
+        [Fact]
         public void PreviewText_EmptyMessage_ReturnsEmpty()
         {
+            // Arrange
             var model = new Announcement(1, "", DateTime.UtcNow);
 
+            // Act
             var vm = new AnnouncementItemViewModel(model, 1, false);
 
-            NUnit.Framework.Assert.That(vm.PreviewText, Is.EqualTo(string.Empty));
+            // Assert
+            Assert.Equal(string.Empty, vm.PreviewText);
         }
 
-        [Test]
+        [Fact]
         public void PreviewText_LongMessage_TrimsTo120Chars()
         {
+            // Arrange
             var longText = new string('a', 150);
             var model = new Announcement(1, longText, DateTime.UtcNow);
 
+            // Act
             var vm = new AnnouncementItemViewModel(model, 1, false);
 
-            NUnit.Framework.Assert.That(vm.PreviewText.Length, Is.EqualTo(121)); // 120 + "…"
+            // Assert
+            Assert.Equal(121, vm.PreviewText.Length); // 120 + "…"
         }
 
-        [Test]
+        [Fact]
         public void HasFullContent_WithNewline_ReturnsTrue()
         {
+            // Arrange
             var model = new Announcement(1, "line1\nline2", DateTime.UtcNow);
 
+            // Act
             var vm = new AnnouncementItemViewModel(model, 1, false);
 
-            NUnit.Framework.Assert.That(vm.HasFullContent, Is.True);
+            // Assert
+            Assert.True(vm.HasFullContent);
         }
 
-        [Test]
+        [Fact]
         public void HasFullContent_ShortMessage_ReturnsFalse()
         {
+            // Arrange
             var model = new Announcement(1, "short", DateTime.UtcNow);
 
+            // Act
             var vm = new AnnouncementItemViewModel(model, 1, false);
 
-            NUnit.Framework.Assert.That(vm.HasFullContent, Is.False);
+            // Assert
+            Assert.False(vm.HasFullContent);
         }
 
-        [Test]
+        [Fact]
         public void ReactionGroups_GroupsByEmoji_CorrectCounts()
         {
+            // Arrange
             var model = new Announcement(1, "msg", DateTime.UtcNow)
             {
                 Reactions = new List<AnnouncementReaction>
@@ -66,17 +78,19 @@ namespace Events_GSS.Tests.AnnouncementsTests.ViewModelTests
                 }
             };
 
+            // Act
             var vm = new AnnouncementItemViewModel(model, 1, false);
-
             var groups = vm.ReactionGroups;
 
-            NUnit.Framework.Assert.That(groups.Count, Is.EqualTo(2));
-            NUnit.Framework.Assert.That(groups.First(g => g.Emoji == "👍").Count, Is.EqualTo(2));
+            // Assert
+            Assert.Equal(2, groups.Count);
+            Assert.Equal(2, groups.First(g => g.Emoji == "👍").Count);
         }
 
-        [Test]
+        [Fact]
         public void ReactionGroups_CurrentUserReacted_DetectedCorrectly()
         {
+            // Arrange
             var model = new Announcement(1, "msg", DateTime.UtcNow)
             {
                 Reactions = new List<AnnouncementReaction>
@@ -85,16 +99,18 @@ namespace Events_GSS.Tests.AnnouncementsTests.ViewModelTests
                 }
             };
 
+            // Act
             var vm = new AnnouncementItemViewModel(model, 1, false);
-
             var group = vm.ReactionGroups.First();
 
-            NUnit.Framework.Assert.That(group.CurrentUserReacted, Is.True);
+            // Assert
+            Assert.True(group.CurrentUserReacted);
         }
 
-        [Test]
+        [Fact]
         public void CurrentUserEmoji_UserHasReaction_ReturnsEmoji()
         {
+            // Arrange
             var model = new Announcement(1, "msg", DateTime.UtcNow)
             {
                 Reactions = new List<AnnouncementReaction>
@@ -103,35 +119,95 @@ namespace Events_GSS.Tests.AnnouncementsTests.ViewModelTests
                 }
             };
 
+            // Act
             var vm = new AnnouncementItemViewModel(model, 1, false);
 
-            NUnit.Framework.Assert.That(vm.CurrentUserEmoji, Is.EqualTo("🔥"));
+            // Assert
+            Assert.Equal("🔥", vm.CurrentUserEmoji);
         }
 
-        [Test]
+        [Fact]
         public void HasReactions_WhenEmpty_ReturnsFalse()
         {
+            // Arrange
             var model = new Announcement(1, "msg", DateTime.UtcNow)
             {
                 Reactions = new List<AnnouncementReaction>()
             };
 
+            // Act
             var vm = new AnnouncementItemViewModel(model, 1, false);
 
-            NUnit.Framework.Assert.That(vm.HasReactions, Is.False);
+            // Assert
+            Assert.False(vm.HasReactions);
         }
 
-        [Test]
+        [Fact]
         public void IsUnread_WhenRead_ReturnsFalse()
         {
+            // Arrange
             var model = new Announcement(1, "msg", DateTime.UtcNow)
             {
                 IsRead = true
             };
 
+            // Act
             var vm = new AnnouncementItemViewModel(model, 1, false);
 
-            NUnit.Framework.Assert.That(vm.IsUnread, Is.False);
+            // Assert
+            Assert.False(vm.IsUnread);
+        }
+
+        [Fact]
+        public void CurrentUserEmoji_UserHasNoReaction_ReturnsNull()
+        {
+            // Arrange
+            var model = new Announcement(1, "msg", DateTime.UtcNow)
+            {
+                Reactions = new List<AnnouncementReaction>
+                {
+                    new AnnouncementReaction { Emoji = "🔥", Author = new User { UserId = 2 } }
+                }
+            };
+
+            // Act
+            var vm = new AnnouncementItemViewModel(model, 1, false);
+
+            // Assert
+            Assert.Null(vm.CurrentUserEmoji);
+        }
+
+        [Fact]
+        public void IsUnread_WhenUnread_ReturnsTrue()
+        {
+            // Arrange
+            var model = new Announcement(1, "msg", DateTime.UtcNow)
+            {
+                IsRead = false
+            };
+
+            // Act
+            var vm = new AnnouncementItemViewModel(model, 1, false);
+
+            // Assert
+            Assert.True(vm.IsUnread);
+        }
+
+        [Theory]
+        [InlineData(120, 120)] // Exactly 120 chars, no ellipsis
+        [InlineData(121, 121)] // 121 chars, gets trimmed to 120 + "…"
+        [InlineData(200, 121)] // 200 chars, gets trimmed to 120 + "…"
+        public void PreviewText_VariousLengths_HandlesCorrectly(int length, int expectedLength)
+        {
+            // Arrange
+            var text = new string('a', length);
+            var model = new Announcement(1, text, DateTime.UtcNow);
+
+            // Act
+            var vm = new AnnouncementItemViewModel(model, 1, false);
+
+            // Assert
+            Assert.Equal(expectedLength, vm.PreviewText.Length);
         }
     }
 }
