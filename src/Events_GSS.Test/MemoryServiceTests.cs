@@ -13,11 +13,15 @@
 
     using Xunit;
 
+    /// <summary>
+    /// Unit tests for the MemoryService.
+    /// </summary>
     public class MemoryServiceTests
     {
         private Mock<IMemoryRepository> mockMemoryRepository;
         private Mock<IAttendedEventRepository> mockAttendedEventRepository;
         private Mock<IReputationService> mockReputationService;
+
         private MemoryService service;
 
         public MemoryServiceTests()
@@ -26,6 +30,7 @@
             this.mockAttendedEventRepository = new Mock<IAttendedEventRepository>();
             this.mockReputationService = new Mock<IReputationService>();
 
+            // ONLY PASS 3 ARGUMENTS HERE!
             this.service = new MemoryService(
                 this.mockMemoryRepository.Object,
                 this.mockAttendedEventRepository.Object,
@@ -35,6 +40,7 @@
         [Fact]
         public async Task AddAsync_LowReputation_ThrowsInvalidOperationException()
         {
+            // Arrange
             var currentEvent = new Event { EventId = 1 };
             var author = new User { UserId = 1 };
 
@@ -47,6 +53,7 @@
         [Fact]
         public async Task AddAsync_NotEnrolled_ThrowsInvalidOperationException()
         {
+            // Arrange
             var currentEvent = new Event { EventId = 1 };
             var author = new User { UserId = 1 };
 
@@ -60,8 +67,10 @@
         [Fact]
         public async Task DeleteAsync_NotOwnerOrAdmin_ThrowsUnauthorizedAccessException()
         {
+            // Arrange
             var requestingUser = new User { UserId = 1 };
             var memory = new Memory { MemoryId = 10 };
+
             var fullMemory = new Memory
             {
                 MemoryId = 10,
@@ -78,8 +87,10 @@
         [Fact]
         public async Task ToggleLikeAsync_OwnMemory_ThrowsInvalidOperationException()
         {
+            // Arrange
             var currentUser = new User { UserId = 1 };
             var memory = new Memory { MemoryId = 10 };
+
             var fullMemory = new Memory { MemoryId = 10, Author = new User { UserId = 1 } };
 
             this.mockMemoryRepository.Setup(m => m.GetByIdAsync(memory.MemoryId)).ReturnsAsync(fullMemory);
@@ -91,30 +102,42 @@
         [Fact]
         public async Task ToggleLikeAsync_NotCurrentlyLiked_CallsAddLikeAsync()
         {
+            // Arrange
             var currentUser = new User { UserId = 1 };
             var memory = new Memory { MemoryId = 10 };
+
             var fullMemory = new Memory { MemoryId = 10, Author = new User { UserId = 2 } };
 
             this.mockMemoryRepository.Setup(m => m.GetByIdAsync(memory.MemoryId)).ReturnsAsync(fullMemory);
+
+            // NEW MOCK: Return an empty list so the service thinks we haven't liked it yet
             this.mockMemoryRepository.Setup(m => m.GetLikesAsync(memory.MemoryId)).ReturnsAsync(new List<int>());
 
+            // Act
             await this.service.ToggleLikeAsync(memory, currentUser);
 
+            // Assert
             this.mockMemoryRepository.Verify(m => m.AddLikeAsync(memory.MemoryId, currentUser.UserId), Times.Once);
         }
 
         [Fact]
         public async Task ToggleLikeAsync_AlreadyLiked_CallsRemoveLikeAsync()
         {
+            // Arrange
             var currentUser = new User { UserId = 1 };
             var memory = new Memory { MemoryId = 10 };
+
             var fullMemory = new Memory { MemoryId = 10, Author = new User { UserId = 2 } };
 
             this.mockMemoryRepository.Setup(m => m.GetByIdAsync(memory.MemoryId)).ReturnsAsync(fullMemory);
+
+            // NEW MOCK: Return a list containing our User ID, so the service thinks we already liked it
             this.mockMemoryRepository.Setup(m => m.GetLikesAsync(memory.MemoryId)).ReturnsAsync(new List<int> { 1 });
 
+            // Act
             await this.service.ToggleLikeAsync(memory, currentUser);
 
+            // Assert
             this.mockMemoryRepository.Verify(m => m.RemoveLikeAsync(memory.MemoryId, currentUser.UserId), Times.Once);
         }
 
