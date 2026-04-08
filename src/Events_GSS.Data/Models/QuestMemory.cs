@@ -6,8 +6,8 @@ namespace Events_GSS.Data.Models;
 
 public class QuestMemory
 {
-    public Quest ForQuest { get; set; }
-    public Memory Proof { get; set; }
+    public required Quest ForQuest { get; set; }
+    public required Memory Proof { get; set; }
     public QuestMemoryStatus ProofStatus { get; set; } = QuestMemoryStatus.Submitted;
   
 }
