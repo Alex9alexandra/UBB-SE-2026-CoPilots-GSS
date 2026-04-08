@@ -15,221 +15,350 @@ using Events_GSS.Data.Services.announcementServices;
 
 namespace Events_GSS.ViewModels
 {
-    public class AttendedEventViewModel : INotifyPropertyChanged
+    /// <summary>
+    /// ViewModel for managing attended events, including filtering, sorting, and user interactions.
+    /// </summary>
+    public partial class AttendedEventViewModel : INotifyPropertyChanged
     {
-        public Array SortOptions => Enum.GetValues(typeof(SortOption));
+        private readonly IAttendedEventService attendedEventService;
+        private readonly IUserService userService;
+        private readonly IReputationService reputationService;
+        private readonly IAnnouncementService announcementService;
+        private ObservableCollection<AttendedEvent> archivedEvents = new ();
+        private ObservableCollection<AttendedEvent> favouriteEvents = new ();
+        private ObservableCollection<User> filteredFriends = new ();
+        private List<AttendedEvent> allEvents = new ();
+        private ObservableCollection<AttendedEvent> commonEvents = new ();
+        private string searchQuery = string.Empty;
+        private string friendSearchQuery = string.Empty;
+        private ObservableCollection<AttendedEvent> attendedEvents = new ();
+        private Category? selectedCategory;
+        private RelayCommandAttEv.SortOption selectedSort = RelayCommandAttEv.SortOption.Default;
+        private ObservableCollection<Category> availableCategories = new ();
+        private User? currentUser;
+        private ReputationViewModel? reputationViewModel;
+        private bool isLoading;
+        private string? errorMessage;
 
-        private readonly IAttendedEventService _attendedEventService;
-        private readonly IUserService _userService;
-        private readonly IReputationService _reputationService;
+        /// <summary>
+        /// Occurs when a property value changes.
+        /// </summary>
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        /// <summary>
+        /// Gets the available sort options for events.
+        /// </summary>
+        public static Array SortOptions => Enum.GetValues(typeof(RelayCommandAttEv.SortOption));
+
 
         // The full unfiltered list — never modify this directly after loading.
         // Always filter/sort from this source.
-        private List<AttendedEvent> _allEvents = new();
 
         // ─── Observable collections bound to the UI ───────────────────────
 
-        private ObservableCollection<AttendedEvent> _attendedEvents = new();
+        /// <summary>
+        /// Gets the collection of attended events.
+        /// </summary>
         public ObservableCollection<AttendedEvent> AttendedEvents
         {
-            get => _attendedEvents;
-            private set { _attendedEvents = value; OnPropertyChanged(); }
+            get => this.attendedEvents;
+            private set
+            {
+                this.attendedEvents = value;
+                this.OnPropertyChanged();
+            }
         }
 
-        private ObservableCollection<AttendedEvent> _archivedEvents = new();
+        /// <summary>
+        /// Gets the collection of archived events.
+        /// </summary>
         public ObservableCollection<AttendedEvent> ArchivedEvents
         {
-            get => _archivedEvents;
-            private set { _archivedEvents = value; OnPropertyChanged(); }
+            get => this.archivedEvents;
+            private set
+            {
+                this.archivedEvents = value;
+                this.OnPropertyChanged();
+            }
         }
 
-        private ObservableCollection<AttendedEvent> _favouriteEvents = new();
+        /// <summary>
+        /// Gets the collection of favourite events.
+        /// </summary>
         public ObservableCollection<AttendedEvent> FavouriteEvents
         {
-            get => _favouriteEvents;
-            private set { _favouriteEvents = value; OnPropertyChanged(); }
+            get => this.favouriteEvents;
+            private set
+            {
+                this.favouriteEvents = value;
+                this.OnPropertyChanged();
+            }
         }
 
-        private ObservableCollection<User> _filteredFriends = new();
+        /// <summary>
+        /// Gets the collection of filtered friends.
+        /// </summary>
         public ObservableCollection<User> FilteredFriends
         {
-            get => _filteredFriends;
-            private set { _filteredFriends = value; OnPropertyChanged(); }
+            get => this.filteredFriends;
+            private set
+            {
+                this.filteredFriends = value;
+                this.OnPropertyChanged();
+            }
         }
 
-        private ObservableCollection<AttendedEvent> _commonEvents = new();
+        /// <summary>
+        /// Gets the collection of common events between the current user and a friend.
+        /// </summary>
         public ObservableCollection<AttendedEvent> CommonEvents
         {
-            get => _commonEvents;
-            private set { _commonEvents = value; OnPropertyChanged(); }
+            get => this.commonEvents;
+            private set
+            {
+                this.commonEvents = value;
+                this.OnPropertyChanged();
+
+            }
         }
 
         // ─── Search & filter state ────────────────────────────────────────
 
-        private string _searchQuery = string.Empty;
+        /// <summary>
+        /// Gets or sets the search query for filtering events by name.
+        /// </summary>
         public string SearchQuery
         {
-            get => _searchQuery;
+            get => this.searchQuery;
             set
             {
-                _searchQuery = value;
-                OnPropertyChanged();
-                ApplyFiltersAndSort();
+                this.searchQuery = value;
+                this.OnPropertyChanged();
+                this.ApplyFiltersAndSort();
             }
         }
 
-        private string _friendSearchQuery = string.Empty;
+        /// <summary>
+        /// Gets or sets the search query for filtering friends by name.
+        /// </summary>
         public string FriendSearchQuery
         {
-            get => _friendSearchQuery;
+            get => this.friendSearchQuery;
             set
             {
-                _friendSearchQuery = value;
-                OnPropertyChanged();
-                FilteredFriends = new ObservableCollection<User>(_userService.SearchFriends(CurrentUser.UserId, _friendSearchQuery));
+                this.friendSearchQuery = value;
+                this.OnPropertyChanged();
+                this.FilteredFriends = new ObservableCollection<User>(this.userService.SearchFriends(this.CurrentUser.UserId, this.friendSearchQuery));
             }
         }
 
-        private Category? _selectedCategory;
+        /// <summary>
+        /// Gets or sets the selected category for filtering events.
+        /// </summary>
         public Category? SelectedCategory
         {
-            get => _selectedCategory;
+            get => this.selectedCategory;
             set
             {
-                _selectedCategory = value;
-                OnPropertyChanged();
-                ApplyFiltersAndSort();
+                this.selectedCategory = value;
+                this.OnPropertyChanged();
+                this.ApplyFiltersAndSort();
             }
         }
 
-        private SortOption _selectedSort = SortOption.Default;
-        public SortOption SelectedSort
+        /// <summary>
+        /// Gets or sets the selected sort option for events.
+        /// </summary>
+        public RelayCommandAttEv.SortOption SelectedSort
         {
-            get => _selectedSort;
+            get => this.selectedSort;
             set
             {
-                _selectedSort = value;
-                OnPropertyChanged();
-                ApplyFiltersAndSort();
+                this.selectedSort = value;
+                this.OnPropertyChanged();
+                this.ApplyFiltersAndSort();
             }
         }
 
         // Populated from the loaded events — used to fill the category filter dropdown.
-        private ObservableCollection<Category> _availableCategories = new();
+
+        /// <summary>
+        /// Gets the available categories from loaded events.
+        /// </summary>
         public ObservableCollection<Category> AvailableCategories
         {
-            get => _availableCategories;
-            private set { _availableCategories = value; OnPropertyChanged(); }
+            get => this.availableCategories;
+            private set
+            {
+                this.availableCategories = value;
+                this.OnPropertyChanged();
+            }
         }
 
         // ─── Current user & RP display ────────────────────────────────────
 
-        private User? _currentUser;
+        /// <summary>
+        /// Gets the current logged-in user.
+        /// </summary>
         public User? CurrentUser
         {
-            get => _currentUser;
-            private set { _currentUser = value; OnPropertyChanged(); }
+            get => this.currentUser;
+            private set
+            {
+                this.currentUser = value;
+                this.OnPropertyChanged();
+            }
         }
 
-        private ReputationViewModel? _reputationViewModel;
+        /// <summary>
+        /// Gets the reputation view model for the current user.
+        /// </summary>
         public ReputationViewModel? ReputationViewModel
         {
-            get => _reputationViewModel;
-            private set { _reputationViewModel = value; OnPropertyChanged(); }
+            get => this.reputationViewModel;
+            private set
+            {
+                this.reputationViewModel = value;
+                this.OnPropertyChanged();
+            }
         }
 
         // ─── UI state
 
-        private bool _isLoading;
+        /// <summary>
+        /// Gets a value indicating whether the view model is currently loading data.
+        /// </summary>
         public bool IsLoading
         {
-            get => _isLoading;
-            private set { _isLoading = value; OnPropertyChanged(); }
+            get => this.isLoading;
+            private set
+            {
+                this.isLoading = value;
+                this.OnPropertyChanged();
+            }
         }
 
-        private string? _errorMessage;
+        /// <summary>
+        /// Gets the current error message, if any.
+        /// </summary>
         public string? ErrorMessage
         {
-            get => _errorMessage;
-            private set { _errorMessage = value; OnPropertyChanged(); }
+            get => this.errorMessage;
+            private set
+            {
+                this.errorMessage = value;
+                this.OnPropertyChanged();
+            }
         }
 
         // ─── Commands ─────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Gets the command for loading attended events.
+        /// </summary>
         public ICommand LoadCommand { get; }
+
+        /// <summary>
+        /// Gets the command for leaving an event.
+        /// </summary>
         public ICommand LeaveCommand { get; }
+
+        /// <summary>
+        /// Gets the command for setting the archived status of an event.
+        /// </summary>
         public ICommand SetArchivedCommand { get; }
+
+        /// <summary>
+        /// Gets the command for setting the favourite status of an event.
+        /// </summary>
         public ICommand SetFavouriteCommand { get; }
+
+        /// <summary>
+        /// Gets the command for clearing all filters.
+        /// </summary>
         public ICommand ClearFiltersCommand { get; }
 
         // ─── Constructor ──────────────────────────────────────────────────
 
-        private readonly IAnnouncementService _announcementService;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AttendedEventViewModel"/> class.
+        /// </summary>
+        /// <param name="attendedEventService">The attended event service.</param>
+        /// <param name="userService">The user service.</param>
+        /// <param name="announcementService">The announcement service.</param>
+        /// <param name="reputationService">The reputation service.</param>
         public AttendedEventViewModel(IAttendedEventService attendedEventService, IUserService userService, IAnnouncementService announcementService, IReputationService reputationService)
         {
-            _attendedEventService = attendedEventService;
-            _userService = userService;
-            _reputationService = reputationService;
+            this.attendedEventService = attendedEventService;
+            this.userService = userService;
+            this.reputationService = reputationService;
 
-            LoadCommand = new RelayCommandAttEv(async _ => await LoadAsync());
-            LeaveCommand = new RelayCommandAttEv(async p => await LeaveAsync(p), p => p is AttendedEvent);
-            SetArchivedCommand = new RelayCommandAttEv(async p => await SetArchivedAsync(p), p => p is AttendedEvent);
-            SetFavouriteCommand = new RelayCommandAttEv(async p => await SetFavouriteAsync(p), p => p is AttendedEvent);
-            ClearFiltersCommand = new RelayCommandAttEv(_ => ClearFilters());
-            _announcementService = announcementService;
+            this.LoadCommand = new RelayCommandAttEv(async _ => await this.LoadAsync());
+            this.LeaveCommand = new RelayCommandAttEv(async p => await this.LeaveAsync(p), p => p is AttendedEvent);
+            this.SetArchivedCommand = new RelayCommandAttEv(async p => await this.SetArchivedAsync(p), p => p is AttendedEvent);
+            this.SetFavouriteCommand = new RelayCommandAttEv(async p => await this.SetFavouriteAsync(p), p => p is AttendedEvent);
+            this.ClearFiltersCommand = new RelayCommandAttEv(_ => this.ClearFilters());
+            this.announcementService = announcementService;
         }
 
         // ─── Load ─────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Loads the attended events for the current user.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task LoadAsync()
         {
-            IsLoading = true;
-            ErrorMessage = null;
+            this.IsLoading = true;
+            this.ErrorMessage = null;
 
             try
             {
-                CurrentUser = _userService.GetCurrentUser();
+                this.CurrentUser = this.userService.GetCurrentUser();
 
-                ReputationViewModel = new ReputationViewModel(_userService, _reputationService);
-                await ReputationViewModel.LoadAsync();
+                this.ReputationViewModel = new ReputationViewModel(this.userService, this.reputationService);
+                await this.ReputationViewModel.LoadAsync();
 
-                var all = await _attendedEventService.GetAttendedEventsAsync(CurrentUser.UserId);
-                _allEvents = all;
+                var events = await this.attendedEventService.GetAttendedEventsAsync(this.CurrentUser.UserId);
+                this.allEvents = events;
 
                 // Populate category dropdown from whatever categories exist in the loaded events.
-                var categories = _allEvents
-                    .Where(ae => ae.Event.Category != null)
-                    .Select(ae => ae.Event.Category!)
-                    .DistinctBy(c => c.CategoryId)
+                var categories = this.allEvents
+                    .Where(attendedEvent => attendedEvent.Event.Category != null)
+                    .Select(attendedEvent => attendedEvent.Event.Category!)
+                    .DistinctBy(category => category.CategoryId)
                     .ToList();
 
-                AvailableCategories = new ObservableCollection<Category>(categories);
-                FilteredFriends = new ObservableCollection<User>(_userService.GetFriends(CurrentUser.UserId));
+                this.AvailableCategories = new ObservableCollection<Category>(categories);
+                this.FilteredFriends = new ObservableCollection<User>(this.userService.GetFriends(this.CurrentUser.UserId));
 
-                var unreadCounts = await _announcementService.GetUnreadCountsForUserAsync(CurrentUser.UserId);
-                foreach( var ae in _allEvents)
+                var unreadCounts = await this.announcementService.GetUnreadCountsForUserAsync(this.CurrentUser.UserId);
+                foreach (var attendedEvent in this.allEvents)
                 {
-                    ae.UnreadAnnouncementCount = unreadCounts.TryGetValue(ae.Event.EventId, out var count) ? count : 0;
+                    attendedEvent.UnreadAnnouncementCount = unreadCounts.TryGetValue(attendedEvent.Event.EventId, out var count) ? count : 0;
                 }
 
-                ApplyFiltersAndSort();
-
+                this.ApplyFiltersAndSort();
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Failed to load events: {ex.Message}";
+                this.ErrorMessage = $"Failed to load events: {ex.Message}";
             }
             finally
             {
-                IsLoading = false;
+                this.IsLoading = false;
             }
         }
 
+        /// <summary>
+        /// Loads common events between the current user and a friend.
+        /// </summary>
+        /// <param name="friend">The friend to compare events with.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task LoadCommonEventsAsync(User friend)
         {
-            var common_events = await _attendedEventService.GetCommonEventsAsync(CurrentUser.UserId, friend.UserId);
-            CommonEvents = new ObservableCollection<AttendedEvent>(common_events);
+            var commonEventsList = await this.attendedEventService.GetCommonEventsAsync(this.CurrentUser.UserId, friend.UserId);
+            this.CommonEvents = new ObservableCollection<AttendedEvent>(commonEventsList);
         }
 
         // ─── Filtering & sorting ──────────────────────────────────────────
@@ -238,183 +367,297 @@ namespace Events_GSS.ViewModels
         // Always operates on _allEvents so nothing is permanently lost.
         private void ApplyFiltersAndSort()
         {
-            var filtered = _allEvents.AsEnumerable();
+            var filteredAttendedEvents = this.allEvents.AsEnumerable();
 
             // Filter by search query (event title)
-            if (!string.IsNullOrWhiteSpace(SearchQuery))
-                filtered = filtered.Where(ae =>
-                    ae.Event.Name.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(this.SearchQuery))
+            {
+                filteredAttendedEvents = filteredAttendedEvents.Where(attendedEvent =>
+                    attendedEvent.Event.Name.Contains(this.SearchQuery, StringComparison.OrdinalIgnoreCase));
+            }
 
             // Filter by selected category
-            if (SelectedCategory != null)
-                filtered = filtered.Where(ae =>
-                    ae.Event.Category?.CategoryId == SelectedCategory.CategoryId);
+            if (this.SelectedCategory != null)
+            {
+                filteredAttendedEvents = filteredAttendedEvents.Where(attendedEvent =>
+                    attendedEvent.Event.Category?.CategoryId == this.SelectedCategory.CategoryId);
+            }
 
             // Split archived / non-archived before sorting
-            var active = filtered.Where(ae => !ae.IsArchived).ToList();
-            var archived = filtered.Where(ae => ae.IsArchived).ToList();
-            var favourites = _allEvents
-                .Where(ae => ae.IsFavourite && !ae.IsArchived)
-                .Where(ae => string.IsNullOrWhiteSpace(SearchQuery) ||
-                             ae.Event.Name.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase))
-                .Where(ae => SelectedCategory == null ||
-                             ae.Event.Category?.CategoryId == SelectedCategory.CategoryId)
+            var activeAttendedEvents = filteredAttendedEvents.Where(attendedEvent => !attendedEvent.IsArchived).ToList();
+            var archivedAttendedEvents = filteredAttendedEvents.Where(attendedEvent => attendedEvent.IsArchived).ToList();
+            var favouriteAttendedEvents = this.allEvents
+                .Where(attendedEvent => attendedEvent.IsFavourite && !attendedEvent.IsArchived)
+                .Where(attendedEvent => string.IsNullOrWhiteSpace(this.SearchQuery) ||
+                             attendedEvent.Event.Name.Contains(this.SearchQuery, StringComparison.OrdinalIgnoreCase))
+                .Where(attendedEvent => this.SelectedCategory == null ||
+                             attendedEvent.Event.Category?.CategoryId == this.SelectedCategory.CategoryId)
                 .ToList();
 
             // Sort
-            active = Sort(active);
-            archived = Sort(archived);
+            activeAttendedEvents = this.Sort(activeAttendedEvents);
+            archivedAttendedEvents = this.Sort(archivedAttendedEvents);
 
             // When default sort is active, favourites bubble to the top (req 5.5)
-            if (SelectedSort == SortOption.Default)
+            if (this.SelectedSort == RelayCommandAttEv.SortOption.Default)
             {
-                active = active
-                    .OrderByDescending(ae => ae.IsFavourite)
+                activeAttendedEvents = activeAttendedEvents
+                    .OrderByDescending(attendedEvent => attendedEvent.IsFavourite)
                     .ToList();
             }
 
-            AttendedEvents = new ObservableCollection<AttendedEvent>(active);
-            ArchivedEvents = new ObservableCollection<AttendedEvent>(archived);
-            FavouriteEvents = new ObservableCollection<AttendedEvent>(Sort(favourites));
+            this.AttendedEvents = new ObservableCollection<AttendedEvent>(activeAttendedEvents);
+            this.ArchivedEvents = new ObservableCollection<AttendedEvent>(archivedAttendedEvents);
+            this.FavouriteEvents = new ObservableCollection<AttendedEvent>(this.Sort(favouriteAttendedEvents));
         }
 
         private List<AttendedEvent> Sort(List<AttendedEvent> list)
         {
-            return SelectedSort switch
+            return this.SelectedSort switch
             {
-                SortOption.TitleAscending => list.OrderBy(ae => ae.Event.Name).ToList(),
-                SortOption.TitleDescending => list.OrderByDescending(ae => ae.Event.Name).ToList(),
-                SortOption.CategoryAscending => list.OrderBy(ae => ae.Event.Category?.Title).ToList(),
-                SortOption.CategoryDescending => list.OrderByDescending(ae => ae.Event.Category?.Title).ToList(),
-                SortOption.StartDateAscending => list.OrderBy(ae => ae.Event.StartDateTime).ToList(),
-                SortOption.StartDateDescending => list.OrderByDescending(ae => ae.Event.StartDateTime).ToList(),
-                SortOption.EndDateAscending => list.OrderBy(ae => ae.Event.EndDateTime).ToList(),
-                SortOption.EndDateDescending => list.OrderByDescending(ae => ae.Event.EndDateTime).ToList(),
-                _ => list  // Default — order preserved, favourites handled separately
+                RelayCommandAttEv.SortOption.TitleAscending => list.OrderBy(attendedEvent => attendedEvent.Event.Name).ToList(),
+                RelayCommandAttEv.SortOption.TitleDescending => list.OrderByDescending(attendedEvent => attendedEvent.Event.Name).ToList(),
+                RelayCommandAttEv.SortOption.CategoryAscending => list.OrderBy(attendedEvent => attendedEvent.Event.Category?.Title).ToList(),
+                RelayCommandAttEv.SortOption.CategoryDescending => list.OrderByDescending(attendedEvent => attendedEvent.Event.Category?.Title).ToList(),
+                RelayCommandAttEv.SortOption.StartDateAscending => list.OrderBy(attendedEvent => attendedEvent.Event.StartDateTime).ToList(),
+                RelayCommandAttEv.SortOption.StartDateDescending => list.OrderByDescending(attendedEvent => attendedEvent.Event.StartDateTime).ToList(),
+                RelayCommandAttEv.SortOption.EndDateAscending => list.OrderBy(attendedEvent => attendedEvent.Event.EndDateTime).ToList(),
+                RelayCommandAttEv.SortOption.EndDateDescending => list.OrderByDescending(attendedEvent => attendedEvent.Event.EndDateTime).ToList(),
+                _ => list// Default — order preserved, favourites handled separately
             };
         }
 
         private void ClearFilters()
         {
-            _searchQuery = string.Empty;
-            OnPropertyChanged(nameof(SearchQuery));
-            _selectedCategory = null;
-            OnPropertyChanged(nameof(SelectedCategory));
-            _selectedSort = SortOption.Default;
-            OnPropertyChanged(nameof(SelectedSort));
-            ApplyFiltersAndSort();
+            this.searchQuery = string.Empty;
+            this.OnPropertyChanged(nameof(this.SearchQuery));
+            this.selectedCategory = null;
+            this.OnPropertyChanged(nameof(this.SelectedCategory));
+            this.selectedSort = RelayCommandAttEv.SortOption.Default;
+            this.OnPropertyChanged(nameof(this.SelectedSort));
+            this.ApplyFiltersAndSort();
         }
 
         // ─── Commands implementation ──────────────────────────────────────
 
+        /// <summary>
+        /// Leaves an event asynchronously.
+        /// </summary>
+        /// <param name="parameter">The attended event to leave.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task LeaveAsync(object? parameter)
         {
-            if (parameter is not AttendedEvent ae) return;
+            if (parameter is not AttendedEvent attendedEvent)
+            {
+                return;
+            }
 
             try
             {
-                await _attendedEventService.LeaveEventAsync(ae.Event.EventId, ae.User.UserId);
-                _allEvents.Remove(ae);
-                ApplyFiltersAndSort();
+                await this.attendedEventService.LeaveEventAsync(attendedEvent.Event.EventId, attendedEvent.User.UserId);
+                this.allEvents.Remove(attendedEvent);
+                this.ApplyFiltersAndSort();
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                ErrorMessage = $"Failed to leave event: {ex.Message}";
+                this.ErrorMessage = $"Failed to leave event: {exception.Message}";
             }
         }
 
+        /// <summary>
+        /// Sets the archived status of an event asynchronously.
+        /// </summary>
+        /// <param name="parameter">The attended event to archive or unarchive.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task SetArchivedAsync(object? parameter)
         {
-            if (parameter is not AttendedEvent ae) return;
+            if (parameter is not AttendedEvent attendedEvent)
+            {
+                return;
+            }
 
             try
             {
-                var newValue = !ae.IsArchived;
-                await _attendedEventService.SetArchivedAsync(ae.Event.EventId, ae.User.UserId, newValue);
-                ae.IsArchived = newValue;
-                ApplyFiltersAndSort();
+                var newValue = !attendedEvent.IsArchived;
+                await this.attendedEventService.SetArchivedAsync(attendedEvent.Event.EventId, attendedEvent.User.UserId, newValue);
+                attendedEvent.IsArchived = newValue;
+                this.ApplyFiltersAndSort();
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                ErrorMessage = $"Failed to update archive status: {ex.Message}";
+                this.ErrorMessage = $"Failed to update archive status: {exception.Message}";
             }
         }
 
+        /// <summary>
+        /// Sets the favourite status of an event asynchronously.
+        /// </summary>
+        /// <param name="parameter">The attended event to favourite or unfavourite.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task SetFavouriteAsync(object? parameter)
         {
-            if (parameter is not AttendedEvent ae) return;
+            if (parameter is not AttendedEvent attendedEvent)
+            {
+                return;
+            }
 
             try
             {
-                var newValue = !ae.IsFavourite;
-                await _attendedEventService.SetFavouriteAsync(ae.Event.EventId, ae.User.UserId, newValue);
-                ae.IsFavourite = newValue;
-                ApplyFiltersAndSort();
+                var newValue = !attendedEvent.IsFavourite;
+                await this.attendedEventService.SetFavouriteAsync(attendedEvent.Event.EventId, attendedEvent.User.UserId, newValue);
+                attendedEvent.IsFavourite = newValue;
+                this.ApplyFiltersAndSort();
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                ErrorMessage = $"Failed to update favourite status: {ex.Message}";
+                this.ErrorMessage = $"Failed to update favourite status: {exception.Message}";
             }
         }
 
         // ─── INotifyPropertyChanged ───────────────────────────────────────
 
-        public event PropertyChangedEventHandler? PropertyChanged;
+        /// <summary>
+        /// Raises the PropertyChanged event.
+        /// </summary>
+        /// <param name="name">The name of the property that changed.</param>
         protected void OnPropertyChanged([CallerMemberName] string? name = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            => this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
     // ─── RelayCommand ─────────────────────────────────────────────────────
 
+    /// <summary>
+    /// A relay command implementation for handling commands with async support.
+    /// </summary>
     public class RelayCommandAttEv : ICommand
     {
-        private readonly Func<object?, Task> _executeAsync;
-        private readonly Func<object?, bool>? _canExecute;
-        private bool _isExecuting;
+        private readonly Func<object?, Task> executeAsync;
+        private readonly Func<object?, bool>? canExecute;
+        private bool isExecuting;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RelayCommandAttEv"/> class.
+        /// </summary>
+        /// <param name="executeAsync">The async execute method.</param>
+        /// <param name="canExecute">The can execute method.</param>
         public RelayCommandAttEv(Func<object?, Task> executeAsync, Func<object?, bool>? canExecute = null)
         {
-            _executeAsync = executeAsync;
-            _canExecute = canExecute;
+            this.executeAsync = executeAsync;
+            this.canExecute = canExecute;
         }
 
         // Convenience constructor for synchronous actions
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RelayCommandAttEv"/> class with a synchronous execute method.
+        /// </summary>
+        /// <param name="execute">The execute method.</param>
+        /// <param name="canExecute">The can execute method.</param>
         public RelayCommandAttEv(Action<object?> execute, Func<object?, bool>? canExecute = null)
-            : this(p => { execute(p); return Task.CompletedTask; }, canExecute) { }
+            : this(
+                p =>
+                {
+                    execute(p);
+                    return Task.CompletedTask;
+                }, canExecute)
+        {
+        }
 
+        /// <summary>
+        /// Occurs when changes occur that affect whether the command should execute.
+        /// </summary>
+        public event EventHandler? CanExecuteChanged;
+
+        // ─── SortOption enum ──────────────────────────────────────────────────
+
+        /// <summary>
+        /// Defines the available sort options for events.
+        /// </summary>
+        public enum SortOption
+        {
+            /// <summary>
+            /// Default sort order.
+            /// </summary>
+            Default,
+
+            /// <summary>
+            /// Sort by title in ascending order.
+            /// </summary>
+            TitleAscending,
+
+            /// <summary>
+            /// Sort by title in descending order.
+            /// </summary>
+            TitleDescending,
+
+            /// <summary>
+            /// Sort by category in ascending order.
+            /// </summary>
+            CategoryAscending,
+
+            /// <summary>
+            /// Sort by category in descending order.
+            /// </summary>
+            CategoryDescending,
+
+            /// <summary>
+            /// Sort by start date in ascending order.
+            /// </summary>
+            StartDateAscending,
+
+            /// <summary>
+            /// Sort by start date in descending order.
+            /// </summary>
+            StartDateDescending,
+
+            /// <summary>
+            /// Sort by end date in ascending order.
+            /// </summary>
+            EndDateAscending,
+
+            /// <summary>
+            /// Sort by end date in descending order.
+            /// </summary>
+            EndDateDescending,
+        }
+
+
+        /// <summary>
+        /// Determines whether the command can execute.
+        /// </summary>
+        /// <param name="parameter">The command parameter.</param>
+        /// <returns>True if the command can execute; otherwise, false.</returns>
         public bool CanExecute(object? parameter)
-            => !_isExecuting && (_canExecute?.Invoke(parameter) ?? true);
+            => !this.isExecuting && (this.canExecute?.Invoke(parameter) ?? true);
 
+        /// <summary>
+        /// Executes the command.
+        /// </summary>
+        /// <param name="parameter">The command parameter.</param>
         public async void Execute(object? parameter)
         {
-            if (!CanExecute(parameter)) return;
-            _isExecuting = true;
-            RaiseCanExecuteChanged();
-            try { await _executeAsync(parameter); }
+            if (!this.CanExecute(parameter))
+            {
+                return;
+            }
+
+            this.isExecuting = true;
+            this.RaiseCanExecuteChanged();
+            try
+            {
+                await this.executeAsync(parameter);
+            }
             finally
             {
-                _isExecuting = false;
-                RaiseCanExecuteChanged();
+                this.isExecuting = false;
+                this.RaiseCanExecuteChanged();
             }
         }
 
-        public event EventHandler? CanExecuteChanged;
+        /// <summary>
+        /// Raises the CanExecuteChanged event.
+        /// </summary>
         public void RaiseCanExecuteChanged()
-            => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    // ─── SortOption enum ──────────────────────────────────────────────────
-
-    public enum SortOption
-    {
-        Default,
-        TitleAscending,
-        TitleDescending,
-        CategoryAscending,
-        CategoryDescending,
-        StartDateAscending,
-        StartDateDescending,
-        EndDateAscending,
-        EndDateDescending
+            => this.CanExecuteChanged?.Invoke(this, EventArgs.Empty);
     }
 }
