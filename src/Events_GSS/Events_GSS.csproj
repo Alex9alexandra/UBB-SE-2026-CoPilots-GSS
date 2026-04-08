@@ -18,6 +18,11 @@
     <CodeAnalysisRuleSet>SE.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
 
   <ItemGroup>
     <None Remove="ViewModels\AnnouncementControl.xaml" />
