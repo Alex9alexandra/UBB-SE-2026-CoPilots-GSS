@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Text;
 
 using Events_GSS.Data.Database;
@@ -11,11 +12,11 @@ namespace Events_GSS.Data.Repositories.notificationRepository
 {
     public class NotificationRepository : INotificationRepository
     {
-        private readonly SqlConnectionFactory _factory;
+        private readonly SqlConnectionFactory connectionFactory;
 
         public NotificationRepository(SqlConnectionFactory factory)
         {
-            _factory = factory;
+            connectionFactory = factory;
         }
 
         public async Task AddAsync(Notification notification)
@@ -24,14 +25,14 @@ namespace Events_GSS.Data.Repositories.notificationRepository
                 INSERT INTO Notifications (UserId, Title, Description, CreatedAt)
                 VALUES (@UserId, @Title, @Description, @CreatedAt)";
 
-            using var connection = _factory.CreateConnection();
+            using var connection = connectionFactory.CreateConnection();
             await connection.OpenAsync();
 
             using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@UserId", notification.User.UserId);
-            command.Parameters.AddWithValue("@Title", notification.Title);
-            command.Parameters.AddWithValue("@Description", notification.Description);
-            command.Parameters.AddWithValue("@CreatedAt", notification.CreatedAt);
+            command.Parameters.Add("@UserId", SqlDbType.Int).Value = notification.User.UserId;
+            command.Parameters.Add("@Title", SqlDbType.NVarChar).Value = notification.Title;
+            command.Parameters.Add("@Description", SqlDbType.NVarChar).Value = notification.Description;
+            command.Parameters.Add("@CreatedAt", SqlDbType.DateTime).Value = notification.CreatedAt;
 
             await command.ExecuteNonQueryAsync();
 
@@ -39,24 +40,32 @@ namespace Events_GSS.Data.Repositories.notificationRepository
         public async Task<List<Notification>> GetByUserIdAsync(int userId)
         {
             const string query = @"
-            SELECT n.Id, n.Title, n.Description, n.CreatedAt, u.Id AS UserId, u.Name AS UserName,urp.ReputationPoints
-            FROM Notifications n
-            INNER JOIN Users u ON n.UserId = u.Id
-            LEFT JOIN users_RP_scores urp ON u.Id = urp.UserId
-            WHERE n.UserId = @UserId";
+                SELECT n.Id,
+                       n.Title,
+                       n.Description,
+                       n.CreatedAt,
+                       u.Id AS UserId,
+                       u.Name AS UserName,
+                       ISNULL(urp.ReputationPoints, 0) AS ReputationPoints
+                FROM Notifications n
+                INNER JOIN Users u ON n.UserId = u.Id
+                LEFT JOIN users_RP_scores urp ON u.Id = urp.UserId
+                WHERE n.UserId = @UserId
+                ORDER BY n.CreatedAt DESC";
 
-            using var connection = _factory.CreateConnection();
+            using var connection = connectionFactory.CreateConnection();
             await connection.OpenAsync();
 
             using var command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@UserId", userId);
+            command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+
+            var notifications = new List<Notification>();
 
             using var reader = await command.ExecuteReaderAsync();
-            var results = new List<Notification>();
 
             while (await reader.ReadAsync())
             {
-                results.Add(new Notification
+                notifications.Add(new Notification
                 {
                     Id = (int)reader["Id"],
                     Title = (string)reader["Title"],
@@ -71,18 +80,18 @@ namespace Events_GSS.Data.Repositories.notificationRepository
                 });
             }
 
-            return results;
+            return notifications;
         }
 
         public async Task DeleteAsync(int notificationId)
         {
             const string query = @"DELETE FROM Notifications WHERE Id = @NotificationId";
-            using var connection = _factory.CreateConnection();
+            using var connection = connectionFactory.CreateConnection();
             await connection.OpenAsync();
 
             using var command = new SqlCommand(query, connection);
 
-            command.Parameters.AddWithValue("@NotificationId", notificationId);
+            command.Parameters.Add("@NotificationId", SqlDbType.Int).Value = notificationId;
 
             await command.ExecuteNonQueryAsync();
         }

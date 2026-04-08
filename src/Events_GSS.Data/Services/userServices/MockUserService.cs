@@ -19,6 +19,11 @@ namespace Events_GSS.Services
             _attendedEventService = attendedEventService;
         }
 
+        private static class UserServiceConstants
+        {
+            public const int DefaultCurrentUserId = 3;
+        }
+
         // Hardcoded user pool — mirrors the Users table structure
         private static readonly List<User> _allUsers = new()
         {
@@ -50,7 +55,7 @@ namespace Events_GSS.Services
         /// </summary>
         public User GetCurrentUser()
         {
-            return _allUsers.First(u => u.UserId == _currentUserId);
+            return _allUsers.First(user => user.UserId == _currentUserId);
         }
 
         /// <summary>
@@ -58,7 +63,7 @@ namespace Events_GSS.Services
         /// </summary>
         public User? GetUserById(int userId)
         {
-            return _allUsers.FirstOrDefault(u => u.UserId == userId);
+            return _allUsers.FirstOrDefault(user => user.UserId == userId);
         }
 
         /// <summary>
@@ -84,7 +89,7 @@ namespace Events_GSS.Services
                 return GetFriends(userId);
 
             return GetFriends(userId)
-                .Where(u => u.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
+                .Where(user => user.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
 
@@ -93,13 +98,15 @@ namespace Events_GSS.Services
         {
             try
             {
-                List<AttendedEvent> attendingEvents = await
-                    _attendedEventService.GetAttendedEventsAsync(_currentUserId);
-                return attendingEvents.Exists(ev => ev.Event.EventId == currentEvent.EventId);
+                var attendingEvents = await _attendedEventService
+                    .GetAttendedEventsAsync(_currentUserId);
+
+                return attendingEvents
+                    .Any(attendedEvent => attendedEvent.Event.EventId == currentEvent.EventId);
             }
-            catch (Exception exc)
+            catch (Exception exception)
             {
-                Debug.WriteLine("AttendingEvents: "+exc);
+                Debug.WriteLine("Error checking attendance: " + exception);
                 return false;
             }
         }

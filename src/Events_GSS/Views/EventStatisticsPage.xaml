@@ -235,9 +235,9 @@
                                                 VerticalAlignment="Center">
                                             <TextBlock Text="{x:Bind Tier}" FontSize="12" />
                                         </Border>
-                                        <TextBlock Grid.Column="3" Text="{x:Bind MessagesCount}"
+                                        <TextBlock Grid.Column="3" Text="{x:Bind TotalMessages}"
                                                    VerticalAlignment="Center" HorizontalAlignment="Center" />
-                                        <TextBlock Grid.Column="4" Text="{x:Bind MemoriesCount}"
+                                        <TextBlock Grid.Column="4" Text="{x:Bind TotalMemories}"
                                                    VerticalAlignment="Center" HorizontalAlignment="Center" />
                                         <TextBlock Grid.Column="5" Text="{x:Bind QuestsCompleted}"
                                                    VerticalAlignment="Center" HorizontalAlignment="Center" />
@@ -273,7 +273,7 @@
                                 <DataTemplate x:DataType="models:QuestAnalyticsEntry">
                                     <Grid Padding="12,6" ColumnDefinitions="*,120">
                                         <TextBlock Grid.Column="0" Text="{x:Bind QuestName}" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="{x:Bind CompletedCount}"
+                                        <TextBlock Grid.Column="1" Text="{x:Bind TotalCompletedQuests}"
                                                    VerticalAlignment="Center" HorizontalAlignment="Center"
                                                    FontWeight="SemiBold" />
                                     </Grid>

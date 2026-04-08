@@ -18,12 +18,17 @@ public class EngagementBreakdown
     public double DeniedQuestsRate { get; set; }
 }
 
+public class LeaderboardDefault
+{
+    public const string DefaultTier= "Newcomer";
+}
+
 public class LeaderboardEntry
 {
     public string UserName { get; set; } = string.Empty;
-    public string Tier { get; set; } = "Newcomer";
-    public int MessagesCount { get; set; }
-    public int MemoriesCount { get; set; }
+    public string Tier { get; set; } =LeaderboardDefault.DefaultTier;
+    public int TotalMessages { get; set; }
+    public int TotalMemories { get; set; }
     public int QuestsCompleted { get; set; }
     public int TotalScore { get; set; }
 }
@@ -31,5 +36,5 @@ public class LeaderboardEntry
 public class QuestAnalyticsEntry
 {
     public string QuestName { get; set; } = string.Empty;
-    public int CompletedCount { get; set; }
+    public int TotalCompletedQuests { get; set; }
 }

@@ -20,6 +20,8 @@ namespace Events_GSS.Data.Models
             Description = description;
         }
 
-        public Notification() { }
+        public Notification() 
+        { 
+        }
     }
 }
