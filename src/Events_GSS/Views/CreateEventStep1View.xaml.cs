@@ -5,15 +5,29 @@ using Events_GSS.ViewModels;
 
 namespace Events_GSS.Views;
 
+/// <summary>
+/// User control for the first step of event creation.
+/// </summary>
 public sealed partial class CreateEventStep1View : UserControl
 {
-    public CreateEventViewModel ViewModel { get; set; } = null!;
-
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CreateEventStep1View"/> class.
+    /// </summary>
     public CreateEventStep1View()
     {
         this.InitializeComponent();
     }
 
+    /// <summary>
+    /// Gets or sets the view model for the create event step 1 view.
+    /// </summary>
+    public CreateEventViewModel ViewModel { get; set; } = null!;
+
+    /// <summary>
+    /// Handles the cancel button click event and prompts the user for confirmation.
+    /// </summary>
+    /// <param name="sender">The button that triggered the event.</param>
+    /// <param name="e">The event arguments.</param>
     private async void Cancel_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new ContentDialog
@@ -22,16 +36,21 @@ public sealed partial class CreateEventStep1View : UserControl
             Content = "Are you sure you want to cancel? All changes will be lost.",
             PrimaryButtonText = "Yes, cancel",
             CloseButtonText = "No, go back",
-            XamlRoot = this.XamlRoot
+            XamlRoot = this.XamlRoot,
         };
 
         var result = await dialog.ShowAsync();
         if (result == ContentDialogResult.Primary)
         {
-            ViewModel.CancelCommand.Execute(null);
+            this.ViewModel.CancelCommand.Execute(null);
         }
     }
 
+    /// <summary>
+    /// Handles text changes in the attendees text box to allow only numeric input.
+    /// </summary>
+    /// <param name="sender">The text box that triggered the event.</param>
+    /// <param name="args">The event arguments containing the new text value.</param>
     private void AttendeesTextBox_BeforeTextChanging(TextBox sender, TextBoxBeforeTextChangingEventArgs args)
     {
         // Only allow digits
