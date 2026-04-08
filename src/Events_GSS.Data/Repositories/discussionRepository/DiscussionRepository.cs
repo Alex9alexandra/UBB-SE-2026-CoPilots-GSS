@@ -12,20 +12,19 @@ namespace Events_GSS.Data.Repositories;
 
 public class DiscussionRepository : IDiscussionRepository
 {
-    private readonly SqlConnectionFactory _connectionFactory;
+    private readonly SqlConnectionFactory connectionFactory;
 
     public DiscussionRepository(SqlConnectionFactory connectionFactory)
     {
-        _connectionFactory = connectionFactory;
+        this.connectionFactory = connectionFactory;
     }
 
     // ── Messages ──────────────────────────────────────────────────────────────
-
     public async Task<List<DiscussionMessage>> GetByEventAsync(int eventId, int currentUserId)
     {
         var messages = new List<DiscussionMessage>();
 
-        using var conn = _connectionFactory.CreateConnection();
+        using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
         const string messageSelectionQuery = @"
@@ -91,8 +90,10 @@ public class DiscussionRepository : IDiscussionRepository
             }
         }
 
-        if (messages.Count == 0) return messages;
-
+        if (messages.Count == 0)
+        {
+            return messages;
+        }
         // Batch-load reactions
         var messageIds = messages.Select(m => m.Id).ToList();
         var idParams = string.Join(",", messageIds.Select((_, i) => $"@mid{i}"));
@@ -108,8 +109,9 @@ public class DiscussionRepository : IDiscussionRepository
         using (var cmd = new SqlCommand(reactionSelectionQuery, conn))
         {
             for (int i = 0; i < messageIds.Count; i++)
+            {
                 cmd.Parameters.AddWithValue($"@mid{i}", messageIds[i]);
-
+            }
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
@@ -136,7 +138,9 @@ public class DiscussionRepository : IDiscussionRepository
         foreach (var message in messages)
         {
             if (reactionsByMessage.TryGetValue(message.Id, out var reactions))
+            {
                 message.Reactions = reactions;
+            }
         }
 
         return messages;
@@ -144,7 +148,7 @@ public class DiscussionRepository : IDiscussionRepository
 
     public async Task<DiscussionMessage?> GetByIdAsync(int messageId)
     {
-        using var conn = _connectionFactory.CreateConnection();
+        using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
         const string query = @"
@@ -158,7 +162,10 @@ public class DiscussionRepository : IDiscussionRepository
         cmd.Parameters.AddWithValue("@Id", messageId);
 
         using var reader = await cmd.ExecuteReaderAsync();
-        if (!await reader.ReadAsync()) return null;
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
 
         return new DiscussionMessage(
             id: reader.GetInt32(reader.GetOrdinal("DiscussionId")),
@@ -177,7 +184,7 @@ public class DiscussionRepository : IDiscussionRepository
 
     public async Task<int> AddAsync(DiscussionMessage message)
     {
-        using var conn = _connectionFactory.CreateConnection();
+        using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
         const string query = @"
@@ -202,7 +209,7 @@ public class DiscussionRepository : IDiscussionRepository
 
     public async Task DeleteAsync(int messageId)
     {
-        using var conn = _connectionFactory.CreateConnection();
+        using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
         const string detachReplies = @"
@@ -225,7 +232,7 @@ public class DiscussionRepository : IDiscussionRepository
 
     public async Task<DateTime?> GetLastUserMessageDateAsync(int eventId, int userId)
     {
-        using var conn = _connectionFactory.CreateConnection();
+        using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
         const string query = @"
@@ -243,10 +250,9 @@ public class DiscussionRepository : IDiscussionRepository
     }
 
     // ── Reactions ─────────────────────────────────────────────────────────────
-
     public async Task AddReactionAsync(int messageId, int userId, string emoji)
     {
-        using var conn = _connectionFactory.CreateConnection();
+        using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
         const string query = @"
@@ -267,7 +273,7 @@ public class DiscussionRepository : IDiscussionRepository
 
     public async Task RemoveReactionAsync(int messageId, int userId)
     {
-        using var conn = _connectionFactory.CreateConnection();
+        using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
         const string query = @"
@@ -284,7 +290,7 @@ public class DiscussionRepository : IDiscussionRepository
     {
         var reactions = new List<DiscussionReaction>();
 
-        using var conn = _connectionFactory.CreateConnection();
+        using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
         const string query = @"
@@ -316,10 +322,9 @@ public class DiscussionRepository : IDiscussionRepository
     }
 
     // ── Mutes ─────────────────────────────────────────────────────────────────
-
     public async Task<DiscussionMute?> GetMuteAsync(int eventId, int userId)
     {
-        using var conn = _connectionFactory.CreateConnection();
+        using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
         const string query = @"
@@ -334,7 +339,10 @@ public class DiscussionRepository : IDiscussionRepository
         cmd.Parameters.AddWithValue("@UserId", userId);
 
         using var reader = await cmd.ExecuteReaderAsync();
-        if (!await reader.ReadAsync()) return null;
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
 
         return new DiscussionMute
         {
@@ -356,7 +364,7 @@ public class DiscussionRepository : IDiscussionRepository
 
     public async Task MuteAsync(DiscussionMute mute)
     {
-        using var conn = _connectionFactory.CreateConnection();
+        using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
         const string remove = @"
@@ -390,7 +398,7 @@ public class DiscussionRepository : IDiscussionRepository
 
     public async Task UnmuteAsync(int eventId, int userId)
     {
-        using var conn = _connectionFactory.CreateConnection();
+        using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
         const string query = @"
@@ -404,10 +412,9 @@ public class DiscussionRepository : IDiscussionRepository
     }
 
     // ── Slow Mode ─────────────────────────────────────────────────────────────
-
     public async Task SetSlowModeAsync(int eventId, int? seconds)
     {
-        using var conn = _connectionFactory.CreateConnection();
+        using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
         const string query = @"
@@ -420,12 +427,11 @@ public class DiscussionRepository : IDiscussionRepository
     }
 
     // ── Participants ──────────────────────────────────────────────────────────
-
     public async Task<List<User>> GetEventParticipantsAsync(int eventId)
     {
         var users = new List<User>();
 
-        using var conn = _connectionFactory.CreateConnection();
+        using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
         const string query = @"

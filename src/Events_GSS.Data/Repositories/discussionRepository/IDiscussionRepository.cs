@@ -31,9 +31,9 @@ public interface IDiscussionRepository
     Task SetSlowModeAsync(int eventId, int? seconds);
 
     // ── Participants ─────────────────────────────────────────────────────
-    //<summary>
-    //Used for the @mention lookup when posting messages. Returns all users who have participated in the discussion (posted a message or reaction).
-    //</summary>
+    // <summary>
+    // Used for the @mention lookup when posting messages. Returns all users who have participated in the discussion (posted a message or reaction).
+    // </summary>
     Task<List<User>> GetEventParticipantsAsync(int eventId);
 }
 
