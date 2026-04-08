@@ -106,69 +106,6 @@ public class AnnouncementRepository : IAnnouncementRepository
         }
     }
 
-
-
-    private async Task<List<(int AnnouncementId, AnnouncementReaction Reaction)>>
-    GetReactionsAsync(SqlConnection connection, List<int> announcementIds)
-    {
-        var result = new List<(int, AnnouncementReaction)>();
-
-        var idParameters = string.Join(",", announcementIds.Select((_, i) => $"@id{i}"));
-
-        var query = $@"
-        SELECT ar.Id, ar.AnnouncementId, ar.Emoji, ar.UserId, u.Name AS UserName
-        FROM AnnouncementReactions ar
-        INNER JOIN Users u ON ar.UserId = u.Id
-        WHERE ar.AnnouncementId IN ({idParameters})";
-
-        using var command = new SqlCommand(query, connection);
-
-        for (int i = 0; i < announcementIds.Count; i++)
-        {
-            command.Parameters.AddWithValue($"@id{i}", announcementIds[i]);
-        }
-
-        using var reader = await command.ExecuteReaderAsync();
-
-        while (await reader.ReadAsync())
-        {
-            var announcementId = reader.GetInt32(reader.GetOrdinal("AnnouncementId"));
-
-            var reaction = new AnnouncementReaction
-            {
-                Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                Emoji = reader.GetString(reader.GetOrdinal("Emoji")),
-                AnnouncementId = announcementId,
-                Author = new User
-                {
-                    UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
-                    Name = reader.GetString(reader.GetOrdinal("UserName")),
-                },
-            };
-
-            result.Add((announcementId, reaction));
-        }
-
-        return result;
-    }
-
-    private void AttachReactions(
-    List<Announcement> announcements,
-    List<(int AnnouncementId, AnnouncementReaction Reaction)> reactions)
-    {
-        var grouped = reactions
-            .GroupBy(r => r.AnnouncementId)
-            .ToDictionary(g => g.Key, g => g.Select(x => x.Reaction).ToList());
-
-        foreach (var announcement in announcements)
-        {
-            if (grouped.TryGetValue(announcement.Id, out var listOfReactions))
-            {
-                announcement.Reactions = listOfReactions;
-            }
-        }
-    }
-
     // <summary>
     // It converts a row from the database into a C# object (an Announcement)
     // </summary>
@@ -196,19 +133,8 @@ public class AnnouncementRepository : IAnnouncementRepository
         using var connection = _connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
-        var announcements = await GetAnnouncementsAsync(connection, eventId, userId);
-
-        if (!announcements.Any())
-            return announcements;
-
-        var reactions = await GetReactionsAsync(connection, announcements.Select(a => a.Id).ToList());
-
-        AttachReactions(announcements, reactions);
-
-        return announcements;
+        return await GetAnnouncementsAsync(connection, eventId, userId);
     }
-
-
 
     public async Task<List<AnnouncementReadReceipt>> GetReadReceiptsAsync(int announcementId)
     {
@@ -530,6 +456,56 @@ public class AnnouncementRepository : IAnnouncementRepository
         while (await reader.ReadAsync())
         {
             result.Add(this.MapAnnouncement(reader));
+        }
+
+        return result;
+    }
+
+    public async Task<List<(int AnnouncementId, AnnouncementReaction Reaction)>> GetReactionsAsync(
+    List<int> announcementIds)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+
+        var result = new List<(int, AnnouncementReaction)>();
+
+        if (announcementIds == null || announcementIds.Count == 0)
+            return result;
+
+        var idParameters = string.Join(",", announcementIds.Select((_, i) => $"@id{i}"));
+
+        var query = $@"
+        SELECT ar.Id, ar.AnnouncementId, ar.Emoji, ar.UserId, u.Name AS UserName
+        FROM AnnouncementReactions ar
+        INNER JOIN Users u ON ar.UserId = u.Id
+        WHERE ar.AnnouncementId IN ({idParameters})";
+
+        using var command = new SqlCommand(query, connection);
+
+        for (int i = 0; i < announcementIds.Count; i++)
+        {
+            command.Parameters.AddWithValue($"@id{i}", announcementIds[i]);
+        }
+
+        using var reader = await command.ExecuteReaderAsync();
+
+        while (await reader.ReadAsync())
+        {
+            var announcementId = reader.GetInt32(reader.GetOrdinal("AnnouncementId"));
+
+            var reaction = new AnnouncementReaction
+            {
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                Emoji = reader.GetString(reader.GetOrdinal("Emoji")),
+                AnnouncementId = announcementId,
+                Author = new User
+                {
+                    UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
+                    Name = reader.GetString(reader.GetOrdinal("UserName")),
+                },
+            };
+
+            result.Add((announcementId, reaction));
         }
 
         return result;

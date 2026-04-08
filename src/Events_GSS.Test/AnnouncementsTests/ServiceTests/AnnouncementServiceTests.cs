@@ -148,6 +148,40 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
             _mockRepo.Verify(r => r.DeleteAnnouncementAsync(5), Times.Once);
         }
 
+        [Theory]
+        [InlineData("")]
+
+        // empty string
+        [InlineData("")]
+        // whitespace
+        [InlineData("   ")]
+        public async Task UpdateAnnouncement_InvalidMessage_ThrowsArgumentException(string input)
+        {
+            // Arrange
+            SetupAdmin();
+
+            _mockRepo
+                .Setup(r => r.GetAnnouncementByIdAsync(5))
+                .ReturnsAsync(new Announcement(5, "old", DateTime.UtcNow));
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(async () =>
+                await _service.UpdateAnnouncementAsync(5, input, 10, 1));
+        }
+
+        [Fact]
+        public async Task UpdateAnnouncement_NullMessage_ThrowsArgumentException()
+        {
+            SetupAdmin();
+
+            _mockRepo
+                .Setup(r => r.GetAnnouncementByIdAsync(5))
+                .ReturnsAsync(new Announcement(5, "old", DateTime.UtcNow));
+
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                _service.UpdateAnnouncementAsync(5, null!, 10, 1));
+        }
+
         [Fact]
         public async Task DeleteAnnouncement_NotFound_Throws()
         {
@@ -351,5 +385,195 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
                 r.RemoveReactionAsync(5, 10),
                 Times.Once);
         }
+
+        [Fact]
+        public void AttachReactions_GroupsAndAssignsCorrectly()
+        {
+
+            // Arrange
+            var announcements = new List<Announcement>
+            {
+                new Announcement(1, "A1", DateTime.UtcNow)
+                {
+                    Reactions = new List<AnnouncementReaction>()
+                },
+                new Announcement(2, "A2", DateTime.UtcNow)
+                {
+                    Reactions = new List<AnnouncementReaction>()
+                }
+            };
+
+            var reactions = new List<(int AnnouncementId, AnnouncementReaction Reaction)>
+            {
+                (1, new AnnouncementReaction
+                {
+                    Id = 1,
+                    Emoji = "👍",
+                    AnnouncementId = 1,
+                    Author = new User
+                    {
+                        UserId = 100,
+                        Name = "Test User"
+                    }
+                }),
+                (1, new AnnouncementReaction
+                {
+                    Id = 2,
+                    Emoji = "🔥",
+                    AnnouncementId = 1,
+                    Author = new User
+                    {
+                        UserId = 101,
+                        Name = "Another User"
+                    }
+                }),
+                (2, new AnnouncementReaction
+                {
+                    Id = 3,
+                    Emoji = "❤️",
+                    AnnouncementId = 2,
+                    Author = new User
+                    {
+                        UserId = 102,
+                        Name = "Third User"
+                    }
+                })
+            };
+
+            var service = new AnnouncementService(
+                _mockRepo.Object,
+                _mockEventRepo.Object);
+
+            // Act
+            service.AttachReactions(announcements, reactions);
+
+            // Assert
+            Assert.Equal(2, announcements[0].Reactions.Count);
+            Assert.Equal(1, announcements[1].Reactions.Count);
+        }
+
+        [Fact]
+        public async Task GetAnnouncementsAsync_ReturnsAnnouncementsWithReactions()
+        {
+            // Arrange
+            var announcements = new List<Announcement>
+    {
+        new Announcement(1, "A1", DateTime.UtcNow),
+        new Announcement(2, "A2", DateTime.UtcNow)
+    };
+
+            _mockRepo
+                .Setup(r => r.GetAnnouncementsByEventAsync(1, 10))
+                .ReturnsAsync(announcements);
+
+            _mockRepo
+                .Setup(r => r.GetReactionsAsync(It.IsAny<List<int>>()))
+                .ReturnsAsync(new List<(int AnnouncementId, AnnouncementReaction Reaction)>
+                {
+            (1, new AnnouncementReaction
+            {
+                Id = 1,
+                Emoji = "👍",
+                AnnouncementId = 1,
+                Author = new User { UserId = 1, Name = "User1" }
+            }),
+            (1, new AnnouncementReaction
+            {
+                Id = 2,
+                Emoji = "🔥",
+                AnnouncementId = 1,
+                Author = new User { UserId = 2, Name = "User2" }
+            }),
+            (2, new AnnouncementReaction
+            {
+                Id = 3,
+                Emoji = "❤️",
+                AnnouncementId = 2,
+                Author = new User { UserId = 3, Name = "User3" }
+            })
+                });
+
+            var service = new AnnouncementService(
+                _mockRepo.Object,
+                _mockEventRepo.Object);
+
+            // Act
+            var result = await service.GetAnnouncementsAsync(1, 10);
+
+            // Assert - repo calls
+            _mockRepo.Verify(r => r.GetAnnouncementsByEventAsync(1, 10), Times.Once);
+            _mockRepo.Verify(r => r.GetReactionsAsync(It.IsAny<List<int>>()), Times.Once);
+
+            // Assert - reactions attached correctly
+            Assert.Equal(2, result.First(a => a.Id == 1).Reactions.Count);
+            Assert.Single(result.First(a => a.Id == 2).Reactions);
+        }
+
+        [Fact]
+        public async Task EnsureAdmin_EventNotFound_ThrowsArgumentException()
+        {
+            // Arrange
+            _mockEventRepo
+                .Setup(r => r.GetByIdAsync(1))
+                .ReturnsAsync((Event?)null);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                _service.UpdateAnnouncementAsync(5, "msg", 10, 1));
+        }
+
+        [Fact]
+        public async Task EnsureAdmin_UserNotAdmin_ThrowsUnauthorizedAccess()
+        {
+            // Arrange
+            _mockEventRepo
+                .Setup(r => r.GetByIdAsync(1))
+                .ReturnsAsync(new Event
+                {
+                    EventId = 1,
+                    Admin = new User { UserId = 999, Name = "Other Admin" }
+                });
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                _service.UpdateAnnouncementAsync(5, "msg", 10, 1));
+        }
+
+        [Fact]
+        public async Task EnsureAdmin_EventExistsAndUserIsAdmin_DoesNotThrow()
+        {
+            // Arrange
+            _mockEventRepo
+                .Setup(r => r.GetByIdAsync(1))
+                .ReturnsAsync(new Event
+                {
+                    EventId = 1,
+                    Admin = new User { UserId = 10 }
+                });
+
+            // Act
+            var exception = await Record.ExceptionAsync(() =>
+                _service.UpdateAnnouncementAsync(5, "valid", 10, 1));
+
+            // Assert
+            Assert.Null(exception);
+        }
+
+        [Fact]
+        public async Task EnsureAdmin_EventHasNoAdmin_ThrowsUnauthorized()
+        {
+            // Arrange
+            _mockEventRepo
+                .Setup(r => r.GetByIdAsync(1))
+                .ReturnsAsync(new Event
+                {
+                    EventId = 1,
+                    Admin = null // 🔥 important case
+                });
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                _service.UpdateAnnouncementAsync(5, "valid", 10, 1));
+        }
     }
-}
+ }

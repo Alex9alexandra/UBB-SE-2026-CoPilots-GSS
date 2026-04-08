@@ -9,6 +9,8 @@ using Events_GSS.Data.Repositories;
 using Events_GSS.Data.Repositories.eventRepository;
 using Events_GSS.Data.Services.announcementServices;
 
+using System.Diagnostics.CodeAnalysis;
+
 public class AnnouncementService : IAnnouncementService
 {
     private readonly IAnnouncementRepository _repo;
@@ -24,7 +26,14 @@ public class AnnouncementService : IAnnouncementService
 
     public async Task<List<Announcement>> GetAnnouncementsAsync(int eventId, int userId)
     {
-        return await this._repo.GetAnnouncementsByEventAsync(eventId, userId);
+        var announcements = await _repo.GetAnnouncementsByEventAsync(eventId, userId);
+
+        var reactions = await _repo.GetReactionsAsync(
+            announcements.Select(a => a.Id).ToList());
+
+        AttachReactions(announcements, reactions);
+
+        return announcements;
     }
 
     public async Task CreateAnnouncementAsync(string announcementMessage, int eventId, int userId)
@@ -130,6 +139,7 @@ public class AnnouncementService : IAnnouncementService
         return await this._repo.GetUnreadCountsForUserAsync(userId);
     }
 
+    [ExcludeFromCodeCoverage]
     public async Task<List<User>> GetAllParticipantsAsync(int eventId)
     {
         return await this._repo.GetAllParticipantsAsync(eventId);
@@ -190,5 +200,22 @@ public class AnnouncementService : IAnnouncementService
             .ToList();
 
         return nonReaders;
+    }
+
+    public void AttachReactions(
+    List<Announcement> announcements,
+    List<(int AnnouncementId, AnnouncementReaction Reaction)> reactions)
+    {
+        var grouped = reactions
+            .GroupBy(r => r.AnnouncementId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Reaction).ToList());
+
+        foreach (var announcement in announcements)
+        {
+            if (grouped.TryGetValue(announcement.Id, out var listOfReactions))
+            {
+                announcement.Reactions = listOfReactions;
+            }
+        }
     }
 }

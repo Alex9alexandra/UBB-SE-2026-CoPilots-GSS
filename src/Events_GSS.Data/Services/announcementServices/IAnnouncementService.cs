@@ -80,4 +80,8 @@ public interface IAnnouncementService
     /// Retrieves all users who have not read a specific announcement.
     /// </summary>
     Task<List<User>> GetNonReadersAsync(int announcementId, int eventId);
+
+    void AttachReactions(
+            List<Announcement> announcements,
+            List<(int AnnouncementId, AnnouncementReaction Reaction)> reactions);
 }

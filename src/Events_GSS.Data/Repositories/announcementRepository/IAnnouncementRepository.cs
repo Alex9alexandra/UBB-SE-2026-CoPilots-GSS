@@ -92,4 +92,7 @@ public interface IAnnouncementRepository
     /// Gets the reaction emoji a user has given to an announcement, if any.
     /// </summary>
     Task<string?> GetUserReactionAsync(int announcementId, int userId);
+
+    Task<List<(int AnnouncementId, AnnouncementReaction Reaction)>> GetReactionsAsync(
+    List<int> announcementIds);
 }
