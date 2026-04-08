@@ -6,11 +6,10 @@
     xmlns:local="using:Events_GSS">
     <Application.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-                <!-- Other merged dictionaries here -->
-            </ResourceDictionary.MergedDictionaries>
+            <!-- Merged dictionaries removed for testability to avoid loading WinUI at unit-test time -->
+            <!-- Other merged dictionaries here -->
             <!-- Other app resources here -->
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

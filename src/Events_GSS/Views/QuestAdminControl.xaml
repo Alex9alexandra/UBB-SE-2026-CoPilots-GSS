@@ -4,11 +4,9 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:models="using:Events_GSS.Data.Models"
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls">
-    
 
     <Grid RowDefinitions="Auto,*">
 
-        <!-- Error Banner -->
         <Border
             Grid.Row="0"
             Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}"
@@ -21,7 +19,6 @@
                 TextWrapping="Wrap" />
         </Border>
 
-        <!-- MAIN CONTENT -->
         <SplitView
             Grid.Row="1"
             IsPaneOpen="{x:Bind ViewModel.IsPaneOpen, Mode=TwoWay}"
@@ -29,7 +26,6 @@
             OpenPaneLength="350"
             CompactPaneLength="0">
 
-            <!-- ── LEFT: Add Quest Panel ───────────────────────── -->
             <SplitView.Pane>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="8" Padding="12">
@@ -64,45 +60,44 @@
                                         Maximum="5"
                                         SpinButtonPlacementMode="Inline"
                                         IsEnabled="{x:Bind ViewModel.IsNotLoading, Mode=OneWay}" />
-                                    <Grid ColumnDefinitions="*,Auto">
 
+                                    <Grid ColumnDefinitions="*,Auto">
                                         <ComboBox
-                                        Grid.Column="0"
-                                        ItemsSource="{x:Bind ViewModel.Quests, Mode=OneWay}"
-                                        SelectedItem="{x:Bind ViewModel.SelectedPrerequisiteQuest, Mode=TwoWay}"
-                                        HorizontalAlignment="Stretch"
-                                        IsEnabled="{x:Bind ViewModel.IsNotLoading, Mode=OneWay}">
+                                            Grid.Column="0"
+                                            ItemsSource="{x:Bind ViewModel.Quests, Mode=OneWay}"
+                                            SelectedItem="{x:Bind ViewModel.SelectedPrerequisiteQuest, Mode=TwoWay}"
+                                            HorizontalAlignment="Stretch"
+                                            IsEnabled="{x:Bind ViewModel.IsNotLoading, Mode=OneWay}">
                                             <ComboBox.ItemTemplate>
                                                 <DataTemplate x:DataType="models:Quest">
                                                     <StackPanel Padding="4" Spacing="2">
                                                         <TextBlock
-                                                        Text="{x:Bind Name}"
-                                                        Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                                            Text="{x:Bind Name}"
+                                                            Style="{ThemeResource BodyStrongTextBlockStyle}" />
                                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                                             <TextBlock
-                                                            Text="Difficulty:"
-                                                            Style="{ThemeResource CaptionTextBlockStyle}"
-                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                                Text="Difficulty:"
+                                                                Style="{ThemeResource CaptionTextBlockStyle}"
+                                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                                             <TextBlock
-                                                            Text="{x:Bind Difficulty}"
-                                                            Style="{ThemeResource CaptionTextBlockStyle}" />
+                                                                Text="{x:Bind Difficulty}"
+                                                                Style="{ThemeResource CaptionTextBlockStyle}" />
                                                         </StackPanel>
                                                         <ScrollViewer
-                                                        VerticalScrollBarVisibility="Auto"
-                                                        MaxHeight="36">
+                                                            VerticalScrollBarVisibility="Auto"
+                                                            MaxHeight="36">
                                                             <TextBlock
-                                                            Text="{x:Bind Description}"
-                                                            Style="{ThemeResource CaptionTextBlockStyle}"
-                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                            TextWrapping="Wrap" />
+                                                                Text="{x:Bind Description}"
+                                                                Style="{ThemeResource CaptionTextBlockStyle}"
+                                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                TextWrapping="Wrap" />
                                                         </ScrollViewer>
                                                     </StackPanel>
                                                 </DataTemplate>
                                             </ComboBox.ItemTemplate>
                                         </ComboBox>
 
-                                        
-                                            <Button
+                                        <Button
                                             Grid.Column="1"
                                             Command="{x:Bind ViewModel.ClearPrerequisiteCommand, Mode=OneWay}"
                                             Visibility="{x:Bind ViewModel.HasPrerequisiteSelected, Mode=OneWay}"
@@ -110,21 +105,19 @@
                                             Margin="4,0,0,0"
                                             Style="{StaticResource DefaultButtonStyle}"
                                             ToolTipService.ToolTip="Clear prerequisite">
-                                                <FontIcon Glyph="&#xE711;" FontSize="12" />
-                                            </Button>
-
+                                            <FontIcon Glyph="&#xE711;" FontSize="12" />
+                                        </Button>
                                     </Grid>
+
                                     <Button
                                         Content="Add Custom Quest"
                                         Command="{x:Bind ViewModel.AddCustomQuestCommand, Mode=OneWay}"
                                         HorizontalAlignment="Right" />
-
                                 </StackPanel>
                             </TabViewItem>
 
                             <TabViewItem Header="Preset" IsClosable="False">
                                 <StackPanel Spacing="8" Padding="0,12">
-
                                     <Expander
                                         Header="{x:Bind ViewModel.SelectedPresetQuest.Name, Mode=OneWay, FallbackValue='Select a preset quest'}"
                                         HorizontalAlignment="Stretch"
@@ -155,10 +148,8 @@
                                         Content="Add Preset Quest"
                                         Command="{x:Bind ViewModel.AddPresetQuestCommand, Mode=OneWay}"
                                         HorizontalAlignment="Right" />
-
                                 </StackPanel>
                             </TabViewItem>
-
                         </TabView>
 
                         <ProgressRing
@@ -169,7 +160,6 @@
                 </ScrollViewer>
             </SplitView.Pane>
 
-            <!-- ── RIGHT: Quest List ───────────────────────────── -->
             <SplitView.Content>
                 <Grid RowDefinitions="Auto,Auto,*">
                     <Button
@@ -181,37 +171,19 @@
                         <FontIcon Glyph="&#xE700;" FontSize="16" />
                     </Button>
 
-                    <!-- ── Header Row ─────────────────────────────────────────── -->
                     <Grid
-                    Grid.Row="1"
-                    ColumnDefinitions="*,2*,80,*"
-                    Padding="12,8"
-                    Background="{ThemeResource SystemFillColorSolidNeutralBackgroundBrush}"
-                    BorderThickness="1,1,1,0"
-                    BorderBrush="{ThemeResource ControlStrongStrokeColorDefaultBrush}">
-                        <TextBlock
-                        Grid.Column="0"
-                        Text="Name"
-                        Style="{ThemeResource CaptionTextBlockStyle}"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock
-                        Grid.Column="1"
-                        Text="Description"
-                        Style="{ThemeResource CaptionTextBlockStyle}"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock
-                        Grid.Column="2"
-                        Text="Difficulty"
-                        Style="{ThemeResource CaptionTextBlockStyle}"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock
-                        Grid.Column="3"
-                        Text="Prerequisite"
-                        Style="{ThemeResource CaptionTextBlockStyle}"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        Grid.Row="1"
+                        ColumnDefinitions="*,2*,80,*"
+                        Padding="12,8"
+                        Background="{ThemeResource SystemFillColorSolidNeutralBackgroundBrush}"
+                        BorderThickness="1,1,1,0"
+                        BorderBrush="{ThemeResource ControlStrongStrokeColorDefaultBrush}">
+                        <TextBlock Grid.Column="0" Text="Name" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Column="1" Text="Description" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Column="2" Text="Difficulty" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Column="3" Text="Prerequisite" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </Grid>
 
-                    <!-- ── Quest List ─────────────────────────────────────────── -->
                     <ListView
                         Grid.Row="2"
                         ItemsSource="{x:Bind ViewModel.Quests, Mode=OneWay}"
@@ -223,8 +195,8 @@
                         <ListView.ContextFlyout>
                             <MenuFlyout>
                                 <MenuFlyoutItem
-                                Text="Delete"
-                                Command="{x:Bind ViewModel.DeleteQuestCommand, Mode=OneWay}" />
+                                    Text="Delete"
+                                    Command="{x:Bind ViewModel.DeleteQuestCommand, Mode=OneWay}" />
                             </MenuFlyout>
                         </ListView.ContextFlyout>
 
@@ -237,35 +209,30 @@
 
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="models:Quest">
-                                
                                 <Grid
-                                ColumnDefinitions="*,2*,80,*"
-                                Padding="12,8"
-                                BorderThickness="0,0,0,1"
-                                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
+                                    ColumnDefinitions="*,2*,80,*"
+                                    Padding="12,8"
+                                    BorderThickness="0,0,0,1"
+                                    BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
 
-                                    <!-- Name -->
                                     <TextBlock
-                                    Grid.Column="0"
-                                    Text="{x:Bind Name}"
-                                    Style="{ThemeResource BodyTextBlockStyle}"
-                                    VerticalAlignment="Top"
-                                    TextTrimming="CharacterEllipsis" />
+                                        Grid.Column="0"
+                                        Text="{x:Bind Name}"
+                                        Style="{ThemeResource BodyTextBlockStyle}"
+                                        VerticalAlignment="Top"
+                                        TextTrimming="CharacterEllipsis" />
 
-                                    <!-- Description -->
                                     <ScrollViewer
                                         Grid.Column="1"
                                         VerticalScrollBarVisibility="Auto"
                                         MaxHeight="200">
                                         <TextBlock
-                                        Grid.Column="1"
-                                        Text="{x:Bind Description}"
-                                        Style="{ThemeResource BodyTextBlockStyle}"
-                                        VerticalAlignment="Top"
-                                        TextWrapping="Wrap" />
+                                            Text="{x:Bind Description}"
+                                            Style="{ThemeResource BodyTextBlockStyle}"
+                                            VerticalAlignment="Top"
+                                            TextWrapping="Wrap" />
                                     </ScrollViewer>
 
-                                    <!-- Difficulty -->
                                     <TextBlock
                                         Grid.Column="2"
                                         Text="{x:Bind Difficulty}"
@@ -280,42 +247,25 @@
                                         HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Stretch"
                                         VerticalAlignment="Top">
-                                        <ScrollViewer
-                                            MaxHeight="200"
-                                            VerticalScrollBarVisibility="Auto">
+                                        <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                                             <StackPanel Spacing="4" Padding="4">
                                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <TextBlock
-                                                        Text="Difficulty:"
-                                                        Style="{ThemeResource CaptionTextBlockStyle}"
-                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                    <TextBlock
-                                                        Text="{x:Bind PrerequisiteQuest.Difficulty, FallbackValue='—'}"
-                                                        Style="{ThemeResource CaptionTextBlockStyle}" />
+                                                    <TextBlock Text="Difficulty:" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                    <TextBlock Text="{x:Bind PrerequisiteQuest.Difficulty, FallbackValue='—'}" Style="{ThemeResource CaptionTextBlockStyle}" />
                                                 </StackPanel>
                                                 <StackPanel Spacing="4">
-                                                    <TextBlock
-                                                        Text="Description:"
-                                                        Style="{ThemeResource CaptionTextBlockStyle}"
-                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                    <TextBlock
-                                                        Text="{x:Bind PrerequisiteQuest.Description, FallbackValue='—'}"
-                                                        Style="{ThemeResource CaptionTextBlockStyle}"
-                                                        TextWrapping="Wrap" />
+                                                    <TextBlock Text="Description:" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                    <TextBlock Text="{x:Bind PrerequisiteQuest.Description, FallbackValue='—'}" Style="{ThemeResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
                                                 </StackPanel>
                                             </StackPanel>
                                         </ScrollViewer>
                                     </Expander>
-
                                 </Grid>
                             </DataTemplate>
                         </ListView.ItemTemplate>
-
                     </ListView>
-
                 </Grid>
             </SplitView.Content>
-
         </SplitView>
     </Grid>
 </UserControl>

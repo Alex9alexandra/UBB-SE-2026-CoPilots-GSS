@@ -1,6 +1,8 @@
 ﻿// ViewModels/QuestViewModel.cs
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Threading.Tasks;
+using System;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -16,12 +18,12 @@ namespace Events_GSS.ViewModels;
 
 public partial class QuestAdminViewModel : ObservableObject
 {
-    private readonly IQuestService _questService = App.Services.GetRequiredService<IQuestService>();
-    private readonly Event _event;
-    
+    private readonly IQuestService questService = App.Services.GetRequiredService<IQuestService>();
+    private readonly Event currentEvent;
+
     public QuestAdminViewModel(Event forEvent)
     {
-        _event = forEvent;
+        currentEvent = forEvent;
         Quests = new ObservableCollection<Quest>();
         PresetQuests = new ObservableCollection<Quest>();
 
@@ -31,16 +33,15 @@ public partial class QuestAdminViewModel : ObservableObject
     public ObservableCollection<Quest> Quests { get; }
     public ObservableCollection<Quest> PresetQuests { get; }
 
-    //aux
     [ObservableProperty]
     public partial bool IsPaneOpen { get; set; } = true;
+
     [RelayCommand]
     private void TogglePane() => IsPaneOpen = !IsPaneOpen;
 
     [RelayCommand]
     private void ClearPrerequisite() => SelectedPrerequisiteQuest = null;
 
-    //quest management
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddCustomQuestCommand))]
     public partial string NewQuestName { get; set; } = string.Empty;
@@ -74,7 +75,6 @@ public partial class QuestAdminViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsNotLoading))]
     public partial bool IsLoading { get; set; }
 
-    // Computed — no [ObservableProperty], notified via IsLoading above
     public bool IsNotLoading => !IsLoading;
 
     [ObservableProperty]
@@ -82,11 +82,8 @@ public partial class QuestAdminViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ErrorVisibility))]
     public partial string? ErrorMessage { get; set; }
 
-    // Computed — notified via ErrorMessage above
     public bool HasError => ErrorMessage is not null;
     public Visibility ErrorVisibility => HasError ? Visibility.Visible : Visibility.Collapsed;
-
-    // ─── Commands ─────────────────────────────────────────────────────────────
 
     [RelayCommand(CanExecute = nameof(CanAddCustomQuest))]
     private async Task AddCustomQuestAsync()
@@ -103,7 +100,7 @@ public partial class QuestAdminViewModel : ObservableObject
                 PrerequisiteQuest = SelectedPrerequisiteQuest
             };
 
-            var newId = await _questService.AddQuestAsync(_event, quest);
+            var newId = await questService.AddQuestAsync(currentEvent, quest);
             quest.Id = newId;
             Quests.Add(quest);
 
@@ -112,9 +109,9 @@ public partial class QuestAdminViewModel : ObservableObject
             NewQuestDifficulty = 1;
             SelectedPrerequisiteQuest = null;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            ErrorMessage = $"Failed to add quest: {ex.Message}";
+            ErrorMessage = $"Failed to add quest: {exception.Message}";
         }
         finally
         {
@@ -131,15 +128,18 @@ public partial class QuestAdminViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanAddPresetQuest))]
     private async Task AddPresetQuestAsync()
     {
-        if (SelectedPresetQuest is null) return;
+        if (SelectedPresetQuest is null)
+        {
+            return;
+        }
 
         IsLoading = true;
         ErrorMessage = null;
         try
         {
-            var newId = await _questService.AddQuestAsync(_event, SelectedPresetQuest);
+            var newId = await questService.AddQuestAsync(currentEvent, SelectedPresetQuest);
 
-            var added = new Quest
+            var addedQuest = new Quest
             {
                 Id = newId,
                 Name = SelectedPresetQuest.Name,
@@ -147,12 +147,12 @@ public partial class QuestAdminViewModel : ObservableObject
                 Difficulty = SelectedPresetQuest.Difficulty,
             };
 
-            Quests.Add(added);
+            Quests.Add(addedQuest);
             SelectedPresetQuest = null;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            ErrorMessage = $"Failed to add preset quest: {ex.Message}";
+            ErrorMessage = $"Failed to add preset quest: {exception.Message}";
         }
         finally
         {
@@ -166,18 +166,21 @@ public partial class QuestAdminViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanDeleteQuest))]
     private async Task DeleteQuestAsync()
     {
-        if (SelectedQuest is null) return;
+        if (SelectedQuest is null)
+        {
+            return;
+        }
 
         IsLoading = true;
         ErrorMessage = null;
         try
         {
-            await _questService.DeleteQuestAsync(SelectedQuest);
+            await questService.DeleteQuestAsync(SelectedQuest);
             Quests.Remove(SelectedQuest);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            ErrorMessage = $"Failed to delete quest: {ex.Message}";
+            ErrorMessage = $"Failed to delete quest: {exception.Message}";
         }
         finally
         {
@@ -186,29 +189,32 @@ public partial class QuestAdminViewModel : ObservableObject
         }
     }
 
-    private bool CanDeleteQuest()=>
-        SelectedQuest!= null && !IsLoading;
+    private bool CanDeleteQuest() =>
+        SelectedQuest != null && !IsLoading;
 
-    // ─── Internal ─────────────────────────────────────────────────────────────
     private async Task InitializeAsync()
     {
         IsLoading = true;
         ErrorMessage = null;
         try
         {
-            var presets = await _questService.GetPresetQuestsAsync();
+            var presetQuests = await questService.GetPresetQuestsAsync();
             PresetQuests.Clear();
-            foreach (var p in presets) PresetQuests.Add(p);
+            foreach (var presetQuest in presetQuests)
+            {
+                PresetQuests.Add(presetQuest);
+            }
 
-            var quests = await _questService.GetQuestsAsync(_event);
+            var eventQuests = await questService.GetQuestsAsync(currentEvent);
             Quests.Clear();
-            foreach (var q in quests) Quests.Add(q);
-
-            
+            foreach (var existingQuest in eventQuests)
+            {
+                Quests.Add(existingQuest);
+            }
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            ErrorMessage = $"Failed to load quests: {ex.Message}";
+            ErrorMessage = $"Failed to load quests: {exception.Message}";
         }
         finally
         {
