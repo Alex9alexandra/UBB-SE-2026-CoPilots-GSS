@@ -15,7 +15,7 @@ using Moq;
 
 using Xunit;
 
-namespace Events_GSS.Services.Tests
+namespace Events_GSS.Tests.Services
 {
     public sealed class AttendedEventServiceTests : IDisposable
     {
