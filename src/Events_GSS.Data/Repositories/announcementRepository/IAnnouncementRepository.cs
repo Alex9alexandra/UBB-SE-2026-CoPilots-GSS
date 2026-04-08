@@ -40,7 +40,7 @@ public interface IAnnouncementRepository
     /// <summary>
     /// Pins a specific announcement within an event.
     /// </summary>
-    Task PinAsync(int announcementId, int eventId);
+    Task PinAsync(int announcementId);
 
     /// <summary>
     /// Removes the pinned status from all announcements in an event.
@@ -79,7 +79,9 @@ public interface IAnnouncementRepository
     /// <summary>
     /// Adds a new reaction or updates an existing reaction for an announcement.
     /// </summary>
-    Task AddOrUpdateReactionAsync(int announcementId, int userId, string emoji);
+    Task UpdateReactionAsync(int announcementId, int userId, string emoji);
+
+    Task InsertReactionAsync(int announcementId, int userId, string emoji);
 
     /// <summary>
     /// Removes a user's reaction from an announcement.

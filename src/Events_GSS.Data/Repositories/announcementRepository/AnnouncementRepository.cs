@@ -52,40 +52,39 @@ public class AnnouncementRepository : IAnnouncementRepository
     }
 
     /// <inheritdoc/>
-    public async Task AddOrUpdateReactionAsync(int announcementId, int userId, string emoji)
+    public async Task InsertReactionAsync(int announcementId, int userId, string emoji)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
-        {
-                await connection.OpenAsync();
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync();
 
-            // adds or updates the reaction in the case that it already exists
-                string query = @"
-                    IF EXISTS (
-                    SELECT 1 
-                    FROM AnnouncementReactions 
-                    WHERE AnnouncementId = @AnnouncementId 
-                      AND UserId = @UserId
-                    )
-                    BEGIN
-                        UPDATE AnnouncementReactions
-                        SET Emoji = @Emoji
-                        WHERE AnnouncementId = @AnnouncementId 
-                          AND UserId = @UserId
-                    END
-                    ELSE
-                    BEGIN
-                        INSERT INTO AnnouncementReactions (AnnouncementId, UserId, Emoji)
-                        VALUES (@AnnouncementId, @UserId, @Emoji)
-                    END";
+        const string query = @"
+        INSERT INTO AnnouncementReactions (AnnouncementId, UserId, Emoji)
+        VALUES (@AnnouncementId, @UserId, @Emoji)";
 
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.Add("@AnnouncementId", SqlDbType.Int).Value = announcementId;
-                    command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
-                    command.Parameters.Add("@Emoji", SqlDbType.NVarChar, 10).Value = emoji;
-                    await command.ExecuteNonQueryAsync();
-                }
-        }
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@AnnouncementId", SqlDbType.Int).Value = announcementId;
+        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+        command.Parameters.Add("@Emoji", SqlDbType.NVarChar, 10).Value = emoji;
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task UpdateReactionAsync(int announcementId, int userId, string emoji)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+
+        const string query = @"
+        UPDATE AnnouncementReactions
+        SET Emoji = @Emoji
+        WHERE AnnouncementId = @AnnouncementId AND UserId = @UserId";
+
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@AnnouncementId", SqlDbType.Int).Value = announcementId;
+        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+        command.Parameters.Add("@Emoji", SqlDbType.NVarChar, 10).Value = emoji;
+
+        await command.ExecuteNonQueryAsync();
     }
 
     /// <inheritdoc/>
@@ -284,22 +283,18 @@ public class AnnouncementRepository : IAnnouncementRepository
         }
     }
 
-    public async Task PinAsync(int announcementId, int eventId)
+    public async Task PinAsync(int announcementId)
     {
         using var connection = _connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         const string query = @"
-                UPDATE Announcements
-                SET IsPinned = CASE 
-                    WHEN AnnId = @AnnId THEN 1
-                    ELSE 0
-                END
-                WHERE EventId = @EventId";
+        UPDATE Announcements
+        SET IsPinned = 1
+        WHERE AnnId = @AnnId";
 
         using var command = new SqlCommand(query, connection);
         command.Parameters.Add("@AnnId", SqlDbType.Int).Value = announcementId;
-        command.Parameters.Add("@EventId", SqlDbType.Int).Value = eventId;
 
         await command.ExecuteNonQueryAsync();
     }

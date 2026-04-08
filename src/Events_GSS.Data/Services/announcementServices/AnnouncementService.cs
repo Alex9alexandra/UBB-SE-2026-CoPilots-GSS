@@ -74,12 +74,13 @@ public class AnnouncementService : IAnnouncementService
 
     public async Task PinAnnouncementAsync(int announcementId, int eventId, int userId)
     {
-        await this.EnsureAdminAsync(eventId, userId);
+        await EnsureAdminAsync(eventId, userId);
 
-        // Unpin any currently pinned announcement for this event
-        await this._repo.UnpinAnnouncementAsync(eventId);
-        // Pin the new one
-        await this._repo.PinAsync(announcementId, eventId);
+        // business rule: only one pinned per event
+        await _repo.UnpinAnnouncementAsync(eventId);
+
+        // pin selected announcement
+        await _repo.PinAsync(announcementId);
     }
 
     // Marks announcements as read
@@ -101,7 +102,21 @@ public class AnnouncementService : IAnnouncementService
 
     public async Task AddOrUpdateReactAsync(int announcementId, int userId, string emoji)
     {
-        await this._repo.AddOrUpdateReactionAsync(announcementId, userId, emoji);
+        var existingEmoji = await _repo.GetUserReactionAsync(announcementId, userId);
+
+        if (existingEmoji == null)
+        {
+            await _repo.InsertReactionAsync(announcementId, userId, emoji);
+            return;
+        }
+
+        if (existingEmoji == emoji)
+        {
+            await _repo.RemoveReactionAsync(announcementId, userId);
+            return;
+        }
+
+        await _repo.UpdateReactionAsync(announcementId, userId, emoji);
     }
 
     public async Task RemoveReactionAsync(int announcementId, int userId)
@@ -146,7 +161,7 @@ public class AnnouncementService : IAnnouncementService
         }
         else
         {
-            await this._repo.AddOrUpdateReactionAsync(announcementId, userId, emoji);
+            await this.AddOrUpdateReactAsync(announcementId, userId, emoji);
         }
     }
 

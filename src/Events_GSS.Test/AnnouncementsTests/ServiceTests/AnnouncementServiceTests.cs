@@ -174,7 +174,7 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
 
             // Assert
             _mockRepo.Verify(r => r.UnpinAnnouncementAsync(1), Times.Once);
-            _mockRepo.Verify(r => r.PinAsync(5, 1), Times.Once);
+            _mockRepo.Verify(r => r.PinAsync(5), Times.Once);
         }
 
         [Fact]
@@ -237,7 +237,24 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
 
             // Assert
             _mockRepo.Verify(r =>
-                r.AddOrUpdateReactionAsync(5, 10, "🔥"),
+                r.UpdateReactionAsync(5, 10, "🔥"),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task ToggleReaction_NoExistingReaction_Inserts()
+        {
+            // Arrange
+            _mockRepo
+                .Setup(r => r.GetUserReactionAsync(5, 10))
+                .ReturnsAsync((string?)null);
+
+            // Act
+            await _service.ToggleReactionAsync(5, 10, "🔥");
+
+            // Assert
+            _mockRepo.Verify(r =>
+                r.InsertReactionAsync(5, 10, "🔥"),
                 Times.Once);
         }
 
@@ -307,14 +324,19 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
         }
 
         [Fact]
-        public async Task AddOrUpdateReact_CallsRepository()
+        public async Task AddOrUpdateReact_FirstTime_InsertsReaction()
         {
+            // Arrange
+            _mockRepo
+                .Setup(r => r.GetUserReactionAsync(5, 10))
+                .ReturnsAsync((string?)null);
+
             // Act
             await _service.AddOrUpdateReactAsync(5, 10, "🔥");
 
             // Assert
             _mockRepo.Verify(r =>
-                r.AddOrUpdateReactionAsync(5, 10, "🔥"),
+                r.InsertReactionAsync(5, 10, "🔥"),
                 Times.Once);
         }
 
