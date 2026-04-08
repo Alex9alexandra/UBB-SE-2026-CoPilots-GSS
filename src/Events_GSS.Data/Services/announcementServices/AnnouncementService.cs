@@ -93,9 +93,15 @@ public class AnnouncementService : IAnnouncementService
     }
 
     // Marks announcements as read
-    public async Task MarkAsReadAsync(int announcementId, int userId)
+    public async Task<bool> MarkAsReadAsync(int announcementId, int userId)
     {
-        await this._repo.MarkAsReadAsync(announcementId, userId);
+        var alreadyRead = await _repo.HasUserReadAsync(announcementId, userId);
+
+        if (alreadyRead)
+            return false;
+
+        await _repo.InsertReadReceiptAsync(announcementId, userId);
+        return true;
     }
 
     public async Task<(List<AnnouncementReadReceipt> Readers, int TotalParticipants)> GetReadReceiptsAsync(
@@ -182,7 +188,7 @@ public class AnnouncementService : IAnnouncementService
             return false;
         }
 
-        await this._repo.MarkAsReadAsync(announcementId, userId);
+        await this.MarkAsReadAsync(announcementId, userId);
         return true;
     }
 

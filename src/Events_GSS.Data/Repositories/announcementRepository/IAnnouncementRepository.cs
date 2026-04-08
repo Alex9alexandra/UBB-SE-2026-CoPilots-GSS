@@ -52,7 +52,9 @@ public interface IAnnouncementRepository
     /// <summary>
     /// Marks an announcement as read by a specific user.
     /// </summary>
-    Task MarkAsReadAsync(int announcementId, int userId);
+    Task InsertReadReceiptAsync(int announcementId, int userId);
+
+    Task<bool> HasUserReadAsync(int announcementId, int userId);
 
     /// <summary>
     /// Retrieves all read receipts for a given announcement.

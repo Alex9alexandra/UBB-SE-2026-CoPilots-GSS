@@ -181,32 +181,40 @@ public class AnnouncementRepository : IAnnouncementRepository
         };
     }
 
-    public async Task MarkAsReadAsync(int announcementId, int userId)
+    public async Task InsertReadReceiptAsync(int announcementId, int userId)
     {
-        using( SqlConnection connection = _connectionFactory.CreateConnection())
-        {
-            await connection.OpenAsync();
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync();
 
-            // if user has already read announcement, do nothing; else mark as read
-            string query = @"
-                IF NOT EXISTS (
-                    SELECT 1
-                    FROM AnnouncementReadReceipts
-                    WHERE AnnouncementId = @AnnouncementId
-                        AND UserId = @UserId
-                )
-                BEGIN
-                    INSERT INTO AnnouncementReadReceipts (AnnouncementId, UserId, ReadAt)
-                    VALUES (@AnnouncementId, @UserId, GETUTCDATE())
-                END";
+        const string query = @"
+        INSERT INTO AnnouncementReadReceipts (AnnouncementId, UserId, ReadAt)
+        VALUES (@AnnouncementId, @UserId, GETUTCDATE())";
 
-            using (SqlCommand command = new SqlCommand(query, connection))
-            {
-                command.Parameters.Add("@AnnouncementId", SqlDbType.Int).Value = announcementId;
-                command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
-                await command.ExecuteNonQueryAsync();
-            }
-        }
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@AnnouncementId", SqlDbType.Int).Value = announcementId;
+        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task<bool> HasUserReadAsync(int announcementId, int userId)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+
+        const string query = @"
+        SELECT 1
+        FROM AnnouncementReadReceipts
+        WHERE AnnouncementId = @AnnouncementId
+          AND UserId = @UserId";
+
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@AnnouncementId", SqlDbType.Int).Value = announcementId;
+        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+
+        var result = await command.ExecuteScalarAsync();
+
+        return result != null;
     }
 
     public async Task PinAsync(int announcementId)

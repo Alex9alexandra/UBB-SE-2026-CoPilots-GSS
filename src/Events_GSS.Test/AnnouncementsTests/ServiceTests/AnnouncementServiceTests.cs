@@ -212,35 +212,35 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
         }
 
         [Fact]
-        public async Task MarkAsRead_Always_CallsRepository()
+        public async Task MarkAsRead_NotRead_Inserts()
         {
-            // Act
-            await _service.MarkAsReadAsync(5, 10);
+            // Arrange
+            _mockRepo
+                .Setup(r => r.HasUserReadAsync(5, 10))
+                .ReturnsAsync(false);
 
-            // Assert
-            _mockRepo.Verify(r => r.MarkAsReadAsync(5, 10), Times.Once);
-        }
-
-        [Fact]
-        public async Task MarkAsReadIfNeeded_NotRead_MarksAsRead()
-        {
             // Act
-            var result = await _service.MarkAsReadIfNeededAsync(5, 10, false);
+            var result = await _service.MarkAsReadAsync(5, 10);
 
             // Assert
             Assert.True(result);
-            _mockRepo.Verify(r => r.MarkAsReadAsync(5, 10), Times.Once);
+            _mockRepo.Verify(r => r.InsertReadReceiptAsync(5, 10), Times.Once);
         }
 
         [Fact]
-        public async Task MarkAsReadIfNeeded_AlreadyRead_DoesNothing()
+        public async Task MarkAsRead_AlreadyRead_DoesNothing()
         {
+            // Arrange
+            _mockRepo
+                .Setup(r => r.HasUserReadAsync(5, 10))
+                .ReturnsAsync(true);
+
             // Act
-            var result = await _service.MarkAsReadIfNeededAsync(5, 10, true);
+            var result = await _service.MarkAsReadAsync(5, 10);
 
             // Assert
             Assert.False(result);
-            _mockRepo.Verify(r => r.MarkAsReadAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+            _mockRepo.Verify(r => r.InsertReadReceiptAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
         }
 
         [Fact]
@@ -551,6 +551,10 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
                     Admin = new User { UserId = 10 }
                 });
 
+            _mockRepo
+                .Setup(r => r.GetAnnouncementByIdAsync(5))
+                .ReturnsAsync(new Announcement(5, "msg", DateTime.UtcNow)); // ✅ THIS FIX
+
             // Act
             var exception = await Record.ExceptionAsync(() =>
                 _service.UpdateAnnouncementAsync(5, "valid", 10, 1));
@@ -574,6 +578,77 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
             // Act & Assert
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 _service.UpdateAnnouncementAsync(5, "valid", 10, 1));
+        }
+
+        [Fact]
+        public async Task MarkAsRead_AlreadyRead_ReturnsFalse_AndDoesNotInsert()
+        {
+            // Arrange
+            _mockRepo
+                .Setup(r => r.HasUserReadAsync(5, 10))
+                .ReturnsAsync(true);
+
+            // Act
+            var result = await _service.MarkAsReadAsync(5, 10);
+
+            // Assert
+            Assert.False(result);
+
+            _mockRepo.Verify(r => r.HasUserReadAsync(5, 10), Times.Once);
+
+            _mockRepo.Verify(r =>
+                r.InsertReadReceiptAsync(It.IsAny<int>(), It.IsAny<int>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task MarkAsRead_NotRead_InsertsAndReturnsTrue()
+        {
+            // Arrange
+            _mockRepo
+                .Setup(r => r.HasUserReadAsync(5, 10))
+                .ReturnsAsync(false);
+
+            // Act
+            var result = await _service.MarkAsReadAsync(5, 10);
+
+            // Assert
+            Assert.True(result);
+
+            _mockRepo.Verify(r => r.HasUserReadAsync(5, 10), Times.Once);
+
+            _mockRepo.Verify(r =>
+                r.InsertReadReceiptAsync(5, 10),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task MarkAsReadIfNeeded_AlreadyRead_ReturnsFalse()
+        {
+            // Act
+            var result = await _service.MarkAsReadIfNeededAsync(5, 10, true);
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task MarkAsReadIfNeeded_NotRead_CallsMarkAsRead()
+        {
+            // Arrange
+            _mockRepo
+                .Setup(r => r.HasUserReadAsync(5, 10))
+                .ReturnsAsync(false);
+
+            // Act
+            var result = await _service.MarkAsReadIfNeededAsync(5, 10, false);
+
+            // Assert
+            Assert.True(result);
+
+            _mockRepo.Verify(r =>
+                r.InsertReadReceiptAsync(5, 10),
+                Times.Once);
         }
     }
  }

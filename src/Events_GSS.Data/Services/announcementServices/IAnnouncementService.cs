@@ -36,7 +36,7 @@ public interface IAnnouncementService
     /// <summary>
     /// Marks an announcement as read for a user.
     /// </summary>
-    Task MarkAsReadAsync(int announcementId, int userId);
+    Task<bool> MarkAsReadAsync(int announcementId, int userId);
 
     /// <summary>
     /// Retrieves read receipts and total participant count for an announcement.
