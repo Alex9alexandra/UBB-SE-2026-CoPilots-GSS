@@ -12,9 +12,9 @@ using Moq;
 
 using Xunit;
 
-namespace Events_GSS.Tests.Services
+namespace Events_GSS.Tests.ViewModels
 {
-    public sealed class AttendedEventCoreTests
+    public sealed class AttendedEventViewModelCoreTests
     {
         private const int CurrentUserId = 1;
         private const int FriendUserId = 2;
@@ -30,16 +30,16 @@ namespace Events_GSS.Tests.Services
         private readonly Mock<IUserService> userServiceMock;
         private readonly Mock<IAnnouncementService> announcementServiceMock;
 
-        private readonly AttendedEventCore core;
+        private readonly AttendedEventViewModelCore _viewModelCore;
 
-        public AttendedEventCoreTests()
+        public AttendedEventViewModelCoreTests()
         {
             // Setup
             this.attendedEventServiceMock = new Mock<IAttendedEventService>(MockBehavior.Strict);
             this.userServiceMock = new Mock<IUserService>(MockBehavior.Strict);
             this.announcementServiceMock = new Mock<IAnnouncementService>(MockBehavior.Strict);
 
-            this.core = MakeCore(
+            this._viewModelCore = MakeCore(
                 this.attendedEventServiceMock,
                 this.userServiceMock,
                 this.announcementServiceMock);
@@ -117,23 +117,23 @@ namespace Events_GSS.Tests.Services
                 .ReturnsAsync(unreadCounts);
 
             var stateChangedCount = 0;
-            this.core.StateChanged += () => stateChangedCount++;
+            this._viewModelCore.StateChanged += () => stateChangedCount++;
 
             // Act
-            await this.core.LoadAsync();
+            await this._viewModelCore.LoadAsync();
 
             // Assert
-            Assert.False(this.core.IsLoading);
-            Assert.Null(this.core.ErrorMessage);
+            Assert.False(this._viewModelCore.IsLoading);
+            Assert.Null(this._viewModelCore.ErrorMessage);
 
-            Assert.Same(user, this.core.CurrentUser);
+            Assert.Same(user, this._viewModelCore.CurrentUser);
 
             // Categories deduped by CategoryId and excluding nulls (music, sports)
-            Assert.Equal(2, this.core.AvailableCategories.Count);
-            Assert.Contains(this.core.AvailableCategories, c => c.CategoryId == CategoryIdMusic);
-            Assert.Contains(this.core.AvailableCategories, c => c.CategoryId == CategoryIdSports);
+            Assert.Equal(2, this._viewModelCore.AvailableCategories.Count);
+            Assert.Contains(this._viewModelCore.AvailableCategories, c => c.CategoryId == CategoryIdMusic);
+            Assert.Contains(this._viewModelCore.AvailableCategories, c => c.CategoryId == CategoryIdSports);
 
-            Assert.Same(friends, this.core.FilteredFriends);
+            Assert.Same(friends, this._viewModelCore.FilteredFriends);
 
             // Unread counts were applied to each attended event instance
             Assert.Equal(7, events.Single(e => e.Event.EventId == EventId1).UnreadAnnouncementCount);
@@ -141,16 +141,16 @@ namespace Events_GSS.Tests.Services
             Assert.Equal(1, events.Single(e => e.Event.EventId == EventId3).UnreadAnnouncementCount);
 
             // Active = not archived (EventId1, EventId3)
-            Assert.Equal(2, this.core.AttendedEvents.Count);
-            Assert.DoesNotContain(this.core.AttendedEvents, ae => ae.Event.EventId == EventId2);
+            Assert.Equal(2, this._viewModelCore.AttendedEvents.Count);
+            Assert.DoesNotContain(this._viewModelCore.AttendedEvents, ae => ae.Event.EventId == EventId2);
 
             // Archived = archived (EventId2)
-            Assert.Single(this.core.ArchivedEvents);
-            Assert.Equal(EventId2, this.core.ArchivedEvents[0].Event.EventId);
+            Assert.Single(this._viewModelCore.ArchivedEvents);
+            Assert.Equal(EventId2, this._viewModelCore.ArchivedEvents[0].Event.EventId);
 
             // FavouriteEvents = favourite && not archived (EventId1)
-            Assert.Single(this.core.FavouriteEvents);
-            Assert.Equal(EventId1, this.core.FavouriteEvents[0].Event.EventId);
+            Assert.Single(this._viewModelCore.FavouriteEvents);
+            Assert.Equal(EventId1, this._viewModelCore.FavouriteEvents[0].Event.EventId);
 
             // Load triggers StateChanged at least: start + ApplyFiltersAndSort + finally
             Assert.True(stateChangedCount >= 3);
@@ -169,15 +169,15 @@ namespace Events_GSS.Tests.Services
                 .Throws(new Exception("boom"));
 
             var stateChangedCount = 0;
-            this.core.StateChanged += () => stateChangedCount++;
+            this._viewModelCore.StateChanged += () => stateChangedCount++;
 
             // Act
-            await this.core.LoadAsync();
+            await this._viewModelCore.LoadAsync();
 
             // Assert
-            Assert.False(this.core.IsLoading);
-            Assert.NotNull(this.core.ErrorMessage);
-            Assert.Contains("Failed to load events: boom", this.core.ErrorMessage);
+            Assert.False(this._viewModelCore.IsLoading);
+            Assert.NotNull(this._viewModelCore.ErrorMessage);
+            Assert.Contains("Failed to load events: boom", this._viewModelCore.ErrorMessage);
 
             Assert.True(stateChangedCount >= 2);
 
@@ -193,7 +193,7 @@ namespace Events_GSS.Tests.Services
             var friend = new User { UserId = FriendUserId };
 
             // Act + Assert
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => this.core.LoadCommonEventsAsync(friend));
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => this._viewModelCore.LoadCommonEventsAsync(friend));
             Assert.Equal("CurrentUser is not loaded. Call LoadAsync first.", exception.Message);
 
             this.attendedEventServiceMock.VerifyNoOtherCalls();
@@ -218,13 +218,13 @@ namespace Events_GSS.Tests.Services
                 .ReturnsAsync(common);
 
             var stateChangedCount = 0;
-            this.core.StateChanged += () => stateChangedCount++;
+            this._viewModelCore.StateChanged += () => stateChangedCount++;
 
             // Act
-            await this.core.LoadCommonEventsAsync(friend);
+            await this._viewModelCore.LoadCommonEventsAsync(friend);
 
             // Assert
-            Assert.Same(common, this.core.CommonEvents);
+            Assert.Same(common, this._viewModelCore.CommonEvents);
             Assert.True(stateChangedCount >= 1);
 
             this.attendedEventServiceMock.VerifyAll();
@@ -237,13 +237,13 @@ namespace Events_GSS.Tests.Services
             await LoadHappyPathAsync();
 
             // Act
-            this.core.SetSearchQuery(null!);
+            this._viewModelCore.SetSearchQuery(null!);
 
             // Assert
-            Assert.Equal(string.Empty, this.core.SearchQuery);
+            Assert.Equal(string.Empty, this._viewModelCore.SearchQuery);
 
             // From LoadHappyPathAsync we have 2 active events (not archived)
-            Assert.Equal(2, this.core.AttendedEvents.Count);
+            Assert.Equal(2, this._viewModelCore.AttendedEvents.Count);
         }
 
         [Fact]
@@ -253,11 +253,11 @@ namespace Events_GSS.Tests.Services
             await LoadHappyPathAsync();
 
             // Act
-            this.core.SetSearchQuery("alpha");
+            this._viewModelCore.SetSearchQuery("alpha");
 
             // Assert
-            Assert.Single(this.core.AttendedEvents);
-            Assert.Equal("Alpha", this.core.AttendedEvents[0].Event.Name);
+            Assert.Single(this._viewModelCore.AttendedEvents);
+            Assert.Equal("Alpha", this._viewModelCore.AttendedEvents[0].Event.Name);
         }
 
         [Fact]
@@ -267,11 +267,11 @@ namespace Events_GSS.Tests.Services
             var (music, sports) = await LoadHappyPathWithCategoriesAsync();
 
             // Act
-            this.core.SetSelectedCategory(sports);
+            this._viewModelCore.SetSelectedCategory(sports);
 
             // Assert
-            Assert.Single(this.core.AttendedEvents);
-            Assert.Equal("BetaActive", this.core.AttendedEvents[0].Event.Name);
+            Assert.Single(this._viewModelCore.AttendedEvents);
+            Assert.Equal("BetaActive", this._viewModelCore.AttendedEvents[0].Event.Name);
         }
 
         [Fact]
@@ -279,20 +279,20 @@ namespace Events_GSS.Tests.Services
         {
             // Arrange
             var (music, _) = await LoadHappyPathWithCategoriesAsync();
-            this.core.SetSearchQuery("Alpha");
-            this.core.SetSelectedCategory(music);
-            this.core.SetSelectedSort(AttendedEventCore.SortOption.TitleDescending);
+            this._viewModelCore.SetSearchQuery("Alpha");
+            this._viewModelCore.SetSelectedCategory(music);
+            this._viewModelCore.SetSelectedSort(AttendedEventViewModelCore.SortOption.TitleDescending);
 
             // Act
-            this.core.ClearFilters();
+            this._viewModelCore.ClearFilters();
 
             // Assert
-            Assert.Equal(string.Empty, this.core.SearchQuery);
-            Assert.Null(this.core.SelectedCategory);
-            Assert.Equal(AttendedEventCore.SortOption.Default, this.core.SelectedSort);
+            Assert.Equal(string.Empty, this._viewModelCore.SearchQuery);
+            Assert.Null(this._viewModelCore.SelectedCategory);
+            Assert.Equal(AttendedEventViewModelCore.SortOption.Default, this._viewModelCore.SelectedSort);
 
             // Back to full active set (2 active events in that setup)
-            Assert.Equal(2, this.core.AttendedEvents.Count);
+            Assert.Equal(2, this._viewModelCore.AttendedEvents.Count);
         }
 
         [Fact]
@@ -302,10 +302,10 @@ namespace Events_GSS.Tests.Services
             await LoadHappyPathAsync(); // active names are Alpha and Gamma
 
             // Act
-            this.core.SetSelectedSort(AttendedEventCore.SortOption.TitleAscending);
+            this._viewModelCore.SetSelectedSort(AttendedEventViewModelCore.SortOption.TitleAscending);
 
             // Assert
-            Assert.Equal(new[] { "Alpha", "Gamma" }, this.core.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
+            Assert.Equal(new[] { "Alpha", "Gamma" }, this._viewModelCore.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
         }
 
         [Fact]
@@ -315,10 +315,10 @@ namespace Events_GSS.Tests.Services
             await LoadHappyPathAsync();
 
             // Act
-            this.core.SetSelectedSort(AttendedEventCore.SortOption.TitleDescending);
+            this._viewModelCore.SetSelectedSort(AttendedEventViewModelCore.SortOption.TitleDescending);
 
             // Assert
-            Assert.Equal(new[] { "Gamma", "Alpha" }, this.core.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
+            Assert.Equal(new[] { "Gamma", "Alpha" }, this._viewModelCore.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
         }
 
         [Fact]
@@ -330,11 +330,11 @@ namespace Events_GSS.Tests.Services
             _ = sports;
 
             // Act
-            this.core.SetSelectedSort(AttendedEventCore.SortOption.CategoryAscending);
+            this._viewModelCore.SetSelectedSort(AttendedEventViewModelCore.SortOption.CategoryAscending);
 
             // Assert
             // "Music" then "Sports"
-            Assert.Equal(new[] { "AlphaActive", "BetaActive" }, this.core.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
+            Assert.Equal(new[] { "AlphaActive", "BetaActive" }, this._viewModelCore.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
         }
 
         [Fact]
@@ -344,10 +344,10 @@ namespace Events_GSS.Tests.Services
             await LoadHappyPathWithCategoriesAsync();
 
             // Act
-            this.core.SetSelectedSort(AttendedEventCore.SortOption.CategoryDescending);
+            this._viewModelCore.SetSelectedSort(AttendedEventViewModelCore.SortOption.CategoryDescending);
 
             // Assert
-            Assert.Equal(new[] { "BetaActive", "AlphaActive" }, this.core.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
+            Assert.Equal(new[] { "BetaActive", "AlphaActive" }, this._viewModelCore.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
         }
 
         [Fact]
@@ -357,10 +357,10 @@ namespace Events_GSS.Tests.Services
             await LoadHappyPathWithCategoriesAsync(); // AlphaActive has earlier start than BetaActive
 
             // Act
-            this.core.SetSelectedSort(AttendedEventCore.SortOption.StartDateAscending);
+            this._viewModelCore.SetSelectedSort(AttendedEventViewModelCore.SortOption.StartDateAscending);
 
             // Assert
-            Assert.Equal(new[] { "AlphaActive", "BetaActive" }, this.core.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
+            Assert.Equal(new[] { "AlphaActive", "BetaActive" }, this._viewModelCore.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
         }
 
         [Fact]
@@ -370,10 +370,10 @@ namespace Events_GSS.Tests.Services
             await LoadHappyPathWithCategoriesAsync();
 
             // Act
-            this.core.SetSelectedSort(AttendedEventCore.SortOption.StartDateDescending);
+            this._viewModelCore.SetSelectedSort(AttendedEventViewModelCore.SortOption.StartDateDescending);
 
             // Assert
-            Assert.Equal(new[] { "BetaActive", "AlphaActive" }, this.core.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
+            Assert.Equal(new[] { "BetaActive", "AlphaActive" }, this._viewModelCore.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
         }
 
         [Fact]
@@ -383,10 +383,10 @@ namespace Events_GSS.Tests.Services
             await LoadHappyPathWithCategoriesAsync();
 
             // Act
-            this.core.SetSelectedSort(AttendedEventCore.SortOption.EndDateAscending);
+            this._viewModelCore.SetSelectedSort(AttendedEventViewModelCore.SortOption.EndDateAscending);
 
             // Assert
-            Assert.Equal(new[] { "AlphaActive", "BetaActive" }, this.core.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
+            Assert.Equal(new[] { "AlphaActive", "BetaActive" }, this._viewModelCore.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
         }
 
         [Fact]
@@ -396,10 +396,10 @@ namespace Events_GSS.Tests.Services
             await LoadHappyPathWithCategoriesAsync();
 
             // Act
-            this.core.SetSelectedSort(AttendedEventCore.SortOption.EndDateDescending);
+            this._viewModelCore.SetSelectedSort(AttendedEventViewModelCore.SortOption.EndDateDescending);
 
             // Assert
-            Assert.Equal(new[] { "BetaActive", "AlphaActive" }, this.core.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
+            Assert.Equal(new[] { "BetaActive", "AlphaActive" }, this._viewModelCore.AttendedEvents.Select(ae => ae.Event.Name).ToArray());
         }
 
         [Fact]
@@ -414,11 +414,11 @@ namespace Events_GSS.Tests.Services
                 .Returns(Task.CompletedTask);
 
             // Act
-            await this.core.LeaveAsync(toLeave);
+            await this._viewModelCore.LeaveAsync(toLeave);
 
             // Assert
-            Assert.DoesNotContain(this.core.AttendedEvents, ae => ae.Event.EventId == EventId3);
-            Assert.Null(this.core.ErrorMessage);
+            Assert.DoesNotContain(this._viewModelCore.AttendedEvents, ae => ae.Event.EventId == EventId3);
+            Assert.Null(this._viewModelCore.ErrorMessage);
 
             this.attendedEventServiceMock.VerifyAll();
         }
@@ -435,14 +435,14 @@ namespace Events_GSS.Tests.Services
                 .ThrowsAsync(new Exception("nope"));
 
             var stateChangedCount = 0;
-            this.core.StateChanged += () => stateChangedCount++;
+            this._viewModelCore.StateChanged += () => stateChangedCount++;
 
             // Act
-            await this.core.LeaveAsync(toLeave);
+            await this._viewModelCore.LeaveAsync(toLeave);
 
             // Assert
-            Assert.NotNull(this.core.ErrorMessage);
-            Assert.Contains("Failed to leave event: nope", this.core.ErrorMessage);
+            Assert.NotNull(this._viewModelCore.ErrorMessage);
+            Assert.Contains("Failed to leave event: nope", this._viewModelCore.ErrorMessage);
             Assert.True(stateChangedCount >= 1);
 
             this.attendedEventServiceMock.VerifyAll();
@@ -461,12 +461,12 @@ namespace Events_GSS.Tests.Services
                 .Returns(Task.CompletedTask);
 
             // Act
-            await this.core.SetArchivedAsync(target);
+            await this._viewModelCore.SetArchivedAsync(target);
 
             // Assert
             Assert.True(target.IsArchived);
-            Assert.DoesNotContain(this.core.AttendedEvents, ae => ae.Event.EventId == EventId3);
-            Assert.Contains(this.core.ArchivedEvents, ae => ae.Event.EventId == EventId3);
+            Assert.DoesNotContain(this._viewModelCore.AttendedEvents, ae => ae.Event.EventId == EventId3);
+            Assert.Contains(this._viewModelCore.ArchivedEvents, ae => ae.Event.EventId == EventId3);
 
             this.attendedEventServiceMock.VerifyAll();
         }
@@ -483,15 +483,15 @@ namespace Events_GSS.Tests.Services
                 .ThrowsAsync(new Exception("bad"));
 
             var stateChangedCount = 0;
-            this.core.StateChanged += () => stateChangedCount++;
+            this._viewModelCore.StateChanged += () => stateChangedCount++;
 
             // Act
-            await this.core.SetArchivedAsync(target);
+            await this._viewModelCore.SetArchivedAsync(target);
 
             // Assert
             Assert.False(target.IsArchived);
-            Assert.NotNull(this.core.ErrorMessage);
-            Assert.Contains("Failed to update archive status: bad", this.core.ErrorMessage);
+            Assert.NotNull(this._viewModelCore.ErrorMessage);
+            Assert.Contains("Failed to update archive status: bad", this._viewModelCore.ErrorMessage);
             Assert.True(stateChangedCount >= 1);
 
             this.attendedEventServiceMock.VerifyAll();
@@ -510,11 +510,11 @@ namespace Events_GSS.Tests.Services
                 .Returns(Task.CompletedTask);
 
             // Act
-            await this.core.SetFavouriteAsync(target);
+            await this._viewModelCore.SetFavouriteAsync(target);
 
             // Assert
             Assert.True(target.IsFavourite);
-            Assert.Contains(this.core.FavouriteEvents, ae => ae.Event.EventId == EventId3);
+            Assert.Contains(this._viewModelCore.FavouriteEvents, ae => ae.Event.EventId == EventId3);
 
             this.attendedEventServiceMock.VerifyAll();
         }
@@ -531,15 +531,15 @@ namespace Events_GSS.Tests.Services
                 .ThrowsAsync(new Exception("badfav"));
 
             var stateChangedCount = 0;
-            this.core.StateChanged += () => stateChangedCount++;
+            this._viewModelCore.StateChanged += () => stateChangedCount++;
 
             // Act
-            await this.core.SetFavouriteAsync(target);
+            await this._viewModelCore.SetFavouriteAsync(target);
 
             // Assert
             Assert.False(target.IsFavourite);
-            Assert.NotNull(this.core.ErrorMessage);
-            Assert.Contains("Failed to update favourite status: badfav", this.core.ErrorMessage);
+            Assert.NotNull(this._viewModelCore.ErrorMessage);
+            Assert.Contains("Failed to update favourite status: badfav", this._viewModelCore.ErrorMessage);
             Assert.True(stateChangedCount >= 1);
 
             this.attendedEventServiceMock.VerifyAll();
@@ -574,22 +574,22 @@ namespace Events_GSS.Tests.Services
                 .ReturnsAsync(new Dictionary<int, int>());
 
             // Act
-            await this.core.LoadAsync();
+            await this._viewModelCore.LoadAsync();
 
             // Assert
-            Assert.Equal(new[] { EventId2, EventId1 }, this.core.AttendedEvents.Select(ae => ae.Event.EventId).ToArray());
+            Assert.Equal(new[] { EventId2, EventId1 }, this._viewModelCore.AttendedEvents.Select(ae => ae.Event.EventId).ToArray());
 
             this.userServiceMock.VerifyAll();
             this.attendedEventServiceMock.VerifyAll();
             this.announcementServiceMock.VerifyAll();
         }
 
-        private static AttendedEventCore MakeCore(
+        private static AttendedEventViewModelCore MakeCore(
             Mock<IAttendedEventService> attendedEventServiceMock,
             Mock<IUserService> userServiceMock,
             Mock<IAnnouncementService> announcementServiceMock)
         {
-            return new AttendedEventCore(
+            return new AttendedEventViewModelCore(
                 attendedEventServiceMock.Object,
                 userServiceMock.Object,
                 announcementServiceMock.Object);
@@ -658,7 +658,7 @@ namespace Events_GSS.Tests.Services
                 .Setup(service => service.GetUnreadCountsForUserAsync(CurrentUserId))
                 .ReturnsAsync(new Dictionary<int, int>());
 
-            await this.core.LoadAsync();
+            await this._viewModelCore.LoadAsync();
 
             this.userServiceMock.VerifyAll();
             this.attendedEventServiceMock.VerifyAll();
@@ -694,7 +694,7 @@ namespace Events_GSS.Tests.Services
                 .Setup(service => service.GetUnreadCountsForUserAsync(CurrentUserId))
                 .ReturnsAsync(new Dictionary<int, int>());
 
-            await this.core.LoadAsync();
+            await this._viewModelCore.LoadAsync();
 
             this.userServiceMock.VerifyAll();
             this.attendedEventServiceMock.VerifyAll();

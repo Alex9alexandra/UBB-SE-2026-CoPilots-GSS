@@ -37,7 +37,7 @@ public sealed partial class CreateEventControl : UserControl
             this.Visibility = Visibility.Collapsed;
         };
 
-        _ = this.ViewModel.LoadPresetQuestsAsync(questService);
+        _ = this.ViewModel.LoadPresetQuestsAsync();
     }
 
     /// <summary>

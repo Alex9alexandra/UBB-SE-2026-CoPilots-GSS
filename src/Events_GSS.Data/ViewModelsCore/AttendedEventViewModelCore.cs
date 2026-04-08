@@ -12,236 +12,365 @@ namespace Events_GSS.Data.Services.ViewModelCore
     /// <summary>
     /// Testable core logic extracted from AttendedEventViewModel
     /// </summary>
-    public sealed class AttendedEventCore
+    public sealed class AttendedEventViewModelCore
     {
-        private readonly IAttendedEventService _attendedEventService;
-        private readonly IUserService _userService;
-        private readonly IAnnouncementService _announcementService;
+        private readonly IAttendedEventService attendedEventService;
+        private readonly IUserService userService;
+        private readonly IAnnouncementService announcementService;
 
-        private List<AttendedEvent> _allEvents = new();
+        private List<AttendedEvent> allEvents = new ();
 
-        public AttendedEventCore(
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AttendedEventViewModelCore"/> class.
+        /// </summary>
+        /// <param name="attendedEventService">The attended event service.</param>
+        /// <param name="userService">The user service.</param>
+        /// <param name="announcementService">The announcement service.</param>
+        public AttendedEventViewModelCore(
             IAttendedEventService attendedEventService,
             IUserService userService,
             IAnnouncementService announcementService)
         {
-            _attendedEventService = attendedEventService;
-            _userService = userService;
-            _announcementService = announcementService;
+            this.attendedEventService = attendedEventService;
+            this.userService = userService;
+            this.announcementService = announcementService;
         }
 
+        /// <summary>
+        /// Gets the current user.
+        /// </summary>
         public User? CurrentUser { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether data is currently being loaded.
+        /// </summary>
         public bool IsLoading { get; private set; }
+
+        /// <summary>
+        /// Gets the error message if an error occurred.
+        /// </summary>
         public string? ErrorMessage { get; private set; }
 
+        /// <summary>
+        /// Gets the current search query.
+        /// </summary>
         public string SearchQuery { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// Gets the currently selected category filter.
+        /// </summary>
         public Category? SelectedCategory { get; private set; }
+
+        /// <summary>
+        /// Gets the currently selected sort option.
+        /// </summary>
         public SortOption SelectedSort { get; private set; } = SortOption.Default;
 
+        /// <summary>
+        /// Gets the list of available categories.
+        /// </summary>
         public IReadOnlyList<Category> AvailableCategories { get; private set; } = new List<Category>();
+
+        /// <summary>
+        /// Gets the filtered list of friends.
+        /// </summary>
         public IReadOnlyList<User> FilteredFriends { get; private set; } = new List<User>();
 
+        /// <summary>
+        /// Gets the list of attended events.
+        /// </summary>
         public IReadOnlyList<AttendedEvent> AttendedEvents { get; private set; } = new List<AttendedEvent>();
+
+        /// <summary>
+        /// Gets the list of archived events.
+        /// </summary>
         public IReadOnlyList<AttendedEvent> ArchivedEvents { get; private set; } = new List<AttendedEvent>();
+
+        /// <summary>
+        /// Gets the list of favourite events.
+        /// </summary>
         public IReadOnlyList<AttendedEvent> FavouriteEvents { get; private set; } = new List<AttendedEvent>();
+
+        /// <summary>
+        /// Gets the list of common events between the current user and a friend.
+        /// </summary>
         public IReadOnlyList<AttendedEvent> CommonEvents { get; private set; } = new List<AttendedEvent>();
 
+        /// <summary>
+        /// Occurs when the state of the view model changes.
+        /// </summary>
         public event Action? StateChanged;
 
+        /// <summary>
+        /// Defines the available sort options for events.
+        /// </summary>
         public enum SortOption
         {
+            /// <summary>
+            /// Default sort order.
+            /// </summary>
             Default,
+
+            /// <summary>
+            /// Sort by title in ascending order.
+            /// </summary>
             TitleAscending,
+
+            /// <summary>
+            /// Sort by title in descending order.
+            /// </summary>
             TitleDescending,
+
+            /// <summary>
+            /// Sort by category in ascending order.
+            /// </summary>
             CategoryAscending,
+
+            /// <summary>
+            /// Sort by category in descending order.
+            /// </summary>
             CategoryDescending,
+
+            /// <summary>
+            /// Sort by start date in ascending order.
+            /// </summary>
             StartDateAscending,
+
+            /// <summary>
+            /// Sort by start date in descending order.
+            /// </summary>
             StartDateDescending,
+
+            /// <summary>
+            /// Sort by end date in ascending order.
+            /// </summary>
             EndDateAscending,
+
+            /// <summary>
+            /// Sort by end date in descending order.
+            /// </summary>
             EndDateDescending,
         }
 
+        /// <summary>
+        /// Loads the attended events for the current user asynchronously.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task LoadAsync()
         {
-            IsLoading = true;
-            ErrorMessage = null;
-            StateChanged?.Invoke();
+            this.IsLoading = true;
+            this.ErrorMessage = null;
+            this.StateChanged?.Invoke();
 
             try
             {
-                CurrentUser = _userService.GetCurrentUser();
+                this.CurrentUser = this.userService.GetCurrentUser();
 
-                _allEvents = await _attendedEventService.GetAttendedEventsAsync(CurrentUser.UserId);
+                this.allEvents = await this.attendedEventService.GetAttendedEventsAsync(this.CurrentUser.UserId);
 
-                AvailableCategories = _allEvents
-                    .Where(ae => ae.Event.Category != null)
-                    .Select(ae => ae.Event.Category!)
-                    .GroupBy(c => c.CategoryId)
-                    .Select(g => g.First())
+                this.AvailableCategories = this.allEvents
+                    .Where(attendedEvent => attendedEvent.Event.Category != null)
+                    .Select(attendedEvent => attendedEvent.Event.Category!)
+                    .GroupBy(category => category.CategoryId)
+                    .Select(groupingByCategory => groupingByCategory.First())
                     .ToList();
 
-                FilteredFriends = _userService.GetFriends(CurrentUser.UserId);
+                this.FilteredFriends = this.userService.GetFriends(this.CurrentUser.UserId);
 
-                var unreadCounts = await _announcementService.GetUnreadCountsForUserAsync(CurrentUser.UserId);
-                foreach (var attendedEvent in _allEvents)
+                var unreadCounts = await this.announcementService.GetUnreadCountsForUserAsync(this.CurrentUser.UserId);
+                foreach (var attendedEvent in this.allEvents)
                 {
                     attendedEvent.UnreadAnnouncementCount =
                         unreadCounts.TryGetValue(attendedEvent.Event.EventId, out var count) ? count : 0;
                 }
 
-                ApplyFiltersAndSort();
+                this.ApplyFiltersAndSort();
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                ErrorMessage = $"Failed to load events: {ex.Message}";
+                this.ErrorMessage = $"Failed to load events: {exception.Message}";
             }
             finally
             {
-                IsLoading = false;
-                StateChanged?.Invoke();
+                this.IsLoading = false;
+                this.StateChanged?.Invoke();
             }
         }
 
+        /// <summary>
+        /// Loads the common events between the current user and a friend asynchronously.
+        /// </summary>
+        /// <param name="friend">The friend user.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task LoadCommonEventsAsync(User friend)
         {
-            if (CurrentUser == null)
+            if (this.CurrentUser == null)
             {
                 throw new InvalidOperationException("CurrentUser is not loaded. Call LoadAsync first.");
             }
 
-            CommonEvents = await _attendedEventService.GetCommonEventsAsync(CurrentUser.UserId, friend.UserId);
-            StateChanged?.Invoke();
+            this.CommonEvents = await this.attendedEventService.GetCommonEventsAsync(this.CurrentUser.UserId, friend.UserId);
+            this.StateChanged?.Invoke();
         }
 
+        /// <summary>
+        /// Sets the search query and applies filters.
+        /// </summary>
+        /// <param name="query">The search query.</param>
         public void SetSearchQuery(string query)
         {
-            SearchQuery = query ?? string.Empty;
-            ApplyFiltersAndSort();
+            this.SearchQuery = query ?? string.Empty;
+            this.ApplyFiltersAndSort();
         }
 
+        /// <summary>
+        /// Sets the selected category filter and applies filters.
+        /// </summary>
+        /// <param name="category">The category to filter by.</param>
         public void SetSelectedCategory(Category? category)
         {
-            SelectedCategory = category;
-            ApplyFiltersAndSort();
+            this.SelectedCategory = category;
+            this.ApplyFiltersAndSort();
         }
 
+        /// <summary>
+        /// Sets the selected sort option and applies sorting.
+        /// </summary>
+        /// <param name="sort">The sort option.</param>
         public void SetSelectedSort(SortOption sort)
         {
-            SelectedSort = sort;
-            ApplyFiltersAndSort();
+            this.SelectedSort = sort;
+            this.ApplyFiltersAndSort();
         }
 
+        /// <summary>
+        /// Clears all filters and resets to default state.
+        /// </summary>
         public void ClearFilters()
         {
-            SearchQuery = string.Empty;
-            SelectedCategory = null;
-            SelectedSort = SortOption.Default;
-            ApplyFiltersAndSort();
+            this.SearchQuery = string.Empty;
+            this.SelectedCategory = null;
+            this.SelectedSort = SortOption.Default;
+            this.ApplyFiltersAndSort();
         }
 
+        /// <summary>
+        /// Leaves the specified event asynchronously.
+        /// </summary>
+        /// <param name="attendedEvent">The event to leave.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task LeaveAsync(AttendedEvent attendedEvent)
         {
             try
             {
-                await _attendedEventService.LeaveEventAsync(attendedEvent.Event.EventId, attendedEvent.User.UserId);
-                _allEvents.Remove(attendedEvent);
-                ApplyFiltersAndSort();
+                await this.attendedEventService.LeaveEventAsync(attendedEvent.Event.EventId, attendedEvent.User.UserId);
+                this.allEvents.Remove(attendedEvent);
+                this.ApplyFiltersAndSort();
             }
             catch (Exception exception)
             {
-                ErrorMessage = $"Failed to leave event: {exception.Message}";
-                StateChanged?.Invoke();
+                this.ErrorMessage = $"Failed to leave event: {exception.Message}";
+                this.StateChanged?.Invoke();
             }
         }
 
+        /// <summary>
+        /// Toggles the archived status of the specified event asynchronously.
+        /// </summary>
+        /// <param name="attendedEvent">The event to archive or unarchive.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task SetArchivedAsync(AttendedEvent attendedEvent)
         {
             try
             {
                 var newValue = !attendedEvent.IsArchived;
-                await _attendedEventService.SetArchivedAsync(attendedEvent.Event.EventId, attendedEvent.User.UserId, newValue);
+                await this.attendedEventService.SetArchivedAsync(attendedEvent.Event.EventId, attendedEvent.User.UserId, newValue);
                 attendedEvent.IsArchived = newValue;
-                ApplyFiltersAndSort();
+                this.ApplyFiltersAndSort();
             }
             catch (Exception exception)
             {
-                ErrorMessage = $"Failed to update archive status: {exception.Message}";
-                StateChanged?.Invoke();
+                this.ErrorMessage = $"Failed to update archive status: {exception.Message}";
+                this.StateChanged?.Invoke();
             }
         }
 
+        /// <summary>
+        /// Toggles the favourite status of the specified event asynchronously.
+        /// </summary>
+        /// <param name="attendedEvent">The event to mark or unmark as favourite.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task SetFavouriteAsync(AttendedEvent attendedEvent)
         {
             try
             {
                 var newValue = !attendedEvent.IsFavourite;
-                await _attendedEventService.SetFavouriteAsync(attendedEvent.Event.EventId, attendedEvent.User.UserId, newValue);
+                await this.attendedEventService.SetFavouriteAsync(attendedEvent.Event.EventId, attendedEvent.User.UserId, newValue);
                 attendedEvent.IsFavourite = newValue;
-                ApplyFiltersAndSort();
+                this.ApplyFiltersAndSort();
             }
             catch (Exception exception)
             {
-                ErrorMessage = $"Failed to update favourite status: {exception.Message}";
-                StateChanged?.Invoke();
+                this.ErrorMessage = $"Failed to update favourite status: {exception.Message}";
+                this.StateChanged?.Invoke();
             }
         }
 
         private void ApplyFiltersAndSort()
         {
-            IEnumerable<AttendedEvent> filtered = _allEvents;
+            IEnumerable<AttendedEvent> filtered = allEvents;
 
-            if (!string.IsNullOrWhiteSpace(SearchQuery))
+            if (!string.IsNullOrWhiteSpace(this.SearchQuery))
             {
                 filtered = filtered.Where(ae =>
-                    ae.Event.Name.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
+                    ae.Event.Name.Contains(this.SearchQuery, StringComparison.OrdinalIgnoreCase));
             }
 
-            if (SelectedCategory != null)
+            if (this.SelectedCategory != null)
             {
                 filtered = filtered.Where(ae =>
-                    ae.Event.Category?.CategoryId == SelectedCategory.CategoryId);
+                    ae.Event.Category?.CategoryId == this.SelectedCategory.CategoryId);
             }
 
             var active = filtered.Where(ae => !ae.IsArchived).ToList();
             var archived = filtered.Where(ae => ae.IsArchived).ToList();
 
-            var favourites = _allEvents
-                .Where(ae => ae.IsFavourite && !ae.IsArchived)
-                .Where(ae => string.IsNullOrWhiteSpace(SearchQuery) ||
-                             ae.Event.Name.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase))
-                .Where(ae => SelectedCategory == null ||
-                             ae.Event.Category?.CategoryId == SelectedCategory.CategoryId)
+            var favourites = this.allEvents
+                .Where(attendedEvent => attendedEvent.IsFavourite && !attendedEvent.IsArchived)
+                .Where(attendedEvent => string.IsNullOrWhiteSpace(this.SearchQuery) ||
+                             attendedEvent.Event.Name.Contains(this.SearchQuery, StringComparison.OrdinalIgnoreCase))
+                .Where(attendedEvent => this.SelectedCategory == null ||
+                                        attendedEvent.Event.Category?.CategoryId == this.SelectedCategory.CategoryId)
                 .ToList();
 
-            active = Sort(active);
-            archived = Sort(archived);
-            favourites = Sort(favourites);
+            active = this.Sort(active);
+            archived = this.Sort(archived);
+            favourites = this.Sort(favourites);
 
-            if (SelectedSort == SortOption.Default)
+            if (this.SelectedSort == SortOption.Default)
             {
-                active = active.OrderByDescending(ae => ae.IsFavourite).ToList();
+                active = active.OrderByDescending(attendedEvent => attendedEvent.IsFavourite).ToList();
             }
 
-            AttendedEvents = active;
-            ArchivedEvents = archived;
-            FavouriteEvents = favourites;
+            this.AttendedEvents = active;
+            this.ArchivedEvents = archived;
+            this.FavouriteEvents = favourites;
 
-            StateChanged?.Invoke();
+            this.StateChanged?.Invoke();
         }
 
         private List<AttendedEvent> Sort(List<AttendedEvent> list)
         {
-            return SelectedSort switch
+            return this.SelectedSort switch
             {
-                SortOption.TitleAscending => list.OrderBy(ae => ae.Event.Name).ToList(),
-                SortOption.TitleDescending => list.OrderByDescending(ae => ae.Event.Name).ToList(),
-                SortOption.CategoryAscending => list.OrderBy(ae => ae.Event.Category?.Title).ToList(),
-                SortOption.CategoryDescending => list.OrderByDescending(ae => ae.Event.Category?.Title).ToList(),
-                SortOption.StartDateAscending => list.OrderBy(ae => ae.Event.StartDateTime).ToList(),
-                SortOption.StartDateDescending => list.OrderByDescending(ae => ae.Event.StartDateTime).ToList(),
-                SortOption.EndDateAscending => list.OrderBy(ae => ae.Event.EndDateTime).ToList(),
-                SortOption.EndDateDescending => list.OrderByDescending(ae => ae.Event.EndDateTime).ToList(),
+                SortOption.TitleAscending => list.OrderBy(attendedEvent => attendedEvent.Event.Name).ToList(),
+                SortOption.TitleDescending => list.OrderByDescending(attendedEvent => attendedEvent.Event.Name).ToList(),
+                SortOption.CategoryAscending => list.OrderBy(attendedEvent => attendedEvent.Event.Category?.Title).ToList(),
+                SortOption.CategoryDescending => list.OrderByDescending(attendedEvent => attendedEvent.Event.Category?.Title).ToList(),
+                SortOption.StartDateAscending => list.OrderBy(attendedEvent => attendedEvent.Event.StartDateTime).ToList(),
+                SortOption.StartDateDescending => list.OrderByDescending(attendedEvent => attendedEvent.Event.StartDateTime).ToList(),
+                SortOption.EndDateAscending => list.OrderBy(attendedEvent => attendedEvent.Event.EndDateTime).ToList(),
+                SortOption.EndDateDescending => list.OrderByDescending(attendedEvent => attendedEvent.Event.EndDateTime).ToList(),
                 _ => list
             };
         }

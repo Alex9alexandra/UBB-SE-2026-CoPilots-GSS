@@ -340,9 +340,9 @@ namespace Events_GSS.ViewModels
 
                 this.ApplyFiltersAndSort();
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                this.ErrorMessage = $"Failed to load events: {ex.Message}";
+                this.ErrorMessage = $"Failed to load events: {exception.Message}";
             }
             finally
             {
