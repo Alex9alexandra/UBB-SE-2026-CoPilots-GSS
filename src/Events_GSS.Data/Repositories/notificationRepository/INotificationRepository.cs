@@ -8,7 +8,7 @@ namespace Events_GSS.Data.Repositories.notificationRepository
 {
     public interface INotificationRepository
     {
-        Task AddAsync(Notification notification);
+        Task AddAsync(int userId, string title, string description, DateTime createdAt);
         Task<List<Notification>> GetByUserIdAsync(int userId);
 
         Task DeleteAsync(int notificationId);

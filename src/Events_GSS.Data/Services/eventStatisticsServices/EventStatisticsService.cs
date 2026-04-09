@@ -12,14 +12,45 @@ public class EventStatisticsService : IEventStatisticsService
         _repository = repository;
     }
 
-    public Task<ParticipantOverview> GetParticipantOverviewAsync(int eventId)
+    public async Task<ParticipantOverview> GetParticipantOverviewAsync(int eventId)
     {
-        return _repository.GetParticipantOverviewAsync(eventId);
+        var result = await _repository.GetParticipantOverviewAsync(eventId);
+
+        if (result.TotalParticipants > 0)
+        {
+            result.EngagementRate = Math.Round(
+                (double)result.ActiveParticipants / result.TotalParticipants * 100,
+                2);
+        }
+        else
+        {
+            result.EngagementRate = 0;
+        }
+
+        return result;
     }
 
-    public Task<EngagementBreakdown> GetEngagementBreakdownAsync(int eventId)
+    public async Task<EngagementBreakdown> GetEngagementBreakdownAsync(int eventId)
     {
-        return _repository.GetEngagementBreakdownAsync(eventId);
+        var result = await _repository.GetEngagementBreakdownAsync(eventId);
+
+        if (result.TotalQuestSubmissions > 0)
+        {
+            result.ApprovedQuestsRate = Math.Round(
+                (double)result.ApprovedQuests / result.TotalQuestSubmissions * 100,
+                2);
+
+            result.DeniedQuestsRate = Math.Round(
+                100 - result.ApprovedQuestsRate,
+                2);
+        }
+        else
+        {
+            result.ApprovedQuestsRate = 0;
+            result.DeniedQuestsRate = 0;
+        }
+
+        return result;
     }
 
     public Task<List<LeaderboardEntry>> GetLeaderboardAsync(int eventId)

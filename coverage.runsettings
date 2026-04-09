@@ -1,0 +1,17 @@
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="Code Coverage">
+        <Configuration>
+
+          <Include>
+             <Sources>
+                <Source>DOES_NOT_EXIST</Source>
+             </Sources>
+	  </Include>
+
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

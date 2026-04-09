@@ -19,6 +19,7 @@ using Events_GSS.Data.Services.eventStatisticsServices;
 using Events_GSS.Data.Services.Interfaces;
 using Events_GSS.Data.Services.notificationServices;
 using Events_GSS.Data.Services.reputationService;
+using Events_GSS.Data.Services.achievementServices;
 using Events_GSS.Services;
 using Events_GSS.Services.Interfaces;
 using Events_GSS.Views;
@@ -76,6 +77,7 @@ public partial class App : Application
         services.AddTransient<IUserService, MockUserService>();
         services.AddTransient<INotificationService, NotificationService>();
         services.AddSingleton<IReputationService, ReputationService>();
+        services.AddTransient<IAchievementService, AchievementService>();
         services.AddTransient<IEventStatisticsService, EventStatisticsService>();
 
         var navService = new NavigationService();

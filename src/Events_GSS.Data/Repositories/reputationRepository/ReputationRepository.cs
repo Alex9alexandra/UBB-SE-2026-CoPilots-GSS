@@ -15,71 +15,26 @@ public class ReputationRepository : IReputationRepository
         connectionFactory = factory;
     }
 
-    public static class ReputationConstants
-    {
-        public const int MinReputation = -1000;
-
-        public const int ContributorThreshold = 50;
-        public const int OrganizerThreshold = 200;
-        public const int CommunityLeaderThreshold = 500;
-        public const int EventMasterThreshold = 1000;
-
-        public const string NewcomerTier = "Newcomer";
-        public const string ContributorTier = "Contributor";
-        public const string OrganizerTier = "Organizer";
-        public const string CommunityLeaderTier = "Community Leader";
-        public const string EventMasterTier = "Event Master";
-    }
-
-    private string CalculateTier(int reputationPoints)
-    {
-        if (reputationPoints >= ReputationConstants.EventMasterThreshold)
-            return ReputationConstants.EventMasterTier;
-
-        if (reputationPoints >= ReputationConstants.CommunityLeaderThreshold)
-            return ReputationConstants.CommunityLeaderTier;
-
-        if (reputationPoints >= ReputationConstants.OrganizerThreshold)
-            return ReputationConstants.OrganizerTier;
-
-        if (reputationPoints >= ReputationConstants.ContributorThreshold)
-            return ReputationConstants.ContributorTier;
-
-        return ReputationConstants.NewcomerTier;
-    }
-    public async Task UpdateReputationAsync(int userId, int delta)
+    public async Task SetReputationAsync(int userId, int reputationPoints, string tier)
     {
         using var connection = connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
-        var ensureUserExistsCommand = new SqlCommand(@"
-            IF NOT EXISTS (SELECT 1 FROM users_RP_scores WHERE UserId = @UserId)
-                INSERT INTO users_RP_scores (UserId, ReputationPoints, Tier) 
-                VALUES (@UserId, 0, @DefaultTier);", connection);
-
-        ensureUserExistsCommand.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
-        ensureUserExistsCommand.Parameters.Add("@DefaultTier", SqlDbType.NVarChar).Value = ReputationConstants.NewcomerTier;
-        await ensureUserExistsCommand.ExecuteNonQueryAsync();
-
-        int currentReputation = await GetReputationPointsAsync(userId);
-        int newReputation = Math.Max(
-            ReputationConstants.MinReputation,
-            currentReputation + delta
-        );
-
-        string newTier = CalculateTier(newReputation);
-
-        var updateReputationCommand = new SqlCommand(@"
+        var command = new SqlCommand(@"
+        IF NOT EXISTS (SELECT 1 FROM users_RP_scores WHERE UserId = @UserId)
+            INSERT INTO users_RP_scores (UserId, ReputationPoints, Tier) 
+            VALUES (@UserId, @ReputationPoints, @Tier)
+        ELSE
             UPDATE users_RP_scores
-            SET ReputationPoints = @NewRP,
+            SET ReputationPoints = @ReputationPoints,
                 Tier = @Tier
             WHERE UserId = @UserId", connection);
 
-        updateReputationCommand.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
-        updateReputationCommand.Parameters.Add("@NewRP", SqlDbType.Int).Value = newReputation;
-        updateReputationCommand.Parameters.Add("@Tier", SqlDbType.NVarChar).Value = newTier;
+        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+        command.Parameters.Add("@ReputationPoints", SqlDbType.Int).Value = reputationPoints;
+        command.Parameters.Add("@Tier", SqlDbType.NVarChar).Value = tier;
 
-        await updateReputationCommand.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task<int> GetReputationPointsAsync(int userId)
@@ -109,9 +64,14 @@ public class ReputationRepository : IReputationRepository
             FROM users_RP_scores
             WHERE UserId = @UserId", connection);
         command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
-        command.Parameters.Add("@DefaultTier", SqlDbType.NVarChar).Value = ReputationConstants.NewcomerTier;
+        command.Parameters.Add("@DefaultTier", SqlDbType.NVarChar).Value = SharedReputationConstants.NewcomerTier;
 
         var result = await command.ExecuteScalarAsync();
-        return result as string ?? ReputationConstants.NewcomerTier;
+        return result as string ?? SharedReputationConstants.NewcomerTier;
     }
+}
+
+public static class SharedReputationConstants
+{
+    public const string NewcomerTier = "Newcomer";
 }

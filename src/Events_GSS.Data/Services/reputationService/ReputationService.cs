@@ -8,6 +8,7 @@ using Events_GSS.Data.Repositories;
 using Events_GSS.Data.Repositories.achievementRepository;
 using Events_GSS.Data.Repositories.eventRepository;
 using Events_GSS.Data.Repositories.reputationRepository;
+using Events_GSS.Data.Services.achievementServices;
 
 namespace Events_GSS.Data.Services.reputationService;
 
@@ -16,9 +17,9 @@ public class ReputationService : IReputationService
     private readonly IReputationRepository _reputationRepository;
     private readonly IAttendedEventRepository _attendedEventRepository;
     private readonly IEventRepository _eventRepository;
-    private readonly IAchievementRepository _achievementRepository;
+    private readonly IAchievementService _achievementService;
 
-    private static class ReputationDeltas
+    public static class ReputationDeltas
     {
         public const int EventCreated = 5;
         public const int EventCancelled = -20;
@@ -40,6 +41,39 @@ public class ReputationService : IReputationService
         public const int AttendEvents = -1000;
     }
 
+    public static class ReputationConstants
+    {
+        public const int MinReputation = -1000;
+
+        public const int ContributorThreshold = 50;
+        public const int OrganizerThreshold = 200;
+        public const int CommunityLeaderThreshold = 500;
+        public const int EventMasterThreshold = 1000;
+
+        public const string NewcomerTier = "Newcomer";
+        public const string ContributorTier = "Contributor";
+        public const string OrganizerTier = "Organizer";
+        public const string CommunityLeaderTier = "Community Leader";
+        public const string EventMasterTier = "Event Master";
+    }
+
+    private string CalculateTier(int reputationPoints)
+    {
+        if (reputationPoints >= ReputationConstants.EventMasterThreshold)
+            return ReputationConstants.EventMasterTier;
+
+        if (reputationPoints >= ReputationConstants.CommunityLeaderThreshold)
+            return ReputationConstants.CommunityLeaderTier;
+
+        if (reputationPoints >= ReputationConstants.OrganizerThreshold)
+            return ReputationConstants.OrganizerTier;
+
+        if (reputationPoints >= ReputationConstants.ContributorThreshold)
+            return ReputationConstants.ContributorTier;
+
+        return ReputationConstants.NewcomerTier;
+    }
+
     private static readonly Dictionary<ReputationAction, int> reputationDeltasMap = new()
     {
         { ReputationAction.EventCreated, ReputationDeltas.EventCreated },
@@ -57,12 +91,12 @@ public class ReputationService : IReputationService
         IReputationRepository reputationRepository,
         IAttendedEventRepository attendedEventRepository,
         IEventRepository eventRepository,
-        IAchievementRepository achievementRepository)
+        IAchievementService achievementService)
     {
         _reputationRepository = reputationRepository;
         _attendedEventRepository = attendedEventRepository;
         _eventRepository = eventRepository;
-        _achievementRepository = achievementRepository;
+        _achievementService = achievementService;
 
         WeakReferenceMessenger.Default.Register<ReputationMessage>(this, (_, msg) =>
         {
@@ -82,13 +116,13 @@ public class ReputationService : IReputationService
 
     public async Task<List<Achievement>> GetAchievementsAsync(int userId)
     {
-        return await _achievementRepository.GetUserAchievementsAsync(userId);
+        return await _achievementService.GetUserAchievementsAsync(userId);
     }
 
     public async Task<bool> CanPostMemoriesAsync(int userId)
     {
         var reputationPoints = await GetReputationPointsAsync(userId);
-        return reputationPoints > ReputationThresholds.PostMessages;
+        return reputationPoints > ReputationThresholds.PostMemories;
     }
 
     public async Task<bool> CanPostMessagesAsync(int userId)
@@ -116,20 +150,27 @@ public class ReputationService : IReputationService
             if (message.Value == ReputationAction.EventAttended)
             {
                 await HandleEventAttendedAsync(message.EventId!.Value);
-                await _achievementRepository.CheckAndAwardAchievementsAsync(message.UserId);
+                await _achievementService.CheckAndAwardAchievementsAsync(message.UserId);
                 return;
             }
-            //TODO Quest approval, denied, submitted handling, messages are sent
 
             if (reputationDeltasMap.TryGetValue(message.Value, out int delta))
             {
-                await _reputationRepository.UpdateReputationAsync(message.UserId, delta);
-                await _achievementRepository.CheckAndAwardAchievementsAsync(message.UserId);
+                var current = await _reputationRepository.GetReputationPointsAsync(message.UserId);
+
+                var newReputation = Math.Max(
+                    ReputationConstants.MinReputation,
+                    current + delta
+                );
+
+                var newTier = CalculateTier(newReputation);
+
+                await _reputationRepository.SetReputationAsync(message.UserId, newReputation, newTier);
+                await _achievementService.CheckAndAwardAchievementsAsync(message.UserId);
             }
         }
         catch (Exception exception)
         {
-            // RP updates are best-effort; don't crash the app
             Debug.WriteLine($"Reputation update failed: {exception}");
         }
     }
@@ -142,7 +183,20 @@ public class ReputationService : IReputationService
             var ev = await _eventRepository.GetByIdAsync(eventId);
             if (ev?.Admin != null)
             {
-                await _reputationRepository.UpdateReputationAsync(ev.Admin.UserId, ReputationDeltas.EventAttendedAdminBonus);
+                var current = await _reputationRepository.GetReputationPointsAsync(ev.Admin.UserId);
+
+                var newReputation = Math.Max(
+                    ReputationConstants.MinReputation,
+                    current + ReputationDeltas.EventAttendedAdminBonus
+                );
+
+                var newTier = CalculateTier(newReputation);
+
+                await _reputationRepository.SetReputationAsync(
+                    ev.Admin.UserId,
+                    newReputation,
+                    newTier
+                );
             }
         }
     }

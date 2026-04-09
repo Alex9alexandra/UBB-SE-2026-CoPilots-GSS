@@ -1,3 +1,7 @@
+// <copyright file="EventStatisticsRepository.cs" company="UBB-SE-2026-GSS">
+// Copyright (c) UBB-SE-2026-GSS. All rights reserved.
+// </copyright>
+
 using System.Data;
 
 using Events_GSS.Data.Database;
@@ -14,9 +18,6 @@ public class EventStatisticsRepository : IEventStatisticsRepository
 
     private static class StatisticsConstants
     {
-        public const int PercentageMultiplier = 100;
-        public const int DecimalPrecision = 2;
-
         public const int MemoryScoreWeight = 2;
         public const int QuestScoreWeight = 3;
 
@@ -65,16 +66,11 @@ public class EventStatisticsRepository : IEventStatisticsRepository
         {
             int totalParticipants = (int)reader["TotalParticipants"];
             int activeParticipants = (int)reader["ActiveParticipants"];
-            double engagementRate = totalParticipants > 0
-                ? Math.Round(
-                    (double)activeParticipants / totalParticipants * StatisticsConstants.PercentageMultiplier,
-                    StatisticsConstants.DecimalPrecision)
-                : 0;
             return new ParticipantOverview
             {
                 TotalParticipants = totalParticipants,
                 ActiveParticipants = activeParticipants,
-                EngagementRate = engagementRate
+                EngagementRate = 0,
             };
         }
 
@@ -123,15 +119,6 @@ public class EventStatisticsRepository : IEventStatisticsRepository
             int approved = (int)reader["ApprovedQuests"];
             int denied = (int)reader["DeniedQuests"];
 
-            double approvedRate = totalSubmissions > 0
-                ? Math.Round((double)approved / totalSubmissions * StatisticsConstants.PercentageMultiplier, StatisticsConstants.DecimalPrecision)
-                : 0;
-            double deniedRate = totalSubmissions > 0
-                ? Math.Round(
-                    StatisticsConstants.PercentageMultiplier - approvedRate,
-                    StatisticsConstants.DecimalPrecision)
-                : 0;
-
             return new EngagementBreakdown
             {
                 TotalDiscussionMessages = totalMessages,
@@ -139,8 +126,8 @@ public class EventStatisticsRepository : IEventStatisticsRepository
                 TotalQuestSubmissions = totalSubmissions,
                 ApprovedQuests = approved,
                 DeniedQuests = denied,
-                ApprovedQuestsRate = approvedRate,
-                DeniedQuestsRate = deniedRate
+                ApprovedQuestsRate = 0,
+                DeniedQuestsRate = 0,
             };
         }
 

@@ -19,7 +19,7 @@ namespace Events_GSS.Data.Repositories.notificationRepository
             connectionFactory = factory;
         }
 
-        public async Task AddAsync(Notification notification)
+        public async Task AddAsync(int userId, string title, string description, DateTime createdAt)
         {
             const string query = @"
                 INSERT INTO Notifications (UserId, Title, Description, CreatedAt)
@@ -29,10 +29,10 @@ namespace Events_GSS.Data.Repositories.notificationRepository
             await connection.OpenAsync();
 
             using var command = new SqlCommand(query, connection);
-            command.Parameters.Add("@UserId", SqlDbType.Int).Value = notification.User.UserId;
-            command.Parameters.Add("@Title", SqlDbType.NVarChar).Value = notification.Title;
-            command.Parameters.Add("@Description", SqlDbType.NVarChar).Value = notification.Description;
-            command.Parameters.Add("@CreatedAt", SqlDbType.DateTime).Value = notification.CreatedAt;
+            command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+            command.Parameters.Add("@Title", SqlDbType.NVarChar).Value = title;
+            command.Parameters.Add("@Description", SqlDbType.NVarChar).Value = description;
+            command.Parameters.Add("@CreatedAt", SqlDbType.DateTime).Value = createdAt;
 
             await command.ExecuteNonQueryAsync();
 
