@@ -6,44 +6,43 @@ namespace Events_GSS.Data.Repositories.eventRepository;
 
 using System;
 
-using Events_GSS.Data.Models;
 
 /// <summary>
-/// Defines the contract for the event repository, which provides methods to manage and retrieve event data in the system.
+/// Repository interface for managing event data operations.
 /// </summary>
 public interface IEventRepository
 {
     /// <summary>
-    /// Asynchronously retrieves a list of all public and active events from the data source.
+    /// Retrieves all public and active events.
     /// </summary>
-    /// <returns>A <see cref="Task{TResult}"/> representing the result of the asynchronous operation.</returns>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of public active events.</returns>
     Task<List<Event>> GetAllPublicActiveAsync();
 
     /// <summary>
-    /// Asynchronously retrieves a list of events that are associated with a specific user, identified by their user ID. This method is useful for fetching events that a particular user is enrolled in or has created.
+    /// Retrieves an event by its unique identifier.
     /// </summary>
-    /// <param name="eventId">The unique identifier of the event to retrieve.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="Event"/> object representing the event with the specified ID, or null if the event does not exist.</returns>
+    /// <param name="eventId">The unique identifier of the event.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the event if found; otherwise, null.</returns>
     Task<Event?> GetByIdAsync(int eventId);
 
     /// <summary>
-    /// Asynchronously adds a new event to the data source. This method takes an <see cref="Event"/> object as a parameter, which contains the details of the event to be added. The method returns a task that represents the asynchronous operation, and the result of the task is an integer representing the unique identifier of the newly created event in the data source.
+    /// Adds a new event to the repository.
     /// </summary>
-    /// <param name="eventEntity">The <see cref="Event"/> object representing the event to be added.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the unique identifier of the newly created event.</returns>
+    /// <param name="eventEntity">The event entity to add.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the identifier of the newly added event.</returns>
     Task<int> AddAsync(Event eventEntity);
 
     /// <summary>
-    /// Asynchronously updates an existing event in the data source. This method takes an <see cref="Event"/> object as a parameter, which contains the updated details of the event. The method returns a task that represents the asynchronous operation.
+    /// Updates an existing event in the repository.
     /// </summary>
-    /// <param name="eventEntity">The <see cref="Event"/> object representing the event to be updated.</param>
+    /// <param name="eventEntity">The event entity with updated information.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     Task UpdateAsync(Event eventEntity);
 
     /// <summary>
-    /// Asynchronously deletes an event from the data source based on its unique identifier. This method returns a task that represents the asynchronous operation.
+    /// Deletes an event from the repository.
     /// </summary>
-    /// <param name="eventId">The unique identifier of the event to be deleted.</param>
+    /// <param name="eventId">The unique identifier of the event to delete.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     Task DeleteAsync(int eventId);
 }

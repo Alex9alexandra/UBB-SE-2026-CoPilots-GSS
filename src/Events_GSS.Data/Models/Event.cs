@@ -14,7 +14,7 @@ public class Event
     public int? MaximumPeople { get; set; }
     public string? EventBannerPath { get; set; }
     public Category? Category { get; set; }
-    public User Admin { get; set; }
+    public User? Admin { get; set; }
     public int? SlowModeSeconds { get; set; }
 
     public int EnrolledCount { get; set; } = 0;

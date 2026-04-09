@@ -6,66 +6,47 @@ using Events_GSS.ViewModels;
 
 namespace Events_GSS.Views;
 
+/// <summary>
+/// Represents the third step in the event creation process where users can select or create quests for the event.
+/// </summary>
 public sealed partial class CreateEventStep3View : UserControl
 {
-    public CreateEventViewModel ViewModel { get; set; } = null!;
-
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CreateEventStep3View"/> class.
+    /// </summary>
     public CreateEventStep3View()
     {
         this.InitializeComponent();
-        this.DataContext = ViewModel;
-        this.Loaded += CreateEventStep3View_Loaded;
+        this.DataContext = this.ViewModel;
+        this.Loaded += this.CreateEventStep3View_Loaded;
     }
+
+    /// <summary>
+    /// Gets or sets the view model for this view.
+    /// </summary>
+    public CreateEventViewModel ViewModel { get; set; } = null!;
+
 
     private void CreateEventStep3View_Loaded(object sender, RoutedEventArgs e)
     {
-        if (ViewModel != null)
+        if (this.ViewModel != null)
         {
-            ViewModel.CloseRequested += OnEventCreated;
+            this.ViewModel.CloseRequested += this.OnEventCreated;
         }
     }
 
     private async void OnEventCreated(Events_GSS.Data.Models.CreateEventDto? dto)
     {
         // Hide the main content
-        MainContent.Visibility = Visibility.Collapsed;
+        this.MainContent.Visibility = Visibility.Collapsed;
 
-        string details;
-        if (dto == null)
-        {
-            details = "Event creation cancelled.";
-        }
-        else
-        {
-            string quests = dto.SelectedQuests.Count == 0
-                ? "None"
-                : string.Join(", ", dto.SelectedQuests.Select(q => q.Name));
-            string category = dto.Category?.Title ?? "None";
-            string createdBy = dto.Admin != null 
-                ? $"{dto.Admin.Name} (ID: {dto.Admin.UserId})" 
-                : "Unknown";
-
-            details =
-                $"Event created successfully!\n\n" +
-                $"Name: {dto.Name}\n" +
-                $"Location: {dto.Location}\n" +
-                $"Start: {dto.StartDateTime}\n" +
-                $"End: {dto.EndDateTime}\n" +
-                $"Public: {dto.IsPublic}\n" +
-                $"Description: {dto.Description}\n" +
-                $"Maximum People: {(dto.MaximumPeople.HasValue ? dto.MaximumPeople.Value.ToString() : "No limit")}\n" +
-                $"Banner Path: {dto.EventBannerPath ?? "None"}\n" +
-                $"Category: {category}\n" +
-                $"Selected Quests: {quests}\n" +
-                $"Created By: {createdBy}";
-        }
+        string details = this.ViewModel.EventCreationDetailsText;
 
         var dialog = new ContentDialog
         {
-            Title = "Event Created",
-            Content = new ScrollViewer { Content = new TextBlock { Text = details, TextWrapping = TextWrapping.Wrap } },
+            Title = details,
             CloseButtonText = "OK",
-            XamlRoot = this.XamlRoot
+            XamlRoot = this.XamlRoot,
         };
         await dialog.ShowAsync();
     }
@@ -74,8 +55,10 @@ public sealed partial class CreateEventStep3View : UserControl
     {
         if (sender is CheckBox cb && cb.DataContext is Quest quest)
         {
-            if (!ViewModel.SelectedQuests.Contains(quest))
-                ViewModel.SelectedQuests.Add(quest);
+            if (!this.ViewModel.SelectedQuests.Contains(quest))
+            {
+                this.ViewModel.SelectedQuests.Add(quest);
+            }
         }
     }
 
@@ -83,8 +66,10 @@ public sealed partial class CreateEventStep3View : UserControl
     {
         if (sender is CheckBox cb && cb.DataContext is Quest quest)
         {
-            if (ViewModel.SelectedQuests.Contains(quest))
-                ViewModel.SelectedQuests.Remove(quest);
+            if (this.ViewModel.SelectedQuests.Contains(quest))
+            {
+                this.ViewModel.SelectedQuests.Remove(quest);
+            }
         }
     }
 
@@ -96,13 +81,13 @@ public sealed partial class CreateEventStep3View : UserControl
             Content = "Are you sure you want to cancel? All changes will be lost.",
             PrimaryButtonText = "Yes, cancel",
             CloseButtonText = "No, go back",
-            XamlRoot = this.XamlRoot
+            XamlRoot = this.XamlRoot,
         };
 
         var result = await dialog.ShowAsync();
         if (result == ContentDialogResult.Primary)
         {
-            ViewModel.CancelCommand.Execute(null);
+            this.ViewModel.CancelCommand.Execute(null);
         }
     }
 
@@ -110,8 +95,10 @@ public sealed partial class CreateEventStep3View : UserControl
     {
         if (sender is Button btn && btn.DataContext is Quest quest)
         {
-            if (ViewModel.SelectedQuests.Contains(quest))
-                ViewModel.SelectedQuests.Remove(quest);
+            if (this.ViewModel.SelectedQuests.Contains(quest))
+            {
+                this.ViewModel.SelectedQuests.Remove(quest);
+            }
         }
     }
 }
