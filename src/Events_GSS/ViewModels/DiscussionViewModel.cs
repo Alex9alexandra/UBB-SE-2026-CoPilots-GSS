@@ -1,6 +1,5 @@
-﻿    using System;
+﻿using System;
 using System.Collections.ObjectModel;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -9,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 using Events_GSS.Data.Models;
 using Events_GSS.Data.Services.discussionService;
 using Events_GSS.Data.Services.Interfaces;
+using Events_GSS.ViewModelsCore;
 
 using Microsoft.UI.Xaml;
 
@@ -76,7 +76,6 @@ public partial class DiscussionViewModel : ObservableObject
     [ObservableProperty]
     private int _slowModeRemainingSeconds;
 
-    // Slow mode configuration (admin)
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSlowModeActive))]
     [NotifyPropertyChangedFor(nameof(SlowModeStatusText))]
@@ -102,10 +101,8 @@ public partial class DiscussionViewModel : ObservableObject
         {
             await LoadMessagesAsync();
 
-            // Load slow mode state
             CurrentSlowModeSeconds = await _service.GetSlowModeSecondsAsync(_event.EventId);
 
-            // Load participants for @mention suggestions
             var participants = await _service.GetEventParticipantsAsync(_event.EventId);
             Participants.Clear();
             foreach (var p in participants)
@@ -118,14 +115,11 @@ public partial class DiscussionViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadMessagesAsync()
     {
-        var list = await _service.GetMessagesAsync(
-            _event.EventId, _currentUserId);
+        var list = await _service.GetMessagesAsync(_event.EventId, _currentUserId);
 
         Messages.Clear();
         foreach (var m in list)
-        {
             Messages.Add(new DiscussionMessageItemViewModel(m, _currentUserId, IsEventAdmin));
-        }
     }
 
     [RelayCommand(CanExecute = nameof(CanSend))]
@@ -151,30 +145,24 @@ public partial class DiscussionViewModel : ObservableObject
                 await LoadMessagesAsync();
             }
             catch (InvalidOperationException ex)
-                when (ex.Message.Contains("muted", StringComparison.OrdinalIgnoreCase))
+                when (DiscussionViewModelCore.IsMuteException(ex.Message))
             {
                 IsMuted = true;
                 MuteRemainingText = ex.Message;
                 throw;
             }
             catch (InvalidOperationException ex)
-                when (ex.Message.Contains("Slow mode", StringComparison.OrdinalIgnoreCase))
+                when (DiscussionViewModelCore.IsSlowModeException(ex.Message))
             {
-                var match = Regex.Match(ex.Message, @"\d+");
-                if (match.Success && int.TryParse(match.Value, out int secs))
-                {
-                    SlowModeRemainingSeconds = secs;
-                }
-
+                SlowModeRemainingSeconds =
+                    DiscussionViewModelCore.TryParseSlowModeSeconds(ex.Message) ?? 0;
                 throw;
             }
         });
     }
 
-    private bool CanSend() =>
-        (!string.IsNullOrWhiteSpace(NewMessage) || !string.IsNullOrWhiteSpace(MediaPath))
-        && IsNotLoading
-        && !IsMuted;
+    private bool CanSend() => DiscussionViewModelCore.CanSend(
+        NewMessage, MediaPath, IsLoading, IsMuted);
 
     [RelayCommand]
     private async Task DeleteMessageAsync(DiscussionMessageItemViewModel? item)
@@ -183,8 +171,7 @@ public partial class DiscussionViewModel : ObservableObject
 
         await RunGuardedAsync(async () =>
         {
-            await _service.DeleteMessageAsync(
-                item.Id, _currentUserId, _event.EventId);
+            await _service.DeleteMessageAsync(item.Id, _currentUserId, _event.EventId);
 
             Messages.Remove(item);
 
@@ -199,16 +186,10 @@ public partial class DiscussionViewModel : ObservableObject
     // ── Reply ────────────────────────────────────────────────────────────────
 
     [RelayCommand]
-    private void SetReplyTarget(DiscussionMessageItemViewModel? item)
-    {
-        ReplyTarget = item;
-    }
+    private void SetReplyTarget(DiscussionMessageItemViewModel? item) => ReplyTarget = item;
 
     [RelayCommand]
-    private void CancelReply()
-    {
-        ReplyTarget = null;
-    }
+    private void CancelReply() => ReplyTarget = null;
 
     // ── Reactions ────────────────────────────────────────────────────────────
 
@@ -219,9 +200,7 @@ public partial class DiscussionViewModel : ObservableObject
 
         await RunGuardedAsync(async () =>
         {
-            var currentEmoji = payload.Message.CurrentUserEmoji;
-
-            if (currentEmoji == payload.Emoji)
+            if (payload.Message.CurrentUserEmoji == payload.Emoji)
                 await _service.RemoveReactionAsync(payload.Message.Id, _currentUserId);
             else
                 await _service.ReactAsync(payload.Message.Id, _currentUserId, payload.Emoji);
@@ -240,10 +219,7 @@ public partial class DiscussionViewModel : ObservableObject
         await RunGuardedAsync(async () =>
         {
             await _service.MuteUserAsync(
-                _event.EventId,
-                payload.TargetUserId,
-                payload.Until,
-                _currentUserId);
+                _event.EventId, payload.TargetUserId, payload.Until, _currentUserId);
         });
     }
 
@@ -252,8 +228,7 @@ public partial class DiscussionViewModel : ObservableObject
     {
         await RunGuardedAsync(async () =>
         {
-            await _service.UnmuteUserAsync(
-                _event.EventId, targetUserId, _currentUserId);
+            await _service.UnmuteUserAsync(_event.EventId, targetUserId, _currentUserId);
         });
     }
 
@@ -262,53 +237,32 @@ public partial class DiscussionViewModel : ObservableObject
     [RelayCommand]
     public async Task SetSlowModeAsync(double? seconds)
     {
-        // Business Logic: Ensure we have a valid integer or null
-        int? roundedSeconds = seconds.HasValue ? (int)Math.Round(seconds.Value) : null;
+        int? rounded = DiscussionViewModelCore.NormaliseSlowModeSeconds(seconds);
 
         await RunGuardedAsync(async () =>
         {
-            await _service.SetSlowModeAsync(_event.EventId, roundedSeconds, _currentUserId);
-            CurrentSlowModeSeconds = roundedSeconds;
+            await _service.SetSlowModeAsync(_event.EventId, rounded, _currentUserId);
+            CurrentSlowModeSeconds = rounded;
         });
     }
+
     // ── Mention Helper ───────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Inserts @Name at current cursor position in NewMessage.
-    /// Called from the view when a participant is selected from the suggestion list.
-    /// </summary>
     public void InsertMention(string userName)
     {
-        if (string.IsNullOrWhiteSpace(userName)) return;
-
-        var mention = $"@{userName} ";
-
-        // If there's already text and it doesn't end with a space, add one
-        if (!string.IsNullOrEmpty(NewMessage) && !NewMessage.EndsWith(" "))
-            NewMessage += " ";
-
-        NewMessage += mention;
+        NewMessage = DiscussionViewModelCore.InsertMention(NewMessage, userName);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
-    public DateTime? CalculateMuteExpiry(string selection, double hours, double minutes)
-    {
-        return selection switch
-        {
-            "1 hour" => DateTime.UtcNow.AddHours(1),
-            "24 hours" => DateTime.UtcNow.AddDays(1),
-            "Custom" => DateTime.UtcNow.AddHours(hours).AddMinutes(minutes),
-            "Permanent" => null,
-            _ => DateTime.UtcNow.AddMinutes(30) // Default fallback
-        };
-    }
+
+    public DateTime? CalculateMuteExpiry(string selection, double hours, double minutes) =>
+        DiscussionViewModelCore.CalculateMuteExpiry(selection, hours, minutes, DateTime.UtcNow);
 
     [RelayCommand]
     public async Task HandleMediaFileAsync(Windows.Storage.IStorageFile file)
     {
         await RunGuardedAsync(async () =>
         {
-            // Business logic for where files are stored lives here or in a Service
             var localFolder = Windows.Storage.ApplicationData.Current.LocalFolder;
             var mediaFolder = await localFolder.CreateFolderAsync(
                 "DiscussionMedia",
@@ -322,7 +276,6 @@ public partial class DiscussionViewModel : ObservableObject
             MediaPath = copy.Path;
         });
     }
-    
 
     private async Task RunGuardedAsync(Func<Task> action)
     {

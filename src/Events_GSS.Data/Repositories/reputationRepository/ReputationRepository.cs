@@ -5,16 +5,16 @@ namespace Events_GSS.Data.Repositories.reputationRepository;
 
 public class ReputationRepository : IReputationRepository
 {
-    private readonly SqlConnectionFactory _factory;
+    private readonly SqlConnectionFactory factory;
 
     public ReputationRepository(SqlConnectionFactory factory)
     {
-        _factory = factory;
+        this.factory = factory;
     }
 
     public async Task UpdateReputationAsync(int userId, int delta)
     {
-        using var conn = _factory.CreateConnection();
+        using var conn = factory.CreateConnection();
         await conn.OpenAsync();
 
         var ensure = new SqlCommand(@"
@@ -50,7 +50,7 @@ public class ReputationRepository : IReputationRepository
 
     public async Task<int> GetReputationPointsAsync(int userId)
     {
-        using var conn = _factory.CreateConnection();
+        using var conn = factory.CreateConnection();
         await conn.OpenAsync();
 
         var cmd = new SqlCommand(
@@ -63,7 +63,7 @@ public class ReputationRepository : IReputationRepository
 
     public async Task<string> GetTierAsync(int userId)
     {
-        using var conn = _factory.CreateConnection();
+        using var conn = factory.CreateConnection();
         await conn.OpenAsync();
 
         var cmd = new SqlCommand(

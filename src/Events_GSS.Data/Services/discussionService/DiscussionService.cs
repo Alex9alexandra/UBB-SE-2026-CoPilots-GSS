@@ -166,7 +166,10 @@ public class DiscussionService : IDiscussionService
         {
             throw new UnauthorizedAccessException("You can only delete your own messages.");
         }
+
         bool isAdminDeletingOther = isAdmin && message.Author?.UserId != userId;
+
+        await repo.DetachRepliesAsync(messageId);
         await repo.DeleteAsync(messageId);
 
         if (isAdminDeletingOther && message.Author != null)
@@ -179,7 +182,15 @@ public class DiscussionService : IDiscussionService
     // ── Reactions ─────────────────────────────────────────────────────────────
     public async Task ReactAsync(int messageId, int userId, string emoji)
     {
+        var existing = await repo.GetReactionAsync(messageId, userId);
+        if (existing is not null)
+        {
+            await repo.UpdateReactionAsync(messageId, userId, emoji);
+        }
+        else
+        {
         await repo.AddReactionAsync(messageId, userId, emoji);
+        }
     }
 
     public async Task RemoveReactionAsync(int messageId, int userId)
@@ -192,7 +203,7 @@ public class DiscussionService : IDiscussionService
     {
         await EnsureAdminAsync(eventId, adminUserId);
 
-        bool isPermanent = muteUntil is null;
+        await repo.DeleteExistingMuteAsync(eventId, targetUserId);
 
         var mute = new DiscussionMute
         {
@@ -200,11 +211,11 @@ public class DiscussionService : IDiscussionService
             MutedUser = new User { UserId = targetUserId },
             MutedBy = new User { UserId = adminUserId },
             MutedUntil = muteUntil,
-            IsPermanent = isPermanent,
+            IsPermanent = muteUntil is null,
             CreatedAt = DateTime.UtcNow
         };
 
-        await repo.MuteAsync(mute);
+        await repo.InsertMuteAsync(mute);
     }
 
     public async Task UnmuteUserAsync(int eventId, int targetUserId, int adminUserId)

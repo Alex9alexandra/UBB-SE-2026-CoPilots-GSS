@@ -212,22 +212,11 @@ public class DiscussionRepository : IDiscussionRepository
         using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
-        const string detachReplies = @"
-            UPDATE Discussions SET ReplyToId = NULL WHERE ReplyToId = @Id";
+        const string query = @"DELETE FROM Discussions WHERE DiscussionId = @Id";
 
-        using (var cmd = new SqlCommand(detachReplies, conn))
-        {
-            cmd.Parameters.AddWithValue("@Id", messageId);
-            await cmd.ExecuteNonQueryAsync();
-        }
-
-        const string delete = @"DELETE FROM Discussions WHERE DiscussionId = @Id";
-
-        using (var cmd = new SqlCommand(delete, conn))
-        {
-            cmd.Parameters.AddWithValue("@Id", messageId);
-            await cmd.ExecuteNonQueryAsync();
-        }
+        using var cmd = new SqlCommand(query, conn);
+        cmd.Parameters.AddWithValue("@Id", messageId);
+        await cmd.ExecuteNonQueryAsync();
     }
 
     public async Task<DateTime?> GetLastUserMessageDateAsync(int eventId, int userId)
@@ -249,6 +238,19 @@ public class DiscussionRepository : IDiscussionRepository
         return result is DateTime dt ? dt : null;
     }
 
+    public async Task DetachRepliesAsync(int messageId)
+    {
+        using var conn = connectionFactory.CreateConnection();
+        await conn.OpenAsync();
+
+        const string query = @"
+        UPDATE Discussions SET ReplyToId = NULL WHERE ReplyToId = @Id";
+
+        using var cmd = new SqlCommand(query, conn);
+        cmd.Parameters.AddWithValue("@Id", messageId);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     // ── Reactions ─────────────────────────────────────────────────────────────
     public async Task AddReactionAsync(int messageId, int userId, string emoji)
     {
@@ -256,13 +258,8 @@ public class DiscussionRepository : IDiscussionRepository
         await conn.OpenAsync();
 
         const string query = @"
-            IF EXISTS (SELECT 1 FROM DiscussionReactions WHERE MessageId = @MsgId AND UserId = @UserId)
-                UPDATE DiscussionReactions
-                SET Emoji = @Emoji
-                WHERE MessageId = @MsgId AND UserId = @UserId
-            ELSE
-                INSERT INTO DiscussionReactions (MessageId, UserId, Emoji)
-                VALUES (@MsgId, @UserId, @Emoji)";
+        INSERT INTO DiscussionReactions (MessageId, UserId, Emoji)
+        VALUES (@MsgId, @UserId, @Emoji)";
 
         using var cmd = new SqlCommand(query, conn);
         cmd.Parameters.AddWithValue("@MsgId", messageId);
@@ -284,6 +281,35 @@ public class DiscussionRepository : IDiscussionRepository
         cmd.Parameters.AddWithValue("@MsgId", messageId);
         cmd.Parameters.AddWithValue("@UserId", userId);
         await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task<DiscussionReaction?> GetReactionAsync(int messageId, int userId)
+    {
+        using var conn = connectionFactory.CreateConnection();
+        await conn.OpenAsync();
+
+        const string query = @"
+        SELECT dr.Id, dr.Emoji
+        FROM DiscussionReactions dr
+        WHERE dr.MessageId = @MsgId AND dr.UserId = @UserId";
+
+        using var cmd = new SqlCommand(query, conn);
+        cmd.Parameters.AddWithValue("@MsgId", messageId);
+        cmd.Parameters.AddWithValue("@UserId", userId);
+
+        using var reader = await cmd.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
+
+        return new DiscussionReaction
+        {
+            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+            Emoji = reader.GetString(reader.GetOrdinal("Emoji")),
+            Message = new DiscussionMessage(messageId, null, DateTime.MinValue),
+            Author = new User { UserId = userId }
+        };
     }
 
     public async Task<List<DiscussionReaction>> GetReactionsAsync(int messageId)
@@ -319,6 +345,22 @@ public class DiscussionRepository : IDiscussionRepository
         }
 
         return reactions;
+    }
+    public async Task UpdateReactionAsync(int messageId, int userId, string emoji)
+    {
+        using var conn = connectionFactory.CreateConnection();
+        await conn.OpenAsync();
+
+        const string query = @"
+        UPDATE DiscussionReactions
+        SET Emoji = @Emoji
+        WHERE MessageId = @MsgId AND UserId = @UserId";
+
+        using var cmd = new SqlCommand(query, conn);
+        cmd.Parameters.AddWithValue("@MsgId", messageId);
+        cmd.Parameters.AddWithValue("@UserId", userId);
+        cmd.Parameters.AddWithValue("@Emoji", emoji);
+        await cmd.ExecuteNonQueryAsync();
     }
 
     // ── Mutes ─────────────────────────────────────────────────────────────────
@@ -362,38 +404,40 @@ public class DiscussionRepository : IDiscussionRepository
         };
     }
 
-    public async Task MuteAsync(DiscussionMute mute)
+    public async Task DeleteExistingMuteAsync(int eventId, int userId)
     {
         using var conn = connectionFactory.CreateConnection();
         await conn.OpenAsync();
 
-        const string remove = @"
-            DELETE FROM DiscussionMutes
-            WHERE EventId = @EventId AND MutedUserId = @UserId";
+        const string query = @"
+        DELETE FROM DiscussionMutes
+        WHERE EventId = @EventId AND MutedUserId = @UserId";
 
-        using (var cmd = new SqlCommand(remove, conn))
-        {
-            cmd.Parameters.AddWithValue("@EventId", mute.EventId);
-            cmd.Parameters.AddWithValue("@UserId", mute.MutedUser.UserId);
-            await cmd.ExecuteNonQueryAsync();
-        }
+        using var cmd = new SqlCommand(query, conn);
+        cmd.Parameters.AddWithValue("@EventId", eventId);
+        cmd.Parameters.AddWithValue("@UserId", userId);
+        await cmd.ExecuteNonQueryAsync();
+    }
 
-        const string insert = @"
-            INSERT INTO DiscussionMutes
-                (EventId, MutedUserId, MutedByUserId, MutedUntil, IsPermanent, CreatedAt)
-            VALUES
-                (@EventId, @MutedUserId, @MutedByUserId, @MutedUntil, @IsPermanent, @CreatedAt)";
+    public async Task InsertMuteAsync(DiscussionMute mute)
+    {
+        using var conn = connectionFactory.CreateConnection();
+        await conn.OpenAsync();
 
-        using (var cmd = new SqlCommand(insert, conn))
-        {
-            cmd.Parameters.AddWithValue("@EventId", mute.EventId);
-            cmd.Parameters.AddWithValue("@MutedUserId", mute.MutedUser.UserId);
-            cmd.Parameters.AddWithValue("@MutedByUserId", mute.MutedBy.UserId);
-            cmd.Parameters.AddWithValue("@MutedUntil", (object?)mute.MutedUntil ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@IsPermanent", mute.IsPermanent);
-            cmd.Parameters.AddWithValue("@CreatedAt", mute.CreatedAt);
-            await cmd.ExecuteNonQueryAsync();
-        }
+        const string query = @"
+        INSERT INTO DiscussionMutes
+            (EventId, MutedUserId, MutedByUserId, MutedUntil, IsPermanent, CreatedAt)
+        VALUES
+            (@EventId, @MutedUserId, @MutedByUserId, @MutedUntil, @IsPermanent, @CreatedAt)";
+
+        using var cmd = new SqlCommand(query, conn);
+        cmd.Parameters.AddWithValue("@EventId", mute.EventId);
+        cmd.Parameters.AddWithValue("@MutedUserId", mute.MutedUser.UserId);
+        cmd.Parameters.AddWithValue("@MutedByUserId", mute.MutedBy.UserId);
+        cmd.Parameters.AddWithValue("@MutedUntil", (object?)mute.MutedUntil ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@IsPermanent", mute.IsPermanent);
+        cmd.Parameters.AddWithValue("@CreatedAt", mute.CreatedAt);
+        await cmd.ExecuteNonQueryAsync();
     }
 
     public async Task UnmuteAsync(int eventId, int userId)

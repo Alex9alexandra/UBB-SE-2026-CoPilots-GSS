@@ -499,16 +499,6 @@ public class DiscussionServiceTests
     }
 
     [Fact]
-    public async Task ReactAsync_CallsRepository()
-    {
-        mockRepo.Setup(r => r.AddReactionAsync(1, 2, "👍")).Returns(Task.CompletedTask);
-
-        await service.ReactAsync(1, 2, "👍");
-
-        mockRepo.Verify(r => r.AddReactionAsync(1, 2, "👍"), Times.Once);
-    }
-
-    [Fact]
     public async Task RemoveReactionAsync_CallsRepository()
     {
         mockRepo.Setup(r => r.RemoveReactionAsync(1, 2)).Returns(Task.CompletedTask);
@@ -535,7 +525,7 @@ public class DiscussionServiceTests
         SetupEvent(eventId, MakeEvent(eventId, adminId: adminId));
 
         DiscussionMute? captured = null;
-        mockRepo.Setup(r => r.MuteAsync(It.IsAny<DiscussionMute>()))
+        mockRepo.Setup(r => r.InsertMuteAsync(It.IsAny<DiscussionMute>()))
                 .Callback<DiscussionMute>(m => captured = m)
                 .Returns(Task.CompletedTask);
 
@@ -553,7 +543,7 @@ public class DiscussionServiceTests
         SetupEvent(eventId, MakeEvent(eventId, adminId: adminId));
 
         DiscussionMute? captured = null;
-        mockRepo.Setup(r => r.MuteAsync(It.IsAny<DiscussionMute>()))
+        mockRepo.Setup(r => r.InsertMuteAsync(It.IsAny<DiscussionMute>()))
                 .Callback<DiscussionMute>(m => captured = m)
                 .Returns(Task.CompletedTask);
 
@@ -651,16 +641,6 @@ public class DiscussionServiceTests
         var result = DiscussionService.FindMentionedUsers("@Alice and @Bob!", users);
 
         Assert.Equal(2, result.Count);
-    }
-
-    [Fact]
-    public async Task SetSlowModeAsync_NonAdmin_ThrowsUnauthorized()
-    {
-        int userId = 1, eventId = 10;
-        SetupEvent(eventId, MakeEvent(eventId, adminId: 99));
-
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-            service.SetSlowModeAsync(eventId, 30, userId));
     }
 
     [Fact]
@@ -812,5 +792,177 @@ public async Task CreateMessageAsync_MentionerNotInParticipants_UsesSomeoneFallb
         Assert.Contains("h ", ex.Message);
         Assert.Contains("m", ex.Message);
     }
+    [Fact]
+    public async Task ReactAsync_NoExistingReaction_CallsAddReaction()
+    {
+        int messageId = 1, userId = 2;
+        string emoji = "👍";
 
+        mockRepo.Setup(r => r.GetReactionAsync(messageId, userId))
+                .ReturnsAsync((DiscussionReaction?)null);
+        mockRepo.Setup(r => r.AddReactionAsync(messageId, userId, emoji))
+                .Returns(Task.CompletedTask);
+
+        await service.ReactAsync(messageId, userId, emoji);
+
+        mockRepo.Verify(r => r.AddReactionAsync(messageId, userId, emoji), Times.Once);
+        mockRepo.Verify(r => r.UpdateReactionAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ReactAsync_ExistingReaction_SameEmoji_CallsUpdateReaction()
+    {
+        int messageId = 1, userId = 2;
+        string emoji = "👍";
+
+        mockRepo.Setup(r => r.GetReactionAsync(messageId, userId))
+                .ReturnsAsync(new DiscussionReaction
+                {
+                    Id = 1,
+                    Emoji = "👍",
+                    Message = new DiscussionMessage(messageId, null, DateTime.MinValue),
+                    Author = new User { UserId = userId }
+
+                });
+        mockRepo.Setup(r => r.UpdateReactionAsync(messageId, userId, emoji))
+                .Returns(Task.CompletedTask);
+
+        await service.ReactAsync(messageId, userId, emoji);
+
+        mockRepo.Verify(r => r.UpdateReactionAsync(messageId, userId, emoji), Times.Once);
+    }
+
+
+    [Fact]
+    public async Task MuteUserAsync_EventNotFound_ThrowsArgumentException()
+    {
+        mockEventRepo.Setup(e => e.GetByIdAsync(99)).ReturnsAsync((Event?)null);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.MuteUserAsync(99, 5, DateTime.UtcNow.AddHours(1), 1));
+    }
+
+    [Fact]
+    public async Task UnmuteUserAsync_EventNotFound_ThrowsArgumentException()
+    {
+        mockEventRepo.Setup(e => e.GetByIdAsync(99)).ReturnsAsync((Event?)null);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.UnmuteUserAsync(99, 5, 1));
+    }
+
+    [Fact]
+    public async Task SetSlowModeAsync_EventNotFound_ThrowsArgumentException()
+    {
+        mockEventRepo.Setup(e => e.GetByIdAsync(99)).ReturnsAsync((Event?)null);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.SetSlowModeAsync(99, 30, 1));
+    }
+
+
+    [Fact]
+    public async Task GetMessagesAsync_MessageWithNullAuthor_RegularUser_CanDeleteIsFalse()
+    {
+        int userId = 3, eventId = 1;
+        var evt = MakeEvent(eventId, adminId: 99);
+        SetupEvent(eventId, evt);
+
+        var messages = new List<DiscussionMessage>
+        {
+            new DiscussionMessage(1, "orphan", DateTime.UtcNow) { Author = null }
+        };
+        mockRepo.Setup(r => r.GetByEventAsync(eventId, userId)).ReturnsAsync(messages);
+
+        var result = await service.GetMessagesAsync(eventId, userId);
+
+        Assert.False(result[0].CanDelete);
+    }
+
+    [Fact]
+    public async Task GetMessagesAsync_MessageWithNullAuthor_AdminUser_CanDeleteIsTrue()
+    {
+        int adminId = 99, eventId = 1;
+        var evt = MakeEvent(eventId, adminId: adminId);
+        SetupEvent(eventId, evt);
+
+        var messages = new List<DiscussionMessage>
+        {
+            new DiscussionMessage(1, "orphan", DateTime.UtcNow) { Author = null }
+        };
+        mockRepo.Setup(r => r.GetByEventAsync(eventId, adminId)).ReturnsAsync(messages);
+
+        var result = await service.GetMessagesAsync(eventId, adminId);
+
+        Assert.True(result[0].CanDelete);
+    }
+
+    [Fact]
+    public async Task MuteUserAsync_EventHasNoAdmin_ThrowsUnauthorized()
+    {
+        int eventId = 10;
+        SetupEvent(eventId, MakeEvent(eventId)); // no adminId → Admin is null
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.MuteUserAsync(eventId, 5, DateTime.UtcNow.AddHours(1), 1));
+    }
+
+    [Fact]
+    public async Task UnmuteUserAsync_EventHasNoAdmin_ThrowsUnauthorized()
+    {
+        int eventId = 10;
+        SetupEvent(eventId, MakeEvent(eventId));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.UnmuteUserAsync(eventId, 5, 1));
+    }
+
+    [Fact]
+    public async Task SetSlowModeAsync_EventHasNoAdmin_ThrowsUnauthorized()
+    {
+        int eventId = 10;
+        SetupEvent(eventId, MakeEvent(eventId));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.SetSlowModeAsync(eventId, 30, 1));
+    }
+    [Fact]
+    public async Task CreateMessageAsync_SetsMediaPathOnPersistedMessage()
+    {
+        int userId = 1, eventId = 10;
+        SetupReputation(userId);
+        SetupEvent(eventId, MakeEvent(eventId));
+        SetupNoMute(eventId, userId);
+        SetupNoSlowMode(eventId, userId);
+        mockRepo.Setup(r => r.GetEventParticipantsAsync(eventId)).ReturnsAsync(new List<User>());
+
+        DiscussionMessage? captured = null;
+        mockRepo.Setup(r => r.AddAsync(It.IsAny<DiscussionMessage>()))
+                .Callback<DiscussionMessage>(m => captured = m)
+                .ReturnsAsync(0);
+
+        await service.CreateMessageAsync(null, "/tmp/photo.jpg", eventId, userId, null);
+
+        Assert.Equal("/tmp/photo.jpg", captured!.MediaPath);
+    }
+
+    [Fact]
+    public async Task CreateMessageAsync_TrimsWhitespaceFromText()
+    {
+        int userId = 1, eventId = 10;
+        SetupReputation(userId);
+        SetupEvent(eventId, MakeEvent(eventId));
+        SetupNoMute(eventId, userId);
+        SetupNoSlowMode(eventId, userId);
+        mockRepo.Setup(r => r.GetEventParticipantsAsync(eventId)).ReturnsAsync(new List<User>());
+
+        DiscussionMessage? captured = null;
+        mockRepo.Setup(r => r.AddAsync(It.IsAny<DiscussionMessage>()))
+                .Callback<DiscussionMessage>(m => captured = m)
+                .ReturnsAsync(0);
+
+        await service.CreateMessageAsync("  hello  ", null, eventId, userId, null);
+
+        Assert.Equal("hello", captured!.Message);
+    }
 }

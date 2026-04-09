@@ -1,23 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
+﻿using System.Collections.Generic;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
 using Events_GSS.Data.Models;
+using Events_GSS.ViewModelsCore;
 
 namespace Events_GSS.ViewModels;
-
-/// <summary>
-/// Represents a segment of a message — either plain text or a @mention.
-/// Used by the view to render mentions with distinct styling.
-/// </summary>
-public class MessageSegment
-{
-    public string Text { get; set; } = string.Empty;
-    public bool IsMention { get; set; }
-}
 
 public partial class DiscussionMessageItemViewModel : ObservableObject
 {
@@ -35,7 +23,8 @@ public partial class DiscussionMessageItemViewModel : ObservableObject
         _isCurrentUserAdmin = isCurrentUserAdmin;
     }
 
-    // Expose model properties
+    // ── Model pass-throughs ───────────────────────────────────────────────────
+
     public int Id => Model.Id;
     public string? Message => Model.Message;
     public string? MediaPath => Model.MediaPath;
@@ -45,64 +34,29 @@ public partial class DiscussionMessageItemViewModel : ObservableObject
     public User? Author => Model.Author;
     public DiscussionMessage? ReplyTo => Model.ReplyTo;
 
-    // Reactions grouped by emoji
-    public List<ReactionGroup> ReactionGroups =>
-        Model.Reactions
-            .GroupBy(r => r.Emoji)
-            .Select(g => new ReactionGroup
-            {
-                Emoji = g.Key,
-                Count = g.Count(),
-                CurrentUserReacted = g.Any(r => r.Author.UserId == _currentUserId)
-            })
-            .ToList();
+    // ── Delegated to core ─────────────────────────────────────────────────────
 
-    public bool HasReactions => Model.Reactions.Count > 0;
+    public List<ReactionGroup> ReactionGroups =>
+        DiscussionMessageItemViewModelCore.BuildReactionGroups(Model.Reactions, _currentUserId);
+
+    public bool HasReactions =>
+        DiscussionMessageItemViewModelCore.HasReactions(Model.Reactions);
 
     public string? CurrentUserEmoji =>
-        Model.Reactions
-            .FirstOrDefault(r => r.Author.UserId == _currentUserId)?
-            .Emoji;
+        DiscussionMessageItemViewModelCore.CurrentUserEmoji(Model.Reactions, _currentUserId);
 
-    /// <summary>
-    /// Mute button visible only when: current user is admin AND message is from a different user.
-    /// </summary>
     public bool ShowMuteButton =>
-        _isCurrentUserAdmin && Model.Author?.UserId != _currentUserId;
+        DiscussionMessageItemViewModelCore.ShowMuteButton(
+            _isCurrentUserAdmin, Model.Author?.UserId, _currentUserId);
 
-    /// <summary>
-    /// Parsed message segments for rendering @mentions highlighted.
-    /// </summary>
-    public List<MessageSegment> MessageSegments => ParseMessageIntoSegments();
+    public List<MessageSegment> MessageSegments =>
+        DiscussionMessageItemViewModelCore.ParseMessageIntoSegments(Message);
 
-    public bool HasMessageText => !string.IsNullOrWhiteSpace(Message);
+    public bool HasMessageText =>
+        DiscussionMessageItemViewModelCore.HasMessageText(Message);
 
-    // UI-only state
+    // ── UI-only state ─────────────────────────────────────────────────────────
+
     [ObservableProperty]
     private bool _isOriginalDeleted;
-
-    private List<MessageSegment> ParseMessageIntoSegments()
-    {
-        var segments = new List<MessageSegment>();
-
-        if (string.IsNullOrWhiteSpace(Message))
-            return segments;
-
-        // Match @Name or @First Last
-        var pattern = @"(@\w+(?:\s+\w+)?)";
-        var parts = Regex.Split(Message, pattern);
-
-        foreach (var part in parts)
-        {
-            if (string.IsNullOrEmpty(part)) continue;
-
-            segments.Add(new MessageSegment
-            {
-                Text = part,
-                IsMention = part.StartsWith("@")
-            });
-        }
-
-        return segments;
-    }
 }
