@@ -54,6 +54,10 @@ public class EventStatisticsService : IEventStatisticsService
     public async Task<EngagementBreakdown> GetEngagementBreakdownAsync(int eventId)
     {
         var result = await this.repository.GetEngagementBreakdownAsync(eventId);
+        if (result == null)
+        {
+            return null;
+        }
 
         if (result.TotalQuestSubmissions > 0)
         {
