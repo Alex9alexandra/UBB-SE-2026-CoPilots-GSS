@@ -13,8 +13,8 @@ namespace Events_GSS.Data.Repositories
         Task DeleteAsync(int memoryId);
         Task AddLikeAsync(int memoryId, int userId);
         Task RemoveLikeAsync(int memoryId, int userId);
-        Task<int> GetLikesCountAsync(int memoryId);
-        Task<bool> HasLikedAsync(int memoryId, int userId);
+        Task<List<int>> GetLikesAsync(int memoryId);
         Task<Memory?> GetByIdAsync(int memoryId);
+       
     }
 }

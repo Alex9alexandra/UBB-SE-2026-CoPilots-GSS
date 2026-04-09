@@ -15,59 +15,61 @@ namespace Events_GSS.Data.Services
 {
     public class MemoryService : IMemoryService
     {
-        private readonly IMemoryRepository _memoryRepo;
+        private readonly IMemoryRepository _memoryRepository;
         private readonly IAttendedEventRepository _attendedEventRepo;
         private readonly IReputationService _reputationService;
+        private const int MinimumReputationRequired = -300;
 
-        public MemoryService(IMemoryRepository memoryRepo, IAttendedEventRepository attEveRepo, IReputationService reputationService)
+        public MemoryService(IMemoryRepository memoryRepository, IAttendedEventRepository attendedEventRepository, IReputationService reputationService)
         {
-            _memoryRepo = memoryRepo;
-            _attendedEventRepo = attEveRepo;
+            _memoryRepository = memoryRepository;
+            _attendedEventRepo = attendedEventRepository;
             _reputationService = reputationService;
         }
 
-        public async Task<List<Memory>> GetByEventAsync(Event forEvent, User currentUser)
+        public async Task<List<Memory>> GetByEventAsync(Event currentEvent, User currentUser)
         {
-            var memories = await _memoryRepo.GetByEventAsync(forEvent.EventId);
+            var memories = await _memoryRepository.GetByEventAsync(currentEvent.EventId);
 
             foreach (var memory in memories)
             {
-                memory.LikesCount = await _memoryRepo.GetLikesCountAsync(memory.MemoryId);
-                memory.IsLikedByCurrentUser = await _memoryRepo.HasLikedAsync(memory.MemoryId, currentUser.UserId);
+                var likes = await this._memoryRepository.GetLikesAsync(memory.MemoryId);
+                memory.LikesCount = likes.Count; // Logic moved to C#
+                memory.IsLikedByCurrentUser = likes.Contains(currentUser.UserId); // Logic moved to C#
             }
 
             return memories;
         }
 
-        public async Task<List<string>> GetOnlyPhotosAsync(Event forEvent)
+        public async Task<List<string>> GetOnlyPhotosAsync(Event currentEvent)
         {
-            var memories = await _memoryRepo.GetByEventAsync(forEvent.EventId);
+            var memories = await _memoryRepository.GetByEventAsync(currentEvent.EventId);
             return memories
-                .Where(m => m.PhotoPath != null)
-                .Select(m => m.PhotoPath!)
+                .Where(memory => memory.PhotoPath != null)
+                .Select(memory => memory.PhotoPath!)
                 .ToList();
         }
 
-        public async Task<List<Memory>> FilterByMyMemoriesAsync(Event forEvent, User currentUser)
+        public async Task<List<Memory>> FilterByMyMemoriesAsync(Event currentEvent, User currentUser)
         {
-            var memories = await GetByEventAsync(forEvent, currentUser);
-            return memories.Where(m => m.Author.UserId == currentUser.UserId).ToList();
+            var memories = await GetByEventAsync(currentEvent, currentUser);
+            return memories.Where(memory => memory.Author.UserId == currentUser.UserId).ToList();
         }
 
-        public async Task<List<Memory>> OrderByDateAsync(Event forEvent, User currentUser, bool ascending)
+        public async Task<List<Memory>> OrderByDateAsync(Event currentEvent, User currentUser, bool ascending)
         {
-            var memories = await GetByEventAsync(forEvent, currentUser);
+            var memories = await GetByEventAsync(currentEvent, currentUser);
             return ascending
-                ? memories.OrderBy(m => m.CreatedAt).ToList()
-                : memories.OrderByDescending(m => m.CreatedAt).ToList();
+                ? memories.OrderBy(memory => memory.CreatedAt).ToList()
+                : memories.OrderByDescending(memory => memory.CreatedAt).ToList();
         }
 
-        public async Task AddAsync(Event forEvent, User author, string? photoPath, string? text)
+        public async Task AddAsync(Event currentEvent, User author, string? photoPath, string? text)
         {
 if (!await _reputationService.CanPostMemoriesAsync(author.UserId))
-    throw new InvalidOperationException("Your reputation is too low to post memories (below -300 RP).");
+    throw new InvalidOperationException($"Your reputation is too low to post memories (below {MinimumReputationRequired} RP).");
 
-var attendance = await _attendedEventRepo.GetAsync(forEvent.EventId, author.UserId);
+var attendance = await _attendedEventRepo.GetAsync(currentEvent.EventId, author.UserId);
 if (attendance == null)
     throw new InvalidOperationException("You must first enroll to this event!.");
 
@@ -83,11 +85,11 @@ if (attendance == null)
                 PhotoPath = hasPhoto ? photoPath : null,
                 Text = hasText ? text : null,
                 CreatedAt = DateTime.UtcNow,
-                Event = forEvent,
+                Event = currentEvent,
                 Author = author
             };
 
-            await _memoryRepo.AddAsync(memory);
+            await _memoryRepository.AddAsync(memory);
 
             var action = hasPhoto
                 ? ReputationAction.MemoryAddedWithPhoto
@@ -98,7 +100,7 @@ if (attendance == null)
 
         public async Task DeleteAsync(Memory memory, User requestingUser)
         {
-            var fullMemory = await _memoryRepo.GetByIdAsync(memory.MemoryId);
+            var fullMemory = await _memoryRepository.GetByIdAsync(memory.MemoryId);
 
             if (fullMemory == null)
                 throw new Exception("Memory not found.");
@@ -109,29 +111,40 @@ if (attendance == null)
             if (!isAdmin && !isOwner)
                 throw new UnauthorizedAccessException("You can only delete your own memories.");
 
-            await _memoryRepo.DeleteAsync(memory.MemoryId);
+            await _memoryRepository.DeleteAsync(memory.MemoryId);
         }
         public async Task<int> GetLikesCountAsync(int memoryId)
         {
-            return await _memoryRepo.GetLikesCountAsync(memoryId);
+            
+            var likes = await this._memoryRepository.GetLikesAsync(memoryId);
+
+            
+            return likes.Count;
         }
 
 
         public async Task ToggleLikeAsync(Memory memory, User currentUser)
         {
-            var fullMemory = await _memoryRepo.GetByIdAsync(memory.MemoryId);
-
+            
+            var fullMemory = await _memoryRepository.GetByIdAsync(memory.MemoryId);
             if (fullMemory == null)
                 throw new Exception("Memory not found.");
 
             if (fullMemory.Author.UserId == currentUser.UserId)
                 throw new InvalidOperationException("You cannot like your own memory.");
 
-            bool alreadyLiked = await _memoryRepo.HasLikedAsync(memory.MemoryId, currentUser.UserId);
+            
+            var likes = await _memoryRepository.GetLikesAsync(memory.MemoryId);
+            bool alreadyLiked = likes.Contains(currentUser.UserId);
+
             if (alreadyLiked)
-                await _memoryRepo.RemoveLikeAsync(memory.MemoryId, currentUser.UserId);
+            {
+                await _memoryRepository.RemoveLikeAsync(memory.MemoryId, currentUser.UserId);
+            }
             else
-                await _memoryRepo.AddLikeAsync(memory.MemoryId, currentUser.UserId);
+            {
+                await _memoryRepository.AddLikeAsync(memory.MemoryId, currentUser.UserId);
+            }
         }
         public bool IsOwnMemory(Memory memory, User currentUser)
         {

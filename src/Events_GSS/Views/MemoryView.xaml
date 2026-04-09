@@ -3,7 +3,8 @@
     x:Class="Events_GSS.Views.MemoryView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:viewmodels="using:Events_GSS.ViewModels">
+    xmlns:viewmodels="using:Events_GSS.ViewModels"
+    xmlns:datavm="using:Events_GSS.Data.ViewModels">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -79,7 +80,7 @@
 
                     <ItemsControl ItemsSource="{x:Bind ViewModel.Memories, Mode=OneWay}">
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="viewmodels:MemoryItemViewModel">
+                            <DataTemplate x:DataType="datavm:MemoryItemViewModel">
                                 <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                         BorderThickness="1"
                                         CornerRadius="8"
