@@ -1,44 +1,36 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿// <copyright file="Announcement.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Events_GSS.Data.Models
 {
-    public class Announcement
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+
+    /// <summary>
+    /// Represents an announcement within an event.
+    /// </summary>
+    public class Announcement(int id, string message, DateTime date)
     {
-        //private int _id;
-        //private string _message;
-        //private DateTime _date;
-        //private bool _isPinned;
-        //private bool _isEdited; no need for these fields as they are already implemented as properties with getters and setters
-        //private Event _event;
-        //private User _author;
+        public int Id { get; set; } = id;
 
-        public Announcement( int id, string message, DateTime date )
-        {
-            Id = id;
-            Message = message;
-            Date = date;
-            Reactions = new List<AnnouncementReaction>();
+        public string Message { get; set; } = message;
 
-        }
-
-        public int Id { get; set; }
-        public string Message { get; set; } 
-        public DateTime Date { get; set; }
+        public DateTime Date { get; set; } = date;
 
         public bool IsPinned { get; set; }
 
-        public bool IsEdited { get; set; } 
+        public bool IsEdited { get; set; }
 
         public bool IsRead { get; set; }
 
-        public bool IsExpanded { get; set; } 
+        public bool IsExpanded { get; set; }
 
         public Event Event { get; set; }
 
         public User? Author { get; set; }
-        public List<AnnouncementReaction> Reactions { get; set; }
 
+        public List<AnnouncementReaction> Reactions { get; set; } = new List<AnnouncementReaction>();
     }
 }

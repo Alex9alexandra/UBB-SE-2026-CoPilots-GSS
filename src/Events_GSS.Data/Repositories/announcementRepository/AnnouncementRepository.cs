@@ -1,317 +1,303 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
+﻿// <copyright file="AnnouncementRepository.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Events_GSS.Data.Repositories.announcementRepository;
+
+using System.Data;
 
 using Events_GSS.Data.Database;
 using Events_GSS.Data.Models;
 
 using Microsoft.Data.SqlClient;
 
-using static System.Runtime.InteropServices.JavaScript.JSType;
-namespace Events_GSS.Data.Repositories.announcementRepository;
-
+/// <summary>
+/// A repository to hold all announcements.
+/// </summary>
 public class AnnouncementRepository : IAnnouncementRepository
 {
     private readonly SqlConnectionFactory _connectionFactory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AnnouncementRepository"/> class.
+    /// </summary>
+    /// <param name="connectionFactory"> Initializes connection with database. </param>
     public AnnouncementRepository(SqlConnectionFactory connectionFactory)
     {
-        _connectionFactory = connectionFactory;
+        this._connectionFactory = connectionFactory;
     }
-    
-    public async Task<int> AddAsync(Announcement announcement, int eventId, int userId)
+
+    /// <inheritdoc/>
+    public async Task<int> AddAnnouncementAsync(Announcement announcement, int eventId, int userId)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
+        using (SqlConnection connection = this._connectionFactory.CreateConnection())
         {
                 await connection.OpenAsync();
+
                 string query = @"
                     INSERT INTO Announcements ( EventId, UserId, Message, Date, IsPinned, IsEdited)
                     OUTPUT INSERTED.AnnId
                     VALUES (@EventId, @UserId, @Message, @Date, 0, 0)";
+
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
-                    command.Parameters.AddWithValue("@Message", announcement.Message);
-                    command.Parameters.AddWithValue("@Date", announcement.Date);
-                    command.Parameters.AddWithValue("@EventId", eventId);
-                    command.Parameters.AddWithValue("@UserId", userId);
+                    command.Parameters.Add("@Message", SqlDbType.NVarChar, 500).Value = announcement.Message;
+                    command.Parameters.Add("@Date", SqlDbType.DateTime2).Value = announcement.Date;
+                    command.Parameters.Add("@EventId", SqlDbType.Int).Value = eventId;
+                    command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
                     var result = await command.ExecuteScalarAsync();
                     return Convert.ToInt32(result);
                 }
         }
     }
 
-    public async Task AddReactionAsync(int announcementId, int userId, string emoji)
+    /// <inheritdoc/>
+    public async Task InsertReactionAsync(int announcementId, int userId, string emoji)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
-        {
-                await connection.OpenAsync();
-                string query = @"
-                    IF EXISTS (SELECT 1 FROM AnnouncementReactions WHERE AnnouncementId = @AnnouncementId AND UserId = @UserId)
-                BEGIN
-                    UPDATE AnnouncementReactions
-                    SET Emoji = @Emoji
-                    WHERE AnnouncementId = @AnnouncementId AND UserId = @UserId
-                END
-                ELSE
-                BEGIN
-                    INSERT INTO AnnouncementReactions (AnnouncementId, UserId, Emoji)
-                    VALUES (@AnnouncementId, @UserId, @Emoji)
-                END";
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@AnnouncementId", announcementId);
-                    command.Parameters.AddWithValue("@UserId", userId);
-                    command.Parameters.AddWithValue("@Emoji", emoji);
-                    await command.ExecuteNonQueryAsync();
-                }
-        }
+        using var connection = this._connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+
+        const string query = @"
+        INSERT INTO AnnouncementReactions (AnnouncementId, UserId, Emoji)
+        VALUES (@AnnouncementId, @UserId, @Emoji)";
+
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@AnnouncementId", SqlDbType.Int).Value = announcementId;
+        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+        command.Parameters.Add("@Emoji", SqlDbType.NVarChar, 10).Value = emoji;
+
+        await command.ExecuteNonQueryAsync();
     }
 
-    public async Task DeleteAsync(int announcementId)
+    public async Task UpdateReactionAsync(int announcementId, int userId, string emoji)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
+        using var connection = this._connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+
+        const string query = @"
+        UPDATE AnnouncementReactions
+        SET Emoji = @Emoji
+        WHERE AnnouncementId = @AnnouncementId AND UserId = @UserId";
+
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@AnnouncementId", SqlDbType.Int).Value = announcementId;
+        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+        command.Parameters.Add("@Emoji", SqlDbType.NVarChar, 10).Value = emoji;
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    /// <inheritdoc/>
+    public async Task DeleteAnnouncementAsync(int announcementId)
+    {
+        using (SqlConnection connection = this._connectionFactory.CreateConnection())
         {
                 await connection.OpenAsync();
+
                 string query = @"
                         DELETE FROM Announcements 
                         WHERE AnnId = @AnnId";
+
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
-                    command.Parameters.AddWithValue("@AnnId", announcementId);
-                    await command.ExecuteNonQueryAsync();
+                command.Parameters.Add("@AnnId", SqlDbType.Int).Value = announcementId;
+                await command.ExecuteNonQueryAsync();
                 }
         }
     }
 
-    public async Task<List<Announcement>> GetByEventAsync(int eventId, int userId)
+    // <summary>
+    // It converts a row from the database into a C# object (an Announcement)
+    // </summary>
+    private Announcement MapAnnouncement(SqlDataReader reader)
     {
-        var announcements = new List<Announcement>();
-
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
+        return new Announcement(
+            id: reader.GetInt32(reader.GetOrdinal("AnnId")),
+            message: reader.GetString(reader.GetOrdinal("Message")),
+            date: reader.GetDateTime(reader.GetOrdinal("Date")))
         {
-                await connection.OpenAsync();
-                string query = @"
-                    SELECT 
-                        a.AnnId, a.Message, a.Date, a.IsPinned, a.IsEdited,
-                        u.Id as AuthorId, u.Name AS AuthorName,   
-                        CAST(CASE WHEN r.UserId IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS IsRead
-                    FROM Announcements a
-                    INNER JOIN Users u ON a.UserId = u.Id
-                    LEFT JOIN AnnouncementReadReceipts r ON a.AnnId = r.AnnouncementId AND r.UserId = @UserId
-                    WHERE a.EventId = @EventId
-                    ORDER BY a.IsPinned DESC, a.Date DESC";
-                using (var cmd = new SqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@EventId", eventId);
-                    cmd.Parameters.AddWithValue("@UserId", userId);
+            IsPinned = reader.GetBoolean(reader.GetOrdinal("IsPinned")),
+            IsEdited = reader.GetBoolean(reader.GetOrdinal("IsEdited")),
+            IsRead = reader.GetBoolean(reader.GetOrdinal("IsRead")),
+            Author = new User
+            {
+                UserId = reader.GetInt32(reader.GetOrdinal("AuthorId")),
+                Name = reader.GetString(reader.GetOrdinal("AuthorName")),
+            },
+        };
+    }
 
-                    using var reader = await cmd.ExecuteReaderAsync();
-                    while (await reader.ReadAsync())
-                    {
-                        announcements.Add(new Announcement(
-                            id: reader.GetInt32(reader.GetOrdinal("AnnId")),
-                            message: reader.GetString(reader.GetOrdinal("Message")),
-                            date: reader.GetDateTime(reader.GetOrdinal("Date")))
-                        {
-                            IsPinned = reader.GetBoolean(reader.GetOrdinal("IsPinned")),
-                            IsEdited = reader.GetBoolean(reader.GetOrdinal("IsEdited")),
-                            IsRead = reader.GetBoolean(reader.GetOrdinal("IsRead")),
-                            Author = new User
-                            {
-                                UserId = reader.GetInt32(reader.GetOrdinal("AuthorId")),
-                                Name = reader.GetString(reader.GetOrdinal("AuthorName"))
-                            }
-                        });
-                    }
-                }
-                if (announcements.Count == 0) return announcements;
+    /// <inheritdoc/>
+    public async Task<List<Announcement>> GetAnnouncementsByEventAsync(int eventId, int userId)
+    {
+        using var connection = this._connectionFactory.CreateConnection();
+        await connection.OpenAsync();
 
-                var announcementIds = announcements.Select(a => a.Id).ToList();
-                var idParams = string.Join(",", announcementIds.Select((_, i) => $"@aid{i}"));
-
-                var rxnQuery = $@"
-                    SELECT ar.Id, ar.AnnouncementId, ar.Emoji, ar.UserId, u.Name AS UserName
-                    FROM AnnouncementReactions ar
-                    INNER JOIN Users u ON ar.UserId = u.Id
-                    WHERE ar.AnnouncementId IN ({idParams})";
-
-                var allReactions = new List<(int AnnId, AnnouncementReaction Reaction)>();
-
-                using (var cmd = new SqlCommand(rxnQuery, connection))
-                {
-                    for (int i = 0; i < announcementIds.Count; i++)
-                        cmd.Parameters.AddWithValue($"@aid{i}", announcementIds[i]);
-
-                    using var reader = await cmd.ExecuteReaderAsync();
-                    while (await reader.ReadAsync())
-                    {
-                        var annId = reader.GetInt32(reader.GetOrdinal("AnnouncementId"));
-                        allReactions.Add((annId, new AnnouncementReaction
-                        {
-                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                            Emoji = reader.GetString(reader.GetOrdinal("Emoji")),
-                            AnnouncementId = annId,
-                            Author = new User
-                            {
-                                UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
-                                Name = reader.GetString(reader.GetOrdinal("UserName"))
-                            }
-                        }));
-                    }
-                }
-
-                var reactionsByAnn = allReactions
-                    .GroupBy(r => r.AnnId)
-                    .ToDictionary(g => g.Key, g => g.Select(x => x.Reaction).ToList());
-
-                foreach (var ann in announcements)
-                {
-                    if (reactionsByAnn.TryGetValue(ann.Id, out var reactions))
-                        ann.Reactions = reactions;
-                }
-
-                return announcements;
-        }
+        return await this.GetAnnouncementsAsync(connection, eventId, userId);
     }
 
     public async Task<List<AnnouncementReadReceipt>> GetReadReceiptsAsync(int announcementId)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
+        using var connection = this._connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+
+        const string query = @"
+        SELECT r.AnnouncementId, r.ReadAt,
+               u.Id AS UserId, u.Name AS UserName
+        FROM AnnouncementReadReceipts r
+        INNER JOIN Users u ON r.UserId = u.Id
+        WHERE r.AnnouncementId = @AnnId
+        ORDER BY r.ReadAt ASC";
+
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@AnnId", SqlDbType.Int).Value = announcementId;
+
+        using var reader = await command.ExecuteReaderAsync();
+
+        var receipts = new List<AnnouncementReadReceipt>();
+
+        while (await reader.ReadAsync())
         {
-                await connection.OpenAsync();
-
-                string query = @"
-                    SELECT r.AnnouncementId, r.ReadAt,
-                    u.Id AS UserId, u.Name AS UserName
-                    FROM AnnouncementReadReceipts r
-                    INNER JOIN Users u ON r.UserId = u.Id
-                    WHERE r.AnnouncementId = @AnnId
-                    ORDER BY r.ReadAt ASC";
-
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@AnnId", announcementId);
-                    using (SqlDataReader reader = await command.ExecuteReaderAsync())
-                    {
-                        var receipts = new List<AnnouncementReadReceipt>();
-                        while (await reader.ReadAsync())
-                        {
-                            receipts.Add(new AnnouncementReadReceipt
-                            {
-                                AnnouncementId = reader.GetInt32(reader.GetOrdinal("AnnouncementId")),
-                                User = new User
-                                {
-                                    UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
-                                    Name = reader.GetString(reader.GetOrdinal("UserName"))
-                                },
-                                ReadAt = reader.GetDateTime(reader.GetOrdinal("ReadAt"))
-                            });
-                    }
-                        return receipts;
-                    }
-                }
+            receipts.Add(this.MapReadReceipt(reader));
         }
+
+        return receipts;
     }
 
-    public async Task MarkAsReadAsync(int announcementId, int userId)
+    // <summary>
+    // It converts a row from the database into a C# object (an AnnouncementRadReceipt)
+    // </summary>
+    private AnnouncementReadReceipt MapReadReceipt(SqlDataReader reader)
     {
-        using( SqlConnection connection = _connectionFactory.CreateConnection())
+        return new AnnouncementReadReceipt
         {
-                await connection.OpenAsync();
-                string query = @"
-                    IF NOT EXISTS (SELECT 1 FROM AnnouncementReadReceipts WHERE AnnouncementId = @AnnouncementId AND UserId = @UserId)
-                    BEGIN
-                        INSERT INTO AnnouncementReadReceipts (AnnouncementId, UserId, ReadAt)
-                        VALUES (@AnnouncementId, @UserId, GETUTCDATE())
-                    END";
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@AnnouncementId", announcementId);
-                    command.Parameters.AddWithValue("@UserId", userId);
-                    await command.ExecuteNonQueryAsync();
-                }
-        }
+            AnnouncementId = reader.GetInt32(reader.GetOrdinal("AnnouncementId")),
+            User = new User
+            {
+                UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
+                Name = reader.GetString(reader.GetOrdinal("UserName")),
+            },
+            ReadAt = reader.GetDateTime(reader.GetOrdinal("ReadAt")),
+        };
     }
 
-    public async Task PinAsync(int announcementId, int eventId)
+    public async Task InsertReadReceiptAsync(int announcementId, int userId)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
-        {
-                await connection.OpenAsync();
-                string query = @"
-                    UPDATE Announcements
-                    SET IsPinned = 1
-                    WHERE AnnId = @AnnId AND EventId = @EventId";
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@AnnId", announcementId);
-                    command.Parameters.AddWithValue("@EventId", eventId);
-                    command.ExecuteNonQuery();
-                }
-        }
+        using var connection = this._connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+
+        const string query = @"
+        INSERT INTO AnnouncementReadReceipts (AnnouncementId, UserId, ReadAt)
+        VALUES (@AnnouncementId, @UserId, GETUTCDATE())";
+
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@AnnouncementId", SqlDbType.Int).Value = announcementId;
+        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+
+        await command.ExecuteNonQueryAsync();
     }
 
+    /// <inheritdoc/>
+    public async Task<bool> HasUserReadAsync(int announcementId, int userId)
+    {
+        using var connection = this._connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+
+        const string query = @"
+        SELECT 1
+        FROM AnnouncementReadReceipts
+        WHERE AnnouncementId = @AnnouncementId
+          AND UserId = @UserId";
+
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@AnnouncementId", SqlDbType.Int).Value = announcementId;
+        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+
+        var result = await command.ExecuteScalarAsync();
+
+        return result != null;
+    }
+
+    /// <inheritdoc/>
+    public async Task PinAsync(int announcementId)
+    {
+        using var connection = this._connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+
+        const string query = @"
+        UPDATE Announcements
+        SET IsPinned = 1
+        WHERE AnnId = @AnnId";
+
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@AnnId", SqlDbType.Int).Value = announcementId;
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    /// <inheritdoc/>
     public async Task RemoveReactionAsync(int announcementId, int userId)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
+        using (SqlConnection connection = this._connectionFactory.CreateConnection())
         {
-                await connection.OpenAsync();
-                string query = @"
-                    DELETE FROM AnnouncementReactions 
-                    WHERE AnnouncementId = @AnnouncementId AND UserId = @UserId";
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@AnnouncementId", announcementId);
-                    command.Parameters.AddWithValue("@UserId", userId);
-                    await command.ExecuteNonQueryAsync();
-                }
+            await connection.OpenAsync();
+            string query = @"
+                DELETE FROM AnnouncementReactions 
+                WHERE AnnouncementId = @AnnouncementId AND UserId = @UserId";
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.Parameters.Add("@AnnouncementId", SqlDbType.Int).Value = announcementId;
+                command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+                await command.ExecuteNonQueryAsync();
+            }
         }
     }
 
-    public async Task UnpinAsync(int eventId)
+    /// <inheritdoc/>
+    public async Task UnpinAnnouncementAsync(int eventId)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
+        using (SqlConnection connection = this._connectionFactory.CreateConnection())
         {
-                await connection.OpenAsync();
+            await connection.OpenAsync();
 
-                string query = @"
-                   UPDATE Announcements
-                    SET IsPinned = 0
-                    WHERE EventId = @EventId AND IsPinned = 1";
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@EventId", eventId);
-                    await command.ExecuteNonQueryAsync();
-                }
+            string query = @"
+                UPDATE Announcements
+                SET IsPinned = 0
+                WHERE EventId = @EventId AND IsPinned = 1";
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.Parameters.Add("@EventId", SqlDbType.Int).Value = eventId;
+                await command.ExecuteNonQueryAsync();
+            }
         }
     }
 
-    public async Task UpdateAsync(int annId, string newMessage)
+    /// <inheritdoc/>
+    public async Task UpdateAnnouncementAsync(int announcementId, string newMessage)
     {
-        using (SqlConnection connection = _connectionFactory.CreateConnection())
+        using (SqlConnection connection = this._connectionFactory.CreateConnection())
         {
-                await connection.OpenAsync();
+            await connection.OpenAsync();
 
-                string query = @"
-                   UPDATE Announcements
-                    SET Message = @Message, IsEdited = 1
-                    WHERE AnnId = @AnnId";
+            string query = @"
+                UPDATE Announcements
+                SET Message = @Message, IsEdited = 1
+                WHERE AnnId = @AnnId";
 
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@Message", newMessage);
-                    command.Parameters.AddWithValue("@AnnId", annId);
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.Parameters.Add("@Message", SqlDbType.NVarChar, 500).Value = newMessage;
+                command.Parameters.Add("@AnnId", SqlDbType.Int).Value = announcementId;
 
-                    await command.ExecuteNonQueryAsync();
-                }
+                await command.ExecuteNonQueryAsync();
+            }
         }
     }
 
-    public async Task<Announcement?> GetByIdAsync(int annId)
+    /// <inheritdoc/>
+    public async Task<Announcement?> GetAnnouncementByIdAsync(int announcementId)
     {
-        using var connection = _connectionFactory.CreateConnection();
+        using var connection = this._connectionFactory.CreateConnection();
         await connection.OpenAsync();
 
         const string query = @"
@@ -320,11 +306,16 @@ public class AnnouncementRepository : IAnnouncementRepository
             FROM Announcements a
             INNER JOIN Users u ON a.UserId = u.Id
             WHERE a.AnnId = @AnnId";
+
         using var command = new SqlCommand(query, connection);
-        command.Parameters.AddWithValue("AnnId", annId);
+        command.Parameters.Add("@AnnId", SqlDbType.Int).Value = announcementId;
 
         using var reader = await command.ExecuteReaderAsync();
-        if (!await reader.ReadAsync()) return null;
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
+
         return new Announcement(
             id: reader.GetInt32(reader.GetOrdinal("AnnId")),
             message: reader.GetString(reader.GetOrdinal("Message")),
@@ -335,32 +326,34 @@ public class AnnouncementRepository : IAnnouncementRepository
                 Author = new User
                 {
                     UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
-                    Name = reader.GetString(reader.GetOrdinal("AuthorName"))
-                }
+                    Name = reader.GetString(reader.GetOrdinal("AuthorName")),
+                },
             };
     }
 
+    /// <inheritdoc/>
     public async Task<int> GetTotalParticipantsAsync(int eventId)
     {
-        using var conn = _connectionFactory.CreateConnection();
-        await conn.OpenAsync();
+        using var connection = this._connectionFactory.CreateConnection();
+        await connection.OpenAsync();
 
         const string query = @"
             SELECT COUNT(*) FROM AttendedEvents WHERE EventId = @EventId";
 
-        using var cmd = new SqlCommand(query, conn);
-        cmd.Parameters.AddWithValue("@EventId", eventId);
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@EventId", SqlDbType.Int).Value = eventId;
 
-        var result = await cmd.ExecuteScalarAsync();
+        var result = await command.ExecuteScalarAsync();
         return Convert.ToInt32(result);
     }
 
+    /// <inheritdoc/>
     public async Task<Dictionary<int, int>> GetUnreadCountsForUserAsync(int userId)
     {
         var counts = new Dictionary<int, int>();
 
-        using var conn = _connectionFactory.CreateConnection();
-        await conn.OpenAsync();
+        using var connection = this._connectionFactory.CreateConnection();
+        await connection.OpenAsync();
 
         // For every event the user attends, count announcements they haven't read
         const string query = @"
@@ -371,24 +364,27 @@ public class AnnouncementRepository : IAnnouncementRepository
             WHERE r.Id IS NULL
             GROUP BY a.EventId";
 
-        using var cmd = new SqlCommand(query, conn);
-        cmd.Parameters.AddWithValue("@UserId", userId);
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
 
-        using var reader = await cmd.ExecuteReaderAsync();
+        using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            counts[reader.GetInt32(0)] = reader.GetInt32(1);
+            var eventId = reader.GetInt32(0);
+            var unreadCount = reader.GetInt32(1);
+            counts[eventId] = unreadCount;
         }
 
         return counts;
     }
 
+    /// <inheritdoc/>
     public async Task<List<User>> GetAllParticipantsAsync(int eventId)
     {
         var users = new List<User>();
 
-        using var conn = _connectionFactory.CreateConnection();
-        await conn.OpenAsync();
+        using var connection = this._connectionFactory.CreateConnection();
+        await connection.OpenAsync();
 
         const string query = @"
             SELECT u.Id, u.Name
@@ -397,20 +393,136 @@ public class AnnouncementRepository : IAnnouncementRepository
             WHERE ae.EventId = @EventId
             ORDER BY u.Name";
 
-        using var cmd = new SqlCommand(query, conn);
-        cmd.Parameters.AddWithValue("@EventId", eventId);
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@EventId", SqlDbType.Int).Value = eventId;
 
-        using var reader = await cmd.ExecuteReaderAsync();
+        using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             users.Add(new User
             {
                 UserId = reader.GetInt32(reader.GetOrdinal("Id")),
-                Name = reader.GetString(reader.GetOrdinal("Name"))
+                Name = reader.GetString(reader.GetOrdinal("Name")),
             });
         }
 
         return users;
     }
 
+    /// <inheritdoc/>
+    public async Task<string?> GetUserReactionAsync(int announcementId, int userId)
+    {
+        using var connection = this._connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+
+        const string query = @"
+        SELECT Emoji 
+        FROM AnnouncementReactions 
+        WHERE AnnouncementId = @AnnouncementId 
+          AND UserId = @UserId";
+
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@AnnouncementId", SqlDbType.Int).Value = announcementId;
+        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+
+        var result = await command.ExecuteScalarAsync();
+
+        return result as string;
+    }
+
+    private async Task<List<Announcement>> GetAnnouncementsAsync(
+    SqlConnection connection,
+    int eventId,
+    int userId)
+    {
+        var result = new List<Announcement>();
+
+        // gets all announcements and sorts them based on pinned ones
+        // returns 0 if there are no announcements
+        const string query = @"
+                            SELECT 
+                                a.AnnId,
+                                a.Message,
+                                a.Date,
+                                a.IsPinned,
+                                a.IsEdited,
+                                u.Id AS AuthorId,
+                                u.Name AS AuthorName,
+                                CAST(CASE 
+                                    WHEN r.UserId IS NOT NULL THEN 1 
+                                    ELSE 0 
+                                END AS BIT) AS IsRead
+                            FROM Announcements a
+                            INNER JOIN Users u ON a.UserId = u.Id
+                            LEFT JOIN AnnouncementReadReceipts r 
+                                ON a.AnnId = r.AnnouncementId 
+                                AND r.UserId = @UserId
+                            WHERE a.EventId = @EventId
+                            ORDER BY a.IsPinned DESC, a.Date DESC";
+
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.Add("@EventId", SqlDbType.Int).Value = eventId;
+        command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+
+        using var reader = await command.ExecuteReaderAsync();
+
+        while (await reader.ReadAsync())
+        {
+            result.Add(this.MapAnnouncement(reader));
+        }
+
+        return result;
+    }
+
+    public async Task<List<(int AnnouncementId, AnnouncementReaction Reaction)>> GetReactionsAsync(
+    List<int> announcementIds)
+    {
+        using var connection = this._connectionFactory.CreateConnection();
+        await connection.OpenAsync();
+
+        var result = new List<(int, AnnouncementReaction)>();
+
+        if (announcementIds == null || announcementIds.Count == 0)
+        {
+            return result;
+        }
+
+        var idParameters = string.Join(",", announcementIds.Select((_, i) => $"@id{i}"));
+
+        var query = $@"
+        SELECT ar.Id, ar.AnnouncementId, ar.Emoji, ar.UserId, u.Name AS UserName
+        FROM AnnouncementReactions ar
+        INNER JOIN Users u ON ar.UserId = u.Id
+        WHERE ar.AnnouncementId IN ({idParameters})";
+
+        using var command = new SqlCommand(query, connection);
+
+        for (int i = 0; i < announcementIds.Count; i++)
+        {
+            command.Parameters.AddWithValue($"@id{i}", announcementIds[i]);
+        }
+
+        using var reader = await command.ExecuteReaderAsync();
+
+        while (await reader.ReadAsync())
+        {
+            var announcementId = reader.GetInt32(reader.GetOrdinal("AnnouncementId"));
+
+            var reaction = new AnnouncementReaction
+            {
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                Emoji = reader.GetString(reader.GetOrdinal("Emoji")),
+                AnnouncementId = announcementId,
+                Author = new User
+                {
+                    UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
+                    Name = reader.GetString(reader.GetOrdinal("UserName")),
+                },
+            };
+
+            result.Add((announcementId, reaction));
+        }
+
+        return result;
+    }
 }
