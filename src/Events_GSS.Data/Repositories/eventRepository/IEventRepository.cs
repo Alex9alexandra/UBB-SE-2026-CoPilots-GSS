@@ -5,7 +5,7 @@
 namespace Events_GSS.Data.Repositories.eventRepository;
 
 using System;
-
+using Events_GSS.Data.Models;
 
 /// <summary>
 /// Repository interface for managing event data operations.

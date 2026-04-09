@@ -9,9 +9,6 @@
 
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <CodeAnalysisRuleSet>SE.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
 
 
   <ItemGroup>

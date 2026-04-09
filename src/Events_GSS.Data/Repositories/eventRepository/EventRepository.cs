@@ -4,13 +4,10 @@
 
 namespace Events_GSS.Data.Repositories.eventRepository;
 
-using System;
 using System.Data;
 using Events_GSS.Data.Models;
 using Microsoft.Data.SqlClient;
 using Events_GSS.Data.Database;
-
-namespace Events_GSS.Data.Repositories.eventRepository;
 
 /// <summary>
 /// Repository for managing event data operations.
