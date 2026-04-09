@@ -131,8 +131,7 @@ public class DiscussionServiceTests
         // Act
         var result = await service.GetMessagesAsync(eventId, visitorId);
 
-        // Assert
-        // visitorId is not the author (222) and not the admin (999)
+
         Assert.False(result[0].CanDelete);
     }
 
@@ -214,7 +213,7 @@ public class DiscussionServiceTests
 
         await service.CreateMessageAsync("hello", null, eventId, userId, null);
 
-        // Should have called UnmuteAsync to clean up the expired mute
+
         mockRepo.Verify(r => r.UnmuteAsync(eventId, userId), Times.Once);
         mockRepo.Verify(r => r.AddAsync(It.IsAny<DiscussionMessage>()), Times.Once);
     }
@@ -226,8 +225,7 @@ public class DiscussionServiceTests
         SetupReputation(adminId);
         SetupEvent(eventId, MakeEvent(eventId, adminId: adminId));
 
-        // Even if there were a mute, admin should not hit it
-        // (GetMuteAsync should never be called for admin)
+
         SetupNoSlowMode(eventId, adminId);
         mockRepo.Setup(r => r.AddAsync(It.IsAny<DiscussionMessage>())).ReturnsAsync(0);
         mockRepo.Setup(r => r.GetEventParticipantsAsync(eventId)).ReturnsAsync(new List<User>());
@@ -452,8 +450,6 @@ public class DiscussionServiceTests
         int adminId = 99, eventId = 10, messageId = 42;
         SetupEvent(eventId, MakeEvent(eventId, adminId: adminId));
 
-        // Author is null → isAdminDeletingOther = true, but Author != null check = false
-        // → reputation send is skipped
         var msg = new DiscussionMessage(messageId, "orphan", DateTime.UtcNow) { Author = null };
         mockRepo.Setup(r => r.GetByIdAsync(messageId)).ReturnsAsync(msg);
 
@@ -493,9 +489,7 @@ public class DiscussionServiceTests
         // Assert
         mockRepo.Verify(r => r.DeleteAsync(messageId), Times.Once);
 
-        // Note: Since WeakReferenceMessenger.Default is a static singleton, 
-        // it's hard to "Verify" it directly without a wrapper. 
-        // However, executing this path will mark the code as "Covered" in your reports.
+
     }
 
     [Fact]
