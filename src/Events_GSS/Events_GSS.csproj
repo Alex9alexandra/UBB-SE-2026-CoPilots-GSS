@@ -94,7 +94,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Events_GSS.Data\Events_GSS.Data.csproj" />
-    <ProjectReference Include="..\Events_GSS.Core\Events_GSS.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="appsettings.json">

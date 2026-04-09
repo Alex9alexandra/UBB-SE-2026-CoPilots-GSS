@@ -1,5 +1,7 @@
 ﻿
 
+using System.Reflection;
+
 using CommunityToolkit.Mvvm.Messaging;
 
 using Events_GSS.Data.Messaging;
@@ -344,13 +346,15 @@ public class ReputationServiceTests
             Mock.Of<IEventRepository>(),
             mockAchievementService.Object);
 
+        var method = typeof(ReputationService)
+        .GetMethod("HandleReputationChangeAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+
         // Send a fake action not in the map
         var unknownAction = (ReputationAction)999;
-        WeakReferenceMessenger.Default.Send(new ReputationMessage(1, unknownAction, null));
+        var message = new ReputationMessage(1, unknownAction, null);
 
-        await Task.Delay(50);
+        await (Task)method.Invoke(service, new object[] { message });
 
-        // Should not call SetReputation or achievements
         mockRepo.Verify(r => r.SetReputationAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
         mockAchievementService.Verify(a => a.CheckAndAwardAchievementsAsync(It.IsAny<int>()), Times.Never);
     }

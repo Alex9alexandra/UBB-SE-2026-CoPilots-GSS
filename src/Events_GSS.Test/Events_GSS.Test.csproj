@@ -33,7 +33,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Events_GSS.Data\Events_GSS.Data.csproj" />
-    <ProjectReference Include="..\Events_GSS.Core\Events_GSS.Core.csproj" />
+    <ProjectReference Include="..\Events_GSS\Events_GSS.csproj" />
   </ItemGroup>
 
   <ItemGroup>
