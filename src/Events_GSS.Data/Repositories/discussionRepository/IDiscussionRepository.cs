@@ -14,26 +14,33 @@ public interface IDiscussionRepository
     Task<List<DiscussionMessage>> GetByEventAsync(int eventId, int currentUserId);
     Task<DiscussionMessage?> GetByIdAsync(int messageId);
     Task<int> AddAsync(DiscussionMessage message);
+    Task DetachRepliesAsync(int messageId);
     Task DeleteAsync(int messageId);
     Task<DateTime?> GetLastUserMessageDateAsync(int eventId, int userId);
 
     // ── Reactions ─────────────────────────────────────────────
     Task AddReactionAsync(int messageId, int userId, string emoji);
     Task RemoveReactionAsync(int messageId, int userId);
+
+    Task UpdateReactionAsync(int messageId, int userId, string emoji);
+    Task<DiscussionReaction?> GetReactionAsync(int messageId, int userId);
     Task<List<DiscussionReaction>> GetReactionsAsync(int messageId);
 
     // ── Mutes ─────────────────────────────────────────────────
     Task<DiscussionMute?> GetMuteAsync(int eventId, int userId);
-    Task MuteAsync(DiscussionMute mute);
     Task UnmuteAsync(int eventId, int userId);
+
+    Task DeleteExistingMuteAsync(int eventId, int userId);
+
+    Task InsertMuteAsync(DiscussionMute mute);
 
     // -─ Slow Mode ───────────────────────────────────────────────-
     Task SetSlowModeAsync(int eventId, int? seconds);
 
     // ── Participants ─────────────────────────────────────────────────────
-    //<summary>
-    //Used for the @mention lookup when posting messages. Returns all users who have participated in the discussion (posted a message or reaction).
-    //</summary>
+    // <summary>
+    // Used for the @mention lookup when posting messages. Returns all users who have participated in the discussion (posted a message or reaction).
+    // </summary>
     Task<List<User>> GetEventParticipantsAsync(int eventId);
 }
 

@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <CodeAnalysisRuleSet>SE.ruleset</CodeAnalysisRuleSet>
+
     <Platforms>AnyCPU;x64</Platforms>
     <ExcludeByFile>**/Models/*.cs</ExcludeByFile>
   </PropertyGroup>

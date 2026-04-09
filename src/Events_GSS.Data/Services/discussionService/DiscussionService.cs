@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using CommunityToolkit.Mvvm.Messaging;
+
 using Events_GSS.Data.Messaging;
 using Events_GSS.Data.Models;
 using Events_GSS.Data.Repositories;
@@ -18,10 +19,10 @@ namespace Events_GSS.Data.Services;
 
 public class DiscussionService : IDiscussionService
 {
-    private readonly IDiscussionRepository _repo;
-    private readonly IEventRepository _eventRepo;
-    private readonly IReputationService _reputationService;
-    private readonly INotificationService _notificationService;
+    private readonly IDiscussionRepository repo;
+    private readonly IEventRepository eventRepo;
+    private readonly IReputationService reputationService;
+    private readonly INotificationService notificationService;
 
     public DiscussionService(
         IDiscussionRepository repo,
@@ -29,24 +30,23 @@ public class DiscussionService : IDiscussionService
         IReputationService reputationService,
         INotificationService notificationService)
     {
-        _repo = repo;
-        _eventRepo = eventRepo;
-        _reputationService = reputationService;
-        _notificationService = notificationService;
+        this.repo = repo;
+        this.eventRepo = eventRepo;
+        this.reputationService = reputationService;
+        this.notificationService = notificationService;
     }
 
     // ── Messages ──────────────────────────────────────────────────────────────
-
     public async Task<List<DiscussionMessage>> GetMessagesAsync(int eventId, int userId)
     {
-        var ev = await GetEventOrThrowAsync(eventId);
+        var currentEvent = await GetEventOrThrowAsync(eventId);
 
-        var messages = await _repo.GetByEventAsync(eventId, userId);
+        var messages = await repo.GetByEventAsync(eventId, userId);
 
-        bool isAdmin = ev.Admin?.UserId == userId;
-        foreach (var m in messages)
+        bool isAdmin = currentEvent.Admin?.UserId == userId;
+        foreach (var message in messages)
         {
-            m.CanDelete = m.Author?.UserId == userId || isAdmin;
+            message.CanDelete = message.Author?.UserId == userId || isAdmin;
         }
 
         return messages;
@@ -60,22 +60,27 @@ public class DiscussionService : IDiscussionService
         int? replyToId)
     {
         if (string.IsNullOrWhiteSpace(text) && string.IsNullOrWhiteSpace(mediaPath))
+        {
             throw new ArgumentException("A message must contain text, a media attachment, or both.");
+        }
 
-        if (!await _reputationService.CanPostMessagesAsync(userId))
+        if (!await reputationService.CanPostMessagesAsync(userId))
+        {
             throw new InvalidOperationException("Your reputation is too low to post messages (below -500 RP).");
-
-        var ev = await GetEventOrThrowAsync(eventId);
-        bool isAdmin = ev.Admin?.UserId == userId;
+        }
+        var currentEvent = await GetEventOrThrowAsync(eventId);
+        bool isAdmin = currentEvent.Admin?.UserId == userId;
 
         // ── Mute check ───────────────────────────────────────
         if (!isAdmin)
         {
-            var mute = await _repo.GetMuteAsync(eventId, userId);
+            var mute = await repo.GetMuteAsync(eventId, userId);
             if (mute is not null)
             {
                 if (mute.IsPermanent)
+                {
                     throw new InvalidOperationException("You are permanently muted in this event.");
+                }
 
                 if (mute.MutedUntil.HasValue && mute.MutedUntil.Value > DateTime.UtcNow)
                 {
@@ -84,18 +89,18 @@ public class DiscussionService : IDiscussionService
                         $"You are muted. Time remaining: {FormatDuration(remaining)}");
                 }
 
-                await _repo.UnmuteAsync(eventId, userId);
+                await repo.UnmuteAsync(eventId, userId);
             }
         }
 
         // ── Slow mode check ──────────────────────────────────
-        if (!isAdmin && ev.SlowModeSeconds.HasValue)
+        if (!isAdmin && currentEvent.SlowModeSeconds.HasValue)
         {
-            var lastDate = await _repo.GetLastUserMessageDateAsync(eventId, userId);
+            var lastDate = await repo.GetLastUserMessageDateAsync(eventId, userId);
             if (lastDate.HasValue)
             {
                 var elapsed = DateTime.UtcNow - lastDate.Value;
-                var required = TimeSpan.FromSeconds(ev.SlowModeSeconds.Value);
+                var required = TimeSpan.FromSeconds(currentEvent.SlowModeSeconds.Value);
                 if (elapsed < required)
                 {
                     var remaining = required - elapsed;
@@ -109,14 +114,14 @@ public class DiscussionService : IDiscussionService
         var message = new DiscussionMessage(0, text?.Trim(), DateTime.UtcNow)
         {
             MediaPath = mediaPath,
-            Event = ev,
+            AssociatedEvent = currentEvent,
             Author = new User { UserId = userId },
             ReplyTo = replyToId.HasValue
                 ? new DiscussionMessage(replyToId.Value, null, DateTime.MinValue)
                 : null
         };
 
-        await _repo.AddAsync(message);
+        await repo.AddAsync(message);
 
         WeakReferenceMessenger.Default.Send(
             new ReputationMessage(userId, ReputationAction.DiscussionMessagePosted));
@@ -124,7 +129,7 @@ public class DiscussionService : IDiscussionService
         // ── Parse @mentions ──────────────────────────────────
         if (!string.IsNullOrWhiteSpace(text) && text.Contains('@'))
         {
-            var participants = await _repo.GetEventParticipantsAsync(eventId);
+            var participants = await repo.GetEventParticipantsAsync(eventId);
             var mentionedUsers = FindMentionedUsers(text, participants)
                 .Where(p => p.UserId != userId)
                 .GroupBy(p => p.UserId)
@@ -133,13 +138,13 @@ public class DiscussionService : IDiscussionService
 
             if (mentionedUsers.Count > 0)
             {
-                var mentioner = participants.FirstOrDefault(p => p.UserId == userId);
+                var mentioner = participants.FirstOrDefault(participant => participant.UserId == userId);
                 string mentionerName = mentioner?.Name ?? "Someone";
 
-                foreach (var u in mentionedUsers)
+                foreach (var user in mentionedUsers)
                 {
-                    await _notificationService.NotifyAsync(
-                        u.UserId,
+                    await notificationService.NotifyAsync(
+                        user.UserId,
                         "You were mentioned!",
                         $"{mentionerName} mentioned you in the discussion.");
                 }
@@ -149,18 +154,23 @@ public class DiscussionService : IDiscussionService
 
     public async Task DeleteMessageAsync(int messageId, int userId, int eventId)
     {
-        var ev = await GetEventOrThrowAsync(eventId);
-        bool isAdmin = ev.Admin?.UserId == userId;
+        var currentEvent = await GetEventOrThrowAsync(eventId);
+        bool isAdmin = currentEvent.Admin?.UserId == userId;
 
-        var message = await _repo.GetByIdAsync(messageId);
+        var message = await repo.GetByIdAsync(messageId);
         if (message is null)
+        {
             throw new KeyNotFoundException($"Message with ID {messageId} does not exist.");
-
+        }
         if (message.Author?.UserId != userId && !isAdmin)
+        {
             throw new UnauthorizedAccessException("You can only delete your own messages.");
+        }
 
         bool isAdminDeletingOther = isAdmin && message.Author?.UserId != userId;
-        await _repo.DeleteAsync(messageId);
+
+        await repo.DetachRepliesAsync(messageId);
+        await repo.DeleteAsync(messageId);
 
         if (isAdminDeletingOther && message.Author != null)
         {
@@ -170,24 +180,30 @@ public class DiscussionService : IDiscussionService
     }
 
     // ── Reactions ─────────────────────────────────────────────────────────────
-
     public async Task ReactAsync(int messageId, int userId, string emoji)
     {
-        await _repo.AddReactionAsync(messageId, userId, emoji);
+        var existing = await repo.GetReactionAsync(messageId, userId);
+        if (existing is not null)
+        {
+            await repo.UpdateReactionAsync(messageId, userId, emoji);
+        }
+        else
+        {
+        await repo.AddReactionAsync(messageId, userId, emoji);
+        }
     }
 
     public async Task RemoveReactionAsync(int messageId, int userId)
     {
-        await _repo.RemoveReactionAsync(messageId, userId);
+        await repo.RemoveReactionAsync(messageId, userId);
     }
 
     // ── Mutes ─────────────────────────────────────────────────────────────────
-
     public async Task MuteUserAsync(int eventId, int targetUserId, DateTime? muteUntil, int adminUserId)
     {
         await EnsureAdminAsync(eventId, adminUserId);
 
-        bool isPermanent = muteUntil is null;
+        await repo.DeleteExistingMuteAsync(eventId, targetUserId);
 
         var mute = new DiscussionMute
         {
@@ -195,87 +211,91 @@ public class DiscussionService : IDiscussionService
             MutedUser = new User { UserId = targetUserId },
             MutedBy = new User { UserId = adminUserId },
             MutedUntil = muteUntil,
-            IsPermanent = isPermanent,
+            IsPermanent = muteUntil is null,
             CreatedAt = DateTime.UtcNow
         };
 
-        await _repo.MuteAsync(mute);
+        await repo.InsertMuteAsync(mute);
     }
 
     public async Task UnmuteUserAsync(int eventId, int targetUserId, int adminUserId)
     {
         await EnsureAdminAsync(eventId, adminUserId);
-        await _repo.UnmuteAsync(eventId, targetUserId);
+        await repo.UnmuteAsync(eventId, targetUserId);
     }
 
     // ── Slow Mode ─────────────────────────────────────────────────────────────
-
     public async Task SetSlowModeAsync(int eventId, int? seconds, int adminUserId)
     {
         await EnsureAdminAsync(eventId, adminUserId);
 
         if (seconds.HasValue && seconds.Value <= 0)
+        {
             throw new ArgumentException("Slow mode interval must be a positive number of seconds.");
-
-        await _repo.SetSlowModeAsync(eventId, seconds);
+        }
+        await repo.SetSlowModeAsync(eventId, seconds);
     }
 
     public async Task<int?> GetSlowModeSecondsAsync(int eventId)
     {
-        var ev = await GetEventOrThrowAsync(eventId);
-        return ev.SlowModeSeconds;
+        var currentEvent = await GetEventOrThrowAsync(eventId);
+        return currentEvent.SlowModeSeconds;
     }
 
     // ── Participants ──────────────────────────────────────────────────────────
-
     public async Task<List<User>> GetEventParticipantsAsync(int eventId)
     {
-        return await _repo.GetEventParticipantsAsync(eventId);
+        return await repo.GetEventParticipantsAsync(eventId);
     }
 
     public static List<User> FindMentionedUsers(string text, List<User> participants)
     {
         var mentioned = new List<User>();
-        foreach (var p in participants)
+        foreach (var participant in participants)
         {
             // Check for @FullName (e.g. @Bob User)
-            if (text.Contains($"@{p.Name}", StringComparison.OrdinalIgnoreCase))
+            if (text.Contains($"@{participant.Name}", StringComparison.OrdinalIgnoreCase))
             {
-                mentioned.Add(p);
+                mentioned.Add(participant);
                 continue;
             }
 
             // Check for @FirstName (e.g. @Bob)
-            var firstName = p.Name.Split(' ')[0];
+            var firstName = participant.Name.Split(' ')[0];
             if (text.Contains($"@{firstName}", StringComparison.OrdinalIgnoreCase))
             {
-                mentioned.Add(p);
+                mentioned.Add(participant);
             }
         }
 
         return mentioned;
     }
     // ── Helpers ───────────────────────────────────────────────────────────────
-
     private async Task<Event> GetEventOrThrowAsync(int eventId)
     {
-        var ev = await _eventRepo.GetByIdAsync(eventId);
-        if (ev is null)
+        var currentEvent = await eventRepo.GetByIdAsync(eventId);
+        if (currentEvent is null)
+        {
             throw new ArgumentException($"Event with ID {eventId} does not exist.");
-        return ev;
+        }
+        return currentEvent;
     }
 
     private async Task EnsureAdminAsync(int eventId, int userId)
     {
-        var ev = await GetEventOrThrowAsync(eventId);
-        if (ev.Admin?.UserId != userId)
+        var currentEvent = await GetEventOrThrowAsync(eventId);
+        if (currentEvent.Admin?.UserId != userId)
+        {
             throw new UnauthorizedAccessException("Only the EventAdmin can perform this action.");
+        }
     }
 
-    private static string FormatDuration(TimeSpan ts)
+    private static string FormatDuration(TimeSpan timespan)
     {
-        if (ts.TotalHours >= 1)
-            return $"{(int)ts.TotalHours}h {ts.Minutes}m";
-        return $"{(int)ts.TotalMinutes}m {ts.Seconds}s";
+        if (timespan.TotalHours >= 1)
+        {
+            return $"{(int)timespan.TotalHours}h {timespan.Minutes}m";
+        }
+        return $"{(int)timespan.TotalMinutes}m {timespan.Seconds}s";
     }
 }
