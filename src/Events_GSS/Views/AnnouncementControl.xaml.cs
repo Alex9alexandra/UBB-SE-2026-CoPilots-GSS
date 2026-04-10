@@ -11,6 +11,8 @@ using Microsoft.UI.Xaml.Media;
 
 using Events_GSS.ViewModels;
 
+using System;
+
 /// <summary>
 /// AnnouncementControl manages the connection between the ViewModel and the UI.
 /// </summary>

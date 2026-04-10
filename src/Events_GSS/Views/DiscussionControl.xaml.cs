@@ -11,6 +11,7 @@ using Microsoft.UI.Xaml.Media;
 using Windows.Storage.Pickers;
 
 using Events_GSS.ViewModels;
+using System.Linq;
 
 namespace Events_GSS.Views;
 

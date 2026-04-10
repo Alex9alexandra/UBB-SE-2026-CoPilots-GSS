@@ -4,6 +4,8 @@ using Microsoft.UI.Xaml.Controls;
 using Events_GSS.Data.Models;
 using Events_GSS.ViewModels;
 
+using System;
+
 namespace Events_GSS.Views;
 
 /// <summary>

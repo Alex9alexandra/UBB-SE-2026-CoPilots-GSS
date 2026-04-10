@@ -3,6 +3,9 @@ using Microsoft.UI.Xaml.Controls;
 
 using Events_GSS.ViewModels;
 
+using System;
+using System.Linq;
+
 namespace Events_GSS.Views;
 
 /// <summary>

@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Storage.Pickers;
 using Events_GSS.ViewModels;
 using WinRT.Interop;
+using System.Linq;
 
 namespace Events_GSS.Views;
 

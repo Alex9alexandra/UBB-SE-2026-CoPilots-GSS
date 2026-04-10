@@ -3,6 +3,8 @@ using Microsoft.UI.Xaml.Controls;
 
 using Events_GSS.ViewModels;
 
+using System;
+
 namespace Events_GSS.Views;
 
 public sealed partial class QuestUserPage : Page

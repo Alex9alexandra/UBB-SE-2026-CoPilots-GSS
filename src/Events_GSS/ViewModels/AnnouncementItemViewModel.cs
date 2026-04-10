@@ -8,7 +8,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 using Events_GSS.Data.Models;
 
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 /// <summary>
 /// ViewModel representing a single announcement item with user-specific state
