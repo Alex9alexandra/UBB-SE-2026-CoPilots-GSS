@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="Events_GSS.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Events_GSS">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- Merged dictionaries removed for testability to avoid loading WinUI at unit-test time -->
+            <!-- Other merged dictionaries here -->
+            <!-- Other app resources here -->
+
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
