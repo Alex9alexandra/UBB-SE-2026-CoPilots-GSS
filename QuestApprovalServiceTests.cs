@@ -37,13 +37,21 @@ public class QuestApprovalServiceTests
     }
 
     [Fact]
-    public async Task ChangeProofStatusAsync_StatusApproved_SendsNotificationAndUpdatesRepo()
+    public async Task ChangeProofStatusAsync_StatusApproved_UpdatesRepository()
     {
         var proof = CreateSampleQuestMemory(QuestMemoryStatus.Approved);
 
         await _service.ChangeProofStatusAsync(proof);
 
         await _mockRepo.Received(1).ChangeProofStatusAsync(proof);
+    }
+
+    [Fact]
+    public async Task ChangeProofStatusAsync_StatusApproved_SendsCorrectNotification()
+    {
+        var proof = CreateSampleQuestMemory(QuestMemoryStatus.Approved);
+
+        await _service.ChangeProofStatusAsync(proof);
 
         await _mockNotificationService.Received(1).NotifyAsync(
             123,
@@ -52,7 +60,20 @@ public class QuestApprovalServiceTests
     }
 
     [Fact]
-    public async Task DeleteSubmissionAsync_RepositoryThrowsException_ThrowsWrappedException()
+    public async Task DeleteSubmissionAsync_RepositoryThrowsException_ThrowsExceptionType()
+    {
+        var proof = CreateSampleQuestMemory(QuestMemoryStatus.Submitted);
+        var user = new User { UserId = 123 };
+
+        _mockRepo.When(x => x.DeleteProofAsync(proof))
+                 .Do(x => throw new Exception("DB Error"));
+
+        await Assert.ThrowsAsync<Exception>(() =>
+            _service.DeleteSubmissionAsync(proof, user));
+    }
+
+    [Fact]
+    public async Task DeleteSubmissionAsync_RepositoryThrowsException_ContainsWrappedMessage()
     {
         var proof = CreateSampleQuestMemory(QuestMemoryStatus.Submitted);
         var user = new User { UserId = 123 };
@@ -67,7 +88,7 @@ public class QuestApprovalServiceTests
     }
 
     [Fact]
-    public async Task GetQuestsWithStatus_QuestHasNoSubmission_ReturnsIncompleteStatus()
+    public async Task GetQuestsWithStatus_QuestHasNoSubmission_ReturnsCorrectCount()
     {
         var currentEvent = new Event { EventId = 1 };
         var user = new User { UserId = 123 };
@@ -81,7 +102,39 @@ public class QuestApprovalServiceTests
         var result = await _service.GetQuestsWithStatus(currentEvent, user);
 
         Assert.Single(result);
+    }
+
+    [Fact]
+    public async Task GetQuestsWithStatus_QuestHasNoSubmission_SetsStatusToIncomplete()
+    {
+        var currentEvent = new Event { EventId = 1 };
+        var user = new User { UserId = 123 };
+
+        _mockQuestService.GetQuestsAsync(currentEvent)
+            .Returns(new List<Quest> { new Quest { Id = 50, Name = "Test" } });
+
+        _mockRepo.GetRawSubmissionsForUser(user)
+            .Returns(new List<QuestMemory>());
+
+        var result = await _service.GetQuestsWithStatus(currentEvent, user);
+
         Assert.Equal(QuestMemoryStatus.Incomplete, result[0].ProofStatus);
+    }
+
+    [Fact]
+    public async Task GetQuestsWithStatus_QuestHasNoSubmission_MapsCorrectQuestId()
+    {
+        var currentEvent = new Event { EventId = 1 };
+        var user = new User { UserId = 123 };
+
+        _mockQuestService.GetQuestsAsync(currentEvent)
+            .Returns(new List<Quest> { new Quest { Id = 50, Name = "Test" } });
+
+        _mockRepo.GetRawSubmissionsForUser(user)
+            .Returns(new List<QuestMemory>());
+
+        var result = await _service.GetQuestsWithStatus(currentEvent, user);
+
         Assert.Equal(50, result[0].ForQuest.Id);
     }
 
