@@ -1,11 +1,10 @@
-﻿
-using Events_GSS.Data.Repositories.eventStatisticsRepository;
+﻿using Events_GSS.Data.Repositories.eventStatisticsRepository;
 using Events_GSS.Data.Services.eventStatisticsServices;
 using Events_GSS.Data.Models;
 using Moq;
 using Xunit;
 
-namespace Events_GSS.Test.Services;
+namespace Events_GSS.Tests.Services;
 
 
 public class EventStatisticsServiceTests

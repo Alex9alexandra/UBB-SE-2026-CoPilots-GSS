@@ -32,9 +32,9 @@ namespace Events_GSS;
 
 public partial class App : Application
 {
-    private Window? _window;
+    private Window? window;
 
-    public Window? MainWindow => _window;
+    public Window? MainWindow => window;
 
     public new static App Current => (App)Application.Current;
     public static IServiceProvider Services { get; private set; } = null!;
@@ -50,7 +50,7 @@ public partial class App : Application
             .Build();
 
         var services = new ServiceCollection();
-        string connectionString = configuration.GetConnectionString("DefaultConnection")!;
+        string connectionString = configuration.GetConnectionString("DefaultConnection") !;
         services.AddSingleton(new SqlConnectionFactory(connectionString));
 
         services.AddTransient<IEventRepository, EventRepository>();
@@ -92,14 +92,11 @@ public partial class App : Application
 
         Services = services.BuildServiceProvider();
 
-        // Eagerly resolve so it subscribes to WeakReferenceMessenger immediately
         Services.GetRequiredService<IReputationService>();
     }
-    
-
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _window = new MainWindow();
-        _window.Activate();
+        window = new MainWindow();
+        window.Activate();
     }
 }
