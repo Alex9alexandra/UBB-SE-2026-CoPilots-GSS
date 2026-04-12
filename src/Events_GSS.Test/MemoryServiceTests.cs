@@ -2,7 +2,7 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-namespace Events_GSS.Test
+namespace Events_GSS.Tests
 {
     using System;
     using System.Collections.Generic;
@@ -15,7 +15,7 @@ namespace Events_GSS.Test
 
     using Moq;
 
-    using NUnit.Framework;
+    using Xunit;
 
     /// <summary>
     /// Unit tests for the MemoryService.
@@ -31,8 +31,7 @@ namespace Events_GSS.Test
         /// <summary>
         /// Sets up the mocked dependencies before each test.
         /// </summary>
-        [SetUp]
-        public void Setup()
+        public MemoryServiceTests()
         {
             this.mockMemoryRepository = new Mock<IMemoryRepository>();
             this.mockAttendedEventRepository = new Mock<IAttendedEventRepository>();
@@ -45,8 +44,8 @@ namespace Events_GSS.Test
                 this.mockReputationService.Object);
         }
 
-        [Test]
-        public void AddAsync_LowReputation_ThrowsInvalidOperationException()
+        [Fact]
+        public async Task AddAsync_LowReputation_ThrowsInvalidOperationException()
         {
             // Arrange
             var currentEvent = new Event { EventId = 1 };
@@ -55,12 +54,12 @@ namespace Events_GSS.Test
             this.mockReputationService.Setup(r => r.CanPostMemoriesAsync(author.UserId)).ReturnsAsync(false);
 
             // Act & Assert
-            Assert.ThrowsAsync<InvalidOperationException>(() =>
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 this.service.AddAsync(currentEvent, author, "photo.jpg", "text"));
         }
 
-        [Test]
-        public void AddAsync_NotEnrolled_ThrowsInvalidOperationException()
+        [Fact]
+        public async Task AddAsync_NotEnrolled_ThrowsInvalidOperationException()
         {
             // Arrange
             var currentEvent = new Event { EventId = 1 };
@@ -70,12 +69,12 @@ namespace Events_GSS.Test
             this.mockAttendedEventRepository.Setup(r => r.GetAsync(currentEvent.EventId, author.UserId)).ReturnsAsync((AttendedEvent?)null);
 
             // Act & Assert
-            Assert.ThrowsAsync<InvalidOperationException>(() =>
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 this.service.AddAsync(currentEvent, author, "photo.jpg", "text"));
         }
 
-        [Test]
-        public void DeleteAsync_NotOwnerOrAdmin_ThrowsUnauthorizedAccessException()
+        [Fact]
+        public async Task DeleteAsync_NotOwnerOrAdmin_ThrowsUnauthorizedAccessException()
         {
             // Arrange
             var requestingUser = new User { UserId = 1 };
@@ -91,12 +90,12 @@ namespace Events_GSS.Test
             this.mockMemoryRepository.Setup(m => m.GetByIdAsync(memory.MemoryId)).ReturnsAsync(fullMemory);
 
             // Act & Assert
-            Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 this.service.DeleteAsync(memory, requestingUser));
         }
 
-        [Test]
-        public void ToggleLikeAsync_OwnMemory_ThrowsInvalidOperationException()
+        [Fact]
+        public async Task ToggleLikeAsync_OwnMemory_ThrowsInvalidOperationException()
         {
             // Arrange
             var currentUser = new User { UserId = 1 };
@@ -107,11 +106,11 @@ namespace Events_GSS.Test
             this.mockMemoryRepository.Setup(m => m.GetByIdAsync(memory.MemoryId)).ReturnsAsync(fullMemory);
 
             // Act & Assert
-            Assert.ThrowsAsync<InvalidOperationException>(() =>
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 this.service.ToggleLikeAsync(memory, currentUser));
         }
 
-        [Test]
+        [Fact]
         public async Task ToggleLikeAsync_NotCurrentlyLiked_CallsAddLikeAsync()
         {
             // Arrange
@@ -132,7 +131,7 @@ namespace Events_GSS.Test
             this.mockMemoryRepository.Verify(m => m.AddLikeAsync(memory.MemoryId, currentUser.UserId), Times.Once);
         }
 
-        [Test]
+        [Fact]
         public async Task ToggleLikeAsync_AlreadyLiked_CallsRemoveLikeAsync()
         {
             // Arrange

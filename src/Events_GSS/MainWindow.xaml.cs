@@ -13,7 +13,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.WindowsAppSDK.Runtime.Packages;
 using Events_GSS.Data.Services.announcementServices;
 using Events_GSS.Services.Interfaces;
 

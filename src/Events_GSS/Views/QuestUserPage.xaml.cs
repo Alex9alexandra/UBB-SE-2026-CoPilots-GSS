@@ -1,3 +1,5 @@
+using System;
+
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -13,42 +15,51 @@ public sealed partial class QuestUserPage : Page
 
     public QuestUserPage()
     {
-        InitializeComponent();
-        
+        this.InitializeComponent();
     }
 
-    // public void Initialize(QuestUserViewModel viewModel)
-    // {
-    //     ViewModel = viewModel;
-    //     Loaded += async (_, _) => await ViewModel.LoadQuestsCommand.ExecuteAsync(null);
-    // }
-
-    private async void OnSubmitClicked(object sender, RoutedEventArgs e)
+    private async void OnSubmitClicked(object sender, RoutedEventArgs eventArgs)
     {
-        if (sender is not Button { Tag: QuestItemViewModel item }) return;
+        if (sender is not Button { Tag: QuestItemViewModel selectedQuestItem })
+        {
+            return;
+        }
 
-        var dialog = new SubmitProofDialog(item) { XamlRoot = XamlRoot };
-        var result = await dialog.ShowAsync();
+        SubmitProofDialog proofDialog = new SubmitProofDialog(selectedQuestItem)
+        {
+            XamlRoot = this.XamlRoot
+        };
 
-        if (result == ContentDialogResult.Primary && dialog.Result is not null)
-            await ViewModel.SubmitProofCommand.ExecuteAsync(dialog.Result);
+        ContentDialogResult result = await proofDialog.ShowAsync();
+
+        if (result == ContentDialogResult.Primary && proofDialog.Result is not null)
+        {
+            await ViewModel.SubmitProofCommand.ExecuteAsync(proofDialog.Result);
+        }
     }
 
-    private async void OnDeleteClicked(object sender, RoutedEventArgs e)
+    private async void OnDeleteClicked(object sender, RoutedEventArgs eventArgs)
     {
-        if (sender is not Button { Tag: QuestItemViewModel item }) return;
+        if (sender is not Button { Tag: QuestItemViewModel selectedQuestItem })
+        {
+            return;
+        }
 
-        var confirm = new ContentDialog
+        ContentDialog confirmationDialog = new ContentDialog
         {
             Title = "Delete Submission",
-            Content = $"Delete your proof for \"{item.Quest.Name}\"?",
+            Content = $"Delete your proof for \"{selectedQuestItem.Quest.Name}\"?",
             PrimaryButtonText = "Delete",
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Close,
-            XamlRoot = XamlRoot
+            XamlRoot = this.XamlRoot
         };
 
-        if (await confirm.ShowAsync() == ContentDialogResult.Primary)
-            await ViewModel.DeleteSubmissionCommand.ExecuteAsync(item);
+        ContentDialogResult confirmationResult = await confirmationDialog.ShowAsync();
+
+        if (confirmationResult == ContentDialogResult.Primary)
+        {
+            await ViewModel.DeleteSubmissionCommand.ExecuteAsync(selectedQuestItem);
+        }
     }
 }

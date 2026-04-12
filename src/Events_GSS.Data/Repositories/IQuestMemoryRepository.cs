@@ -1,21 +1,11 @@
 ﻿using Events_GSS.Data.Models;
 
-namespace Events_GSS.Data.Repositories;
-
 public interface IQuestMemoryRepository
 {
-    //FOR USER
-    //keep in sync with IMemoryRepository.AddAsync
-    public Task<int> AddMemoryAsync(Memory proofMemory);    
-    public Task SubmitProofAsync(Quest quest, Memory proof);
-    public Task<List<QuestMemory>> GetSubmissionsStatusForUser(List<Quest> quests, User user);
-
-
-    //FOR ADMIN
-    public Task<List<QuestMemory>> GetProofsForQuestAsync(Quest quest);
-    public Task ChangeProofStatusAsync(QuestMemory proof);
-
-
-    //FOR BOTH
-    public Task DeleteProofAsync(QuestMemory proof);
+    Task<int> AddMemoryAsync(Memory proofMemory);
+    Task SubmitProofAsync(Quest quest, Memory proof);
+    Task<List<QuestMemory>> GetRawSubmissionsForUser(User user);
+    Task<List<QuestMemory>> GetProofsForQuestAsync(Quest quest);
+    Task ChangeProofStatusAsync(QuestMemory proof);
+    Task DeleteProofAsync(QuestMemory proof);
 }

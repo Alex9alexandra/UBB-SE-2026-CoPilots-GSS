@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using CommunityToolkit.Mvvm.Messaging;
+
 using Events_GSS.Data.Messaging;
 using Events_GSS.Data.Models;
 using Events_GSS.Data.Repositories;
@@ -66,12 +67,12 @@ namespace Events_GSS.Data.Services
 
         public async Task AddAsync(Event currentEvent, User author, string? photoPath, string? text)
         {
-if (!await _reputationService.CanPostMemoriesAsync(author.UserId))
-    throw new InvalidOperationException($"Your reputation is too low to post memories (below {MinimumReputationRequired} RP).");
+            if (!await _reputationService.CanPostMemoriesAsync(author.UserId))
+                throw new InvalidOperationException($"Your reputation is too low to post memories (below {MinimumReputationRequired} RP).");
 
-var attendance = await _attendedEventRepo.GetAsync(currentEvent.EventId, author.UserId);
-if (attendance == null)
-    throw new InvalidOperationException("You must first enroll to this event!.");
+            var attendance = await _attendedEventRepo.GetAsync(currentEvent.EventId, author.UserId);
+            if (attendance == null)
+                throw new InvalidOperationException("You must first enroll to this event!.");
 
             bool hasPhoto = !string.IsNullOrWhiteSpace(photoPath);
             bool hasText = !string.IsNullOrWhiteSpace(text);
@@ -115,17 +116,17 @@ if (attendance == null)
         }
         public async Task<int> GetLikesCountAsync(int memoryId)
         {
-            
+
             var likes = await this._memoryRepository.GetLikesAsync(memoryId);
 
-            
+
             return likes.Count;
         }
 
 
         public async Task ToggleLikeAsync(Memory memory, User currentUser)
         {
-            
+
             var fullMemory = await _memoryRepository.GetByIdAsync(memory.MemoryId);
             if (fullMemory == null)
                 throw new Exception("Memory not found.");
@@ -133,7 +134,7 @@ if (attendance == null)
             if (fullMemory.Author.UserId == currentUser.UserId)
                 throw new InvalidOperationException("You cannot like your own memory.");
 
-            
+
             var likes = await _memoryRepository.GetLikesAsync(memory.MemoryId);
             bool alreadyLiked = likes.Contains(currentUser.UserId);
 
@@ -163,5 +164,4 @@ if (attendance == null)
         }
     }
 }
-
 

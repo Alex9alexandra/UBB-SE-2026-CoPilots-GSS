@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -10,7 +11,6 @@ using CommunityToolkit.Mvvm.Input;
 using Events_GSS.Data.Models;
 using Events_GSS.Data.Services.Interfaces;
 using Events_GSS.Services.Interfaces;
-using Events_GSS.ViewModels;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,61 +18,71 @@ namespace Events_GSS.ViewModels;
 
 public partial class QuestApprovalViewModel : ObservableObject
 {
-    private readonly IQuestApprovalService _questService = App.Services.GetRequiredService<IQuestApprovalService>();
-    private readonly IUserService _userService = App.Services.GetRequiredService<IUserService>();
-    
+    private readonly IQuestApprovalService questApprovalService = App.Services.GetRequiredService<IQuestApprovalService>();
+    private readonly IUserService userService = App.Services.GetRequiredService<IUserService>();
+
     public QuestAdminViewModel QuestAdminVM { get; }
 
-    public ObservableCollection<QuestMemory> Submissions { get; set; } = new();
+    public ObservableCollection<QuestMemory> Submissions { get; set; } = new ();
 
     [ObservableProperty]
     public partial bool IsLoadingSubmissions { get; set; }
 
-    public QuestApprovalViewModel(QuestAdminViewModel adminVM)
+    public QuestApprovalViewModel(QuestAdminViewModel adminViewModel)
     {
-        QuestAdminVM = adminVM;
+        QuestAdminVM = adminViewModel;
 
         QuestAdminVM.PropertyChanged += QuestAdminVM_PropertyChanged;
     }
-    private async void QuestAdminVM_PropertyChanged(object sender, PropertyChangedEventArgs e)
+
+    private async void QuestAdminVM_PropertyChanged(object sender, PropertyChangedEventArgs eventArgs)
     {
-        if (e.PropertyName == nameof(QuestAdminVM.SelectedQuest))
+        if (eventArgs.PropertyName == nameof(QuestAdminVM.SelectedQuest))
         {
             try
             {
                 await RefreshSubmissionsAsync();
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Debug.WriteLine($"Error refreshing submissions: {ex.Message}");
-                throw ex;
-                return;
+                Debug.WriteLine($"Error refreshing submissions: {exception.Message}");
+                throw;
             }
         }
     }
+
     public async Task RefreshSubmissionsAsync()
     {
         Submissions.Clear();
-        if (QuestAdminVM.SelectedQuest == null) return;
+        if (QuestAdminVM.SelectedQuest == null)
+        {
+            return;
+        }
 
         IsLoadingSubmissions = true;
         try
         {
-            var proofs = await _questService.GetProofsForQuestAsync(QuestAdminVM.SelectedQuest);
-            foreach (var p in proofs) Submissions.Add(p);
+            var questProofs = await questApprovalService.GetProofsForQuestAsync(QuestAdminVM.SelectedQuest);
+            foreach (var questProof in questProofs)
+            {
+                Submissions.Add(questProof);
+            }
         }
-        catch (Exception exc)
+        catch (Exception exception)
         {
-            Debug.WriteLine("HEREEEEEEEEEE"+ exc.Message);
+            Debug.WriteLine("Error retrieving proofs: " + exception.Message);
         }
-        finally { IsLoadingSubmissions = false; }
+        finally
+        {
+            IsLoadingSubmissions = false;
+        }
     }
 
     [RelayCommand]
     private async Task ApproveAsync(QuestMemory proof)
     {
         proof.ProofStatus = QuestMemoryStatus.Approved;
-        await _questService.ChangeProofStatusAsync(proof);
+        await questApprovalService.ChangeProofStatusAsync(proof);
         Submissions.Remove(proof);
     }
 
@@ -80,13 +90,14 @@ public partial class QuestApprovalViewModel : ObservableObject
     private async Task DenyAsync(QuestMemory proof)
     {
         proof.ProofStatus = QuestMemoryStatus.Rejected;
-        await _questService.ChangeProofStatusAsync(proof);
+        await questApprovalService.ChangeProofStatusAsync(proof);
         Submissions.Remove(proof);
     }
+
     [RelayCommand]
     public async Task DeleteAsync(QuestMemory proof)
     {
-        await _questService.DeleteSubmissionAsync(proof,_userService.GetCurrentUser());
+        await questApprovalService.DeleteSubmissionAsync(proof, userService.GetCurrentUser());
         Submissions.Remove(proof);
     }
 }

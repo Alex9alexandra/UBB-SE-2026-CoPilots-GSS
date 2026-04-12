@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Events_GSS.Views"
     xmlns:models="using:Events_GSS.Data.Models"
-    xmlns:controls="using:CommunityToolkit.WinUI.Controls">
+    xmlns:toolkit="using:CommunityToolkit.WinUI.UI.Controls">
 
     <Grid>
         <Grid.ColumnDefinitions>
@@ -18,12 +18,12 @@
             Grid.Column="0"
             ViewModel="{x:Bind ViewModel.QuestAdminVM, Mode=OneWay}" />
 
-        <controls:GridSplitter Grid.Column="1" 
-                      Width="4" 
-                      HorizontalAlignment="Center" 
-                      VerticalAlignment="Stretch"
-                      Background="Transparent"
-                      ResizeBehavior="BasedOnAlignment" />
+        <toolkit:GridSplitter Grid.Column="1"
+                          Width="4"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Stretch"
+                          Background="Transparent"
+                          ResizeBehavior="BasedOnAlignment" />
 
         <Grid Grid.Column="2" 
               Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}" 
@@ -44,60 +44,65 @@
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:QuestMemory">
                             <Viewbox MaxHeight="500">
-                            <StackPanel Spacing="8" Margin="0,8" Padding="12" 
-                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                        CornerRadius="8">
+                                <StackPanel Spacing="8" Margin="0,8" Padding="12" 
+                                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                            CornerRadius="8">
 
-                                <FlyoutBase.AttachedFlyout>
-                                    <MenuFlyout>
-                                        <MenuFlyoutItem Text="Delete" 
-                                                        Icon="Delete"
-                                                        Command="{Binding ElementName=Root, Path=ViewModel.DeleteCommand}"
-                                                        CommandParameter="{x:Bind}"/>
-                                    </MenuFlyout>
-                                </FlyoutBase.AttachedFlyout>
+                                    <FlyoutBase.AttachedFlyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Delete" 
+                                                            Icon="Delete"
+                                                            Command="{Binding ElementName=Root, Path=ViewModel.DeleteCommand}"
+                                                            CommandParameter="{x:Bind}"/>
+                                        </MenuFlyout>
+                                    </FlyoutBase.AttachedFlyout>
 
-                                <StackPanel.ContextFlyout>
-                                    <MenuFlyout>
-                                        <MenuFlyoutItem Text="Delete" 
-                                                        Foreground="Red"
-                                                        Click="DeleteMenuFlyoutItem_Click"
-                                                        CommandParameter="{x:Bind}">
-                                            <MenuFlyoutItem.Icon>
-                                                <SymbolIcon Symbol="Delete" />
-                                            </MenuFlyoutItem.Icon>
-                                        </MenuFlyoutItem>
-                                    </MenuFlyout>
-                                </StackPanel.ContextFlyout>
-                                    <TextBlock Text="{x:Bind Proof.Author.Name, TargetNullValue='No descr'}" FontWeight="Bold"/>
+                                    <StackPanel.ContextFlyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Delete" 
+                                                            Foreground="Red"
+                                                            Click="DeleteMenuFlyoutItem_Click"
+                                                            CommandParameter="{x:Bind}">
+                                                <MenuFlyoutItem.Icon>
+                                                    <SymbolIcon Symbol="Delete" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                        </MenuFlyout>
+                                    </StackPanel.ContextFlyout>
 
-                                <Image Source="{x:Bind local:QuestApprovalPage.GetImageSource(Proof.PhotoPath)}"
-                                       Visibility="{x:Bind local:QuestApprovalPage.GetVisibility(Proof.PhotoPath)}"
-                                       MaxHeight="400"
-                                       Stretch="Uniform"/>
+                                    <TextBlock Text="{x:Bind Proof.Author.Name, TargetNullValue='No author'}" FontWeight="Bold"/>
 
-                                <TextBlock Text="{x:Bind Proof.Text, TargetNullValue='No descr'}" TextWrapping="Wrap" FontStyle="Italic" MinWidth="300"/>
+                                    <Image Source="{x:Bind local:QuestApprovalPage.GetImageSource(Proof.PhotoPath)}"
+                                           Visibility="{x:Bind local:QuestApprovalPage.GetVisibility(Proof.PhotoPath)}"
+                                           MaxHeight="400"
+                                           Stretch="Uniform"/>
 
-                                <Grid ColumnDefinitions="*, *" ColumnSpacing="8" Margin="8,8,0,0">
-                                    <Button Grid.Column="0" 
-                                            Content="Approve" 
-                                            HorizontalAlignment="Stretch"
-                                            Style="{StaticResource AccentButtonStyle}"
-                                            Click="ApproveButton_Click"/>
+                                    <TextBlock Text="{x:Bind Proof.Text, TargetNullValue='No description'}" 
+                                               TextWrapping="Wrap" 
+                                               FontStyle="Italic" 
+                                               MinWidth="300"/>
 
-                                    <Button Grid.Column="1" 
-                                            Content="Deny" 
-                                            HorizontalAlignment="Stretch"
-                                            Click="DenyButton_Click"/>
-                                </Grid>
-                            </StackPanel>
-                                </Viewbox>
+                                    <Grid ColumnDefinitions="*, *" ColumnSpacing="8" Margin="8,8,0,0">
+                                        <Button Grid.Column="0" 
+                                                Content="Approve" 
+                                                HorizontalAlignment="Stretch"
+                                                Style="{StaticResource AccentButtonStyle}"
+                                                Click="ApproveButton_Click"/>
+
+                                        <Button Grid.Column="1" 
+                                                Content="Deny" 
+                                                HorizontalAlignment="Stretch"
+                                                Click="DenyButton_Click"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Viewbox>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
 
                 <ProgressRing IsActive="{x:Bind ViewModel.IsLoadingSubmissions, Mode=OneWay}" 
-                              Grid.Row="1" VerticalAlignment="Center"/>
+                              Grid.Row="1" 
+                              VerticalAlignment="Center"/>
             </Grid>
         </Grid>
     </Grid>
