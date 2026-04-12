@@ -198,4 +198,25 @@ public class MockUserServiceTests
         var results = service.SearchFriends(1, null);
         Assert.Equal(3, results.Count);
     }
+
+    [Fact]
+    public async Task IsAttending_ServiceThrowsException_ReturnsFalse()
+    {
+        // Arrange
+        var mockAttendedService = new Mock<IAttendedEventService>(MockBehavior.Strict);
+        var service = new MockUserService(mockAttendedService.Object);
+
+        var currentEvent = new Event { EventId = 100 };
+
+        mockAttendedService
+            .Setup(s => s.GetAttendedEventsAsync(3))
+            .ThrowsAsync(new Exception("Database failure"));
+
+        // Act
+        var result = await service.IsAttending(currentEvent);
+
+        // Assert
+        Assert.False(result);
+        mockAttendedService.Verify(s => s.GetAttendedEventsAsync(3), Times.Once);
+    }
 }

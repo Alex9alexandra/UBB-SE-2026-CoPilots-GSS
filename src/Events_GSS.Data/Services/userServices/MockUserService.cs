@@ -106,7 +106,6 @@ namespace Events_GSS.Services
             }
             catch (Exception exception)
             {
-                Debug.WriteLine("Error checking attendance: " + exception);
                 return false;
             }
         }
