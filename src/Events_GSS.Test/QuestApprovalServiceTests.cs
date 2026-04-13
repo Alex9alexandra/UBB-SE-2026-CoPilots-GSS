@@ -151,4 +151,101 @@ public class QuestApprovalServiceTests
             }
         };
     }
+
+    [Fact]
+    public async Task DeleteSubmissionAsync_Fails_ShouldHandleException()
+    {
+        var proof = new QuestMemory
+        {
+            ForQuest = new Quest { Name = "Test Quest" },
+            Proof = new Memory { Author = new User() }
+        };
+        _mockRepo.When(x => x.DeleteProofAsync(Arg.Any<QuestMemory>()))
+                 .Do(x => throw new Exception("Fake Error"));
+
+        await Assert.ThrowsAsync<Exception>(() => _service.DeleteSubmissionAsync(proof, new User()));
+    }
+
+    [Fact]
+    public async Task GetQuestsWithStatus_QuestHasSubmission_Coverage_Lambda()
+    {
+        var currentEvent = new Event { EventId = 1 };
+        var user = new User { UserId = 123 };
+        var quest = new Quest { Id = 50, Name = "Test" };
+
+        _mockQuestService.GetQuestsAsync(currentEvent)
+            .Returns(new List<Quest> { quest });
+        var existingSubmission = new QuestMemory
+        {
+            ForQuest = new Quest { Id = 50 },
+            ProofStatus = QuestMemoryStatus.Submitted,
+            Proof = new Memory { Author = user, Event = currentEvent } 
+        };
+
+        _mockRepo.GetRawSubmissionsForUser(user)
+            .Returns(new List<QuestMemory> { existingSubmission });
+
+        var result = await _service.GetQuestsWithStatus(currentEvent, user);
+
+        Assert.Single(result);
+        Assert.Equal(50, result[0].ForQuest.Id);
+    }
+
+    [Fact]
+    public async Task ChangeProofStatusAsync_StatusRejected_Coverage()
+    {
+        var proof = CreateSampleQuestMemory(QuestMemoryStatus.Rejected);
+
+        await _service.ChangeProofStatusAsync(proof);
+
+        await _mockNotificationService.Received(1).NotifyAsync(
+            Arg.Any<int>(),
+            Arg.Any<string>(),
+            Arg.Is<string>(s => s.Contains("rejected")));
+    }
+
+    [Fact]
+    public async Task SubmitProofAsync_Coverage()
+    {
+        var quest = new Quest { Id = 1 };
+        var proof = new Memory
+        {
+            Author = new User { UserId = 1 },
+            Event = new Event { EventId = 1 }
+        };
+        _mockRepo.AddMemoryAsync(proof).Returns(Task.FromResult(99));
+
+        await _service.SubmitProofAsync(quest, proof);
+
+        Assert.Equal(99, proof.MemoryId);
+        await _mockRepo.Received(1).SubmitProofAsync(quest, proof);
+    }
+
+    [Fact]
+    public async Task GetProofsForQuestAsync_Coverage()
+    {
+        await _service.GetProofsForQuestAsync(new Quest());
+        
+        await _mockRepo.Received(1).GetProofsForQuestAsync(Arg.Any<Quest>());
+    }
+
+    [Fact]
+    public async Task DeleteSubmissionAsync_Success_Coverage()
+    {
+        var user = new User { UserId = 1 };
+        var proof = new QuestMemory
+        {
+            ForQuest = new Quest { Id = 1, Name = "Quest" },
+            Proof = new Memory { Author = user, Event = new Event() },
+            ProofStatus = QuestMemoryStatus.Submitted
+        };
+
+        _mockRepo.DeleteProofAsync(proof).Returns(Task.CompletedTask);
+        _mockMemoryService.DeleteAsync(proof.Proof, user).Returns(Task.CompletedTask);
+
+        await _service.DeleteSubmissionAsync(proof, user);
+
+        await _mockRepo.Received(1).DeleteProofAsync(proof);
+        await _mockMemoryService.Received(1).DeleteAsync(proof.Proof, user);
+    }
 }
