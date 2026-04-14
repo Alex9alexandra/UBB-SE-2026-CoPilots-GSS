@@ -325,9 +325,8 @@ namespace Events_GSS.Tests.Services
             this.attendedEventRepositoryMock.VerifyAll();
         }
 
-        //from here 
         [Fact]
-        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse()
+        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse1()
         {
             // Arrange
             this.reputationServiceMock
@@ -356,7 +355,7 @@ namespace Events_GSS.Tests.Services
         }
 
         [Fact]
-        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse()
+        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse2()
         {
             // Arrange
             this.reputationServiceMock
@@ -385,7 +384,7 @@ namespace Events_GSS.Tests.Services
         }
 
         [Fact]
-        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse()
+        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse3()
         {
             // Arrange
             this.reputationServiceMock
@@ -412,8 +411,6 @@ namespace Events_GSS.Tests.Services
             this.reputationServiceMock.VerifyAll();
             this.attendedEventRepositoryMock.VerifyAll();
         }
-
-        //till here
 
         [Fact]
         public async Task AttendEventAsync_UserNotEnrolled_SetsEnrollmentDateNearNow()
@@ -442,7 +439,6 @@ namespace Events_GSS.Tests.Services
             DateTime utcNowAfterCall = DateTime.UtcNow;
 
             // Assert
-            Assert.NotNull(capturedAttendedEvent);
             Assert.InRange(capturedAttendedEvent!.EnrollmentDate, utcNowBeforeCall, utcNowAfterCall);
 
             this.reputationServiceMock.VerifyAll();
@@ -465,20 +461,19 @@ namespace Events_GSS.Tests.Services
                 .Setup(repository => repository.AddAsync(It.IsAny<AttendedEvent>()))
                 .Returns(Task.CompletedTask);
 
-            ReputationMessage? capturedMessage = null;
+            ReputationMessage? capturedReputationMessage = null;
 
             WeakReferenceMessenger.Default.Register<ReputationMessage>(
                 this.reputationMessageRecipient,
-                (recipient, message) => capturedMessage = message);
+                (recipient, message) => capturedReputationMessage = message);
+
+            var expectedReputationMessage = new ReputationMessage(ExampleUserId, ReputationAction.EventAttended, ExampleEventId);
 
             // Act
             await this.attendedEventService.AttendEventAsync(ExampleEventId, ExampleUserId);
 
             // Assert
-            Assert.NotNull(capturedMessage);
-            Assert.Equal(ExampleUserId, capturedMessage!.UserId);
-            Assert.Equal(ExampleEventId, capturedMessage.EventId);
-            Assert.Equal(ReputationAction.EventAttended, capturedMessage.Value);
+            Assert.Equivalent(expectedReputationMessage, capturedReputationMessage);
 
             this.reputationServiceMock.VerifyAll();
             this.attendedEventRepositoryMock.VerifyAll();

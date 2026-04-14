@@ -149,20 +149,19 @@ namespace Events_GSS.Tests.Services
                 .Setup(repository => repository.AddAsync(eventEntity))
                 .ReturnsAsync(ExampleEventId);
 
-            ReputationMessage? capturedMessage = null;
+            ReputationMessage? capturedReputationMessage = null;
 
             WeakReferenceMessenger.Default.Register<ReputationMessage>(
                 this.reputationMessageRecipient,
-                (recipient, message) => capturedMessage = message);
+                (recipient, message) => capturedReputationMessage = message);
+
+            var expectedReputationMessage = new ReputationMessage(ExampleAdminUserId, ReputationAction.EventCreated, null);
 
             // Act
             await this.eventService.CreateEventAsync(eventEntity);
 
             // Assert
-            Assert.NotNull(capturedMessage);
-            Assert.Equal(ExampleAdminUserId, capturedMessage!.UserId);
-            Assert.Null(capturedMessage.EventId);
-            Assert.Equal(ReputationAction.EventCreated, capturedMessage.Value);
+            Assert.Equivalent(expectedReputationMessage,capturedReputationMessage);
 
             this.reputationServiceMock.VerifyAll();
             this.eventRepositoryMock.VerifyAll();
@@ -218,20 +217,19 @@ namespace Events_GSS.Tests.Services
                 .Setup(repository => repository.DeleteAsync(ExampleEventId))
                 .Returns(Task.CompletedTask);
 
-            ReputationMessage? capturedMessage = null;
+            ReputationMessage? capturedReputationMessage = null;
 
             WeakReferenceMessenger.Default.Register<ReputationMessage>(
                 this.reputationMessageRecipient,
-                (recipient, message) => capturedMessage = message);
+                (recipient, message) => capturedReputationMessage = message);
+
+            var expectedReputationMessage=new ReputationMessage(ExampleAdminUserId, ReputationAction.EventCancelled, null);
 
             // Act
             await this.eventService.DeleteEventAsync(ExampleEventId);
 
             // Assert
-            Assert.NotNull(capturedMessage);
-            Assert.Equal(ExampleAdminUserId, capturedMessage!.UserId);
-            Assert.Null(capturedMessage.EventId);
-            Assert.Equal(ReputationAction.EventCancelled, capturedMessage.Value);
+            Assert.Equivalent(expectedReputationMessage, capturedReputationMessage);
 
             this.eventRepositoryMock.VerifyAll();
         }
