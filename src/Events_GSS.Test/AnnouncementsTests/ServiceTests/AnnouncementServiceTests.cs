@@ -644,6 +644,8 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
         [Fact]
         public void AttachReactions_WhenMatchingAnnouncement_AssignsReactions()
         {
+            var service = new AnnouncementService(repoMock.Object, eventRepoMock.Object);
+
             var announcements = new List<Announcement>
             {
                 new Announcement(1, "A1", DateTime.UtcNow)
@@ -663,8 +665,6 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
                 })
             };
 
-            var service = new AnnouncementService(null!, null!);
-
             service.AttachReactions(announcements, reactions);
 
             Assert.Single(announcements[0].Reactions);
@@ -673,6 +673,8 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
         [Fact]
         public void AttachReactions_WhenNoMatchingAnnouncement_DoesNotModifyReactions()
         {
+            var service = new AnnouncementService(repoMock.Object, eventRepoMock.Object);
+
             var announcements = new List<Announcement>
             {
                 new Announcement(99, "A1", DateTime.UtcNow)
@@ -692,8 +694,6 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
                 })
             };
 
-            var service = new AnnouncementService(null!, null!);
-
             service.AttachReactions(announcements, reactions);
 
             Assert.Empty(announcements[0].Reactions);
@@ -702,6 +702,8 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
         [Fact]
         public void AttachReactions_WhenMultipleReactions_AssignsAll()
         {
+            var service = new AnnouncementService(repoMock.Object, eventRepoMock.Object);
+
             var announcements = new List<Announcement>
             {
                 new Announcement(1, "A1", DateTime.UtcNow)
@@ -714,19 +716,19 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
             {
                 (1, new AnnouncementReaction
                 {
+                    Id = 1,
                     Emoji = "👍",
                     AnnouncementId = 1,
                     Author = new User { UserId = 1 }
                 }),
                 (1, new AnnouncementReaction
                 {
+                    Id = 2,
                     Emoji = "🔥",
                     AnnouncementId = 1,
                     Author = new User { UserId = 2 }
                 })
             };
-
-            var service = new AnnouncementService(null!, null!);
 
             service.AttachReactions(announcements, reactions);
 
