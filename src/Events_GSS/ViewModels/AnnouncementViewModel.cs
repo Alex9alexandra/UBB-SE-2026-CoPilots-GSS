@@ -173,7 +173,7 @@ public partial class AnnouncementViewModel : ObservableObject
         }
 
         this.EditingAnnouncement = item;
-        this.NewMessage = item.Model.Message;
+        this.NewMessage = AnnouncementsViewModelCore.GetEditableMessage(item.Model);
     }
 
     [RelayCommand]
@@ -226,7 +226,7 @@ public partial class AnnouncementViewModel : ObservableObject
             return;
         }
 
-        item.IsExpanded = !item.IsExpanded;
+        item.IsExpanded = AnnouncementsViewModelCore.Toggle(item.IsExpanded);
 
         if (item.IsExpanded)
         {
@@ -259,13 +259,16 @@ public partial class AnnouncementViewModel : ObservableObject
             var (readers, total) = await this._announcementService.GetReadReceiptsAsync(
                 item.Model.Id, this._currentEvent.EventId, this._currentUserId);
 
+            var (processedReaders, readCount) =
+                AnnouncementsViewModelCore.ProcessReadReceipts(readers);
+
             this.ReadReceiptUsers.Clear();
-            foreach (var reader in readers)
+            foreach (var reader in processedReaders)
             {
                 this.ReadReceiptUsers.Add(reader);
             }
 
-            this.ReadReceiptReadCount = readers.Count;
+            this.ReadReceiptReadCount = readCount;
             this.ReadReceiptTotalCount = total;
         }
         catch (Exception exception)

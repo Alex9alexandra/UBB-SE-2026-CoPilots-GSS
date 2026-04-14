@@ -356,7 +356,7 @@ namespace Events_GSS.Tests.Services
         }
 
         [Fact]
-        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse()
+        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse2()
         {
             // Arrange
             this.reputationServiceMock
@@ -385,7 +385,7 @@ namespace Events_GSS.Tests.Services
         }
 
         [Fact]
-        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse()
+        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse3()
         {
             // Arrange
             this.reputationServiceMock

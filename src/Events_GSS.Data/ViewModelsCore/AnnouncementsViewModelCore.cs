@@ -44,4 +44,21 @@ public sealed class AnnouncementsViewModelCore
     {
         return message.Trim();
     }
+
+    public static string GetEditableMessage(Announcement announcement)
+    {
+        return announcement.Message;
+    }
+
+    public static bool Toggle(bool value)
+    {
+        return !value;
+    }
+
+    public static (List<AnnouncementReadReceipt> readers, int readCount) ProcessReadReceipts(
+    IEnumerable<AnnouncementReadReceipt> readers)
+    {
+        var list = readers.ToList();
+        return (list, list.Count);
+    }
 }
