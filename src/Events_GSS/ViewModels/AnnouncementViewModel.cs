@@ -34,12 +34,12 @@ public partial class AnnouncementViewModel : ObservableObject
 
     public AnnouncementViewModel(
         Event forEvent,
-        IAnnouncementService service,
+        IAnnouncementService announcementService,
         int currentUserId,
         bool isAdmin)
     {
         this._currentEvent = forEvent;
-        this._announcementService = service;
+        this._announcementService = announcementService;
         this._currentUserId = currentUserId;
         this.IsEventAdmin = isAdmin;
 
@@ -301,7 +301,7 @@ public partial class AnnouncementViewModel : ObservableObject
     {
         this.UnreadCount =
             AnnouncementsViewModelCore.CalculateUnreadCount(
-                this.Announcements.Select(a => a.Model));
+                this.Announcements.Select(announcement => announcement.Model));
     }
 
     // Wraps an async operation to manage loading state and handle exceptions consistently across the ViewModel

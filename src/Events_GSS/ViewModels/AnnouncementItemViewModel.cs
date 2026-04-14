@@ -23,15 +23,15 @@ public partial class AnnouncementItemViewModel : ObservableObject
     private readonly AnnouncementItemViewModelCore announcementItemViewModelCore;
 
     public AnnouncementItemViewModel(
-        Announcement model,
+        Announcement announcementModel,
         int currentUserId,
         bool isAdmin)
     {
-        announcementItemViewModelCore = new AnnouncementItemViewModelCore(model, currentUserId);
+        announcementItemViewModelCore = new AnnouncementItemViewModelCore(announcementModel, currentUserId);
 
-        Model = model;
+        Model = announcementModel;
         _isCurrentUserAdmin = isAdmin;
-        _isRead = model.IsRead;
+        _isRead = announcementModel.IsRead;
     }
 
     public Announcement Model { get; }

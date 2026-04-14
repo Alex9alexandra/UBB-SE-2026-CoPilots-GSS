@@ -314,7 +314,7 @@ public class AnnouncementService : IAnnouncementService
         var participants = await this.announcementRepository.GetAllParticipantsAsync(eventId);
 
         var readerIds = readers
-            .Select(r => r.User.UserId)
+            .Select(reader => reader.User.UserId)
             .ToHashSet();
 
         var nonReaders = participants
@@ -338,7 +338,7 @@ public class AnnouncementService : IAnnouncementService
     List<(int AnnouncementId, AnnouncementReaction Reaction)> reactions)
     {
         var grouped = reactions
-            .GroupBy(r => r.AnnouncementId)
+            .GroupBy(reaction => reaction.AnnouncementId)
             .ToDictionary(g => g.Key, g => g.Select(x => x.Reaction).ToList());
 
         foreach (var announcement in announcements)

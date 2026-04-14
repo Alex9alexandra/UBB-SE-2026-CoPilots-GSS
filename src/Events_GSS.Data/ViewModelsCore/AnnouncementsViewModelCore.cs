@@ -10,20 +10,20 @@ public sealed class AnnouncementsViewModelCore
 {
     private const double PercentageMultiplier = 100.0;
 
-    public static string GetReadReceiptSummary(int read, int total)
+    public static string GetReadReceiptSummary(int numberOfReaders, int totalParticipants)
     {
-        if (total == 0)
+        if (totalParticipants == 0)
         {
             return "No participants";
         }
 
-        var percentage = (int)Math.Round(PercentageMultiplier * read / total);
-        return $"{read} / {total} read ({percentage}%)";
+        var percentage = (int)Math.Round(PercentageMultiplier * numberOfReaders / totalParticipants);
+        return $"{numberOfReaders} / {totalParticipants} read ({percentage}%)";
     }
 
     public static int CalculateUnreadCount(IEnumerable<Announcement> announcements)
     {
-        return announcements.Count(a => !a.IsRead);
+        return announcements.Count(announcement => !announcement.IsRead);
     }
 
     public static bool CanSubmit(string message)

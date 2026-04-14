@@ -14,9 +14,9 @@ public sealed class AnnouncementItemViewModelCore
     private readonly Announcement announcementModel;
     private readonly int currentUserId;
 
-    public AnnouncementItemViewModelCore(Announcement model, int currentUserId)
+    public AnnouncementItemViewModelCore(Announcement announcementModel, int currentUserId)
     {
-        announcementModel = model;
+        this.announcementModel = announcementModel;
         this.currentUserId = currentUserId;
     }
 
