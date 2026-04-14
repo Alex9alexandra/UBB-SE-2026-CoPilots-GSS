@@ -11,7 +11,7 @@ public class AnnouncementReadReceipt
 {
     public int AnnouncementId { get; set; }
 
-    public User User { get; set; }
+    public User? User { get; set; }
 
     public DateTime ReadAt { get; set; }
 }

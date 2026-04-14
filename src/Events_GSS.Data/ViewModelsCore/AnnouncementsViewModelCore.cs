@@ -13,7 +13,9 @@ public sealed class AnnouncementsViewModelCore
     public static string GetReadReceiptSummary(int read, int total)
     {
         if (total == 0)
+        {
             return "No participants";
+        }
 
         var percentage = (int)Math.Round(PercentageMultiplier * read / total);
         return $"{read} / {total} read ({percentage}%)";
@@ -29,9 +31,19 @@ public sealed class AnnouncementsViewModelCore
         return !string.IsNullOrWhiteSpace(message);
     }
 
+    /// <summary>
+    /// Represents the mode of submission for an announcement.
+    /// </summary>
     public enum SubmitMode
     {
+        /// <summary>
+        /// Create a new announcement.
+        /// </summary>
         Create,
+
+        /// <summary>
+        /// Edit an existing announcement.
+        /// </summary>
         Edit
     }
 

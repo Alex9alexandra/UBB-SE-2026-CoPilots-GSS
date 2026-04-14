@@ -233,11 +233,11 @@ public partial class AnnouncementViewModel : ObservableObject
             var wasMarked = await this._announcementService.MarkAsReadIfNeededAsync(
                 item.Model.Id,
                 this._currentUserId,
-                item.IsRead);
+                item._isRead);
 
             if (wasMarked)
             {
-                item.IsRead = true;
+                item._isRead = true;
                 this.UpdateUnreadCount();
             }
         }

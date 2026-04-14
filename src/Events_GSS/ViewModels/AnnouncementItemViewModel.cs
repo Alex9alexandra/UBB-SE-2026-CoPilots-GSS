@@ -20,14 +20,14 @@ using System.Linq;
 /// </summary>
 public partial class AnnouncementItemViewModel : ObservableObject
 {
-    private readonly AnnouncementItemViewModelCore _core;
+    private readonly AnnouncementItemViewModelCore announcementItemViewModelCore;
 
     public AnnouncementItemViewModel(
         Announcement model,
         int currentUserId,
         bool isAdmin)
     {
-        _core = new AnnouncementItemViewModelCore(model, currentUserId);
+        announcementItemViewModelCore = new AnnouncementItemViewModelCore(model, currentUserId);
 
         Model = model;
         _isCurrentUserAdmin = isAdmin;
@@ -36,19 +36,19 @@ public partial class AnnouncementItemViewModel : ObservableObject
 
     public Announcement Model { get; }
 
-    public string PreviewText => _core.PreviewText;
+    public string PreviewText => announcementItemViewModelCore.PreviewText;
 
-    public bool HasFullContent => _core.HasFullContent;
+    public bool HasFullContent => announcementItemViewModelCore.HasFullContent;
 
-    public List<ReactionGroup> ReactionGroups => _core.ReactionGroups;
+    public List<ReactionGroup> ReactionGroups => announcementItemViewModelCore.ReactionGroups;
 
-    public string? CurrentUserEmoji => _core.CurrentUserEmoji;
+    public string? CurrentUserEmoji => announcementItemViewModelCore.CurrentUserEmoji;
 
     // UI stuff stays here
     [ObservableProperty] private bool _isExpanded;
-    [ObservableProperty] private bool _isRead;
+    [ObservableProperty] public bool _isRead;
     public bool IsCurrentUserAdmin => this._isCurrentUserAdmin;
-    public bool IsUnread => !this.IsRead;
+    public bool IsUnread => !this._isRead;
 
     private readonly bool _isCurrentUserAdmin;
 }
