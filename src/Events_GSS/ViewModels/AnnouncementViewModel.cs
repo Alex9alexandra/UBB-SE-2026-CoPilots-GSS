@@ -4,20 +4,21 @@
 
 namespace Events_GSS.ViewModels;
 
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Threading.Tasks;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using Events_GSS.Data.Models;
 using Events_GSS.Data.Services.announcementServices;
+using Events_GSS.Data.ViewModelsCore;
 
-
-using System.Diagnostics.CodeAnalysis;
-using System.Threading.Tasks;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using static Events_GSS.Data.ViewModelsCore.AnnouncementsViewModelCore;
 
 public record AnnouncementReactionPayload(AnnouncementItemViewModel announcement, string emoji);
 
@@ -66,21 +67,10 @@ public partial class AnnouncementViewModel : ObservableObject
     /// <summary>
     /// Gets percentage of participants who have read the announcement.
     /// </summary>
-    public string ReadReceiptSummary
-    {
-        get
-        {
-            if (this.ReadReceiptTotalCount == 0)
-            {
-                return "No participants";
-            }
-
-            var percentageOfUsersWhoReadAnnouncement = (int)Math.Round(
-                percentageMultiplier * this.ReadReceiptReadCount / this.ReadReceiptTotalCount);
-
-            return $"{this.ReadReceiptReadCount} / {this.ReadReceiptTotalCount} read ({percentageOfUsersWhoReadAnnouncement}%)";
-        }
-    }
+    public string ReadReceiptSummary =>
+    AnnouncementsViewModelCore.GetReadReceiptSummary(
+        this.ReadReceiptReadCount,
+        this.ReadReceiptTotalCount);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNotLoading))]
@@ -139,43 +129,37 @@ public partial class AnnouncementViewModel : ObservableObject
     }
 
     [RelayCommand]
-
-    // Creates or updates an announcement
     private async Task SubmitAnnouncementAsync()
     {
-        if (string.IsNullOrWhiteSpace(this.NewMessage))
-        {
+        if (!AnnouncementsViewModelCore.CanSubmit(this.NewMessage))
             return;
-        }
 
-        if (this.IsEditing)
+        var mode = AnnouncementsViewModelCore.GetSubmitMode(this.IsEditing);
+        var message = AnnouncementsViewModelCore.NormalizeMessage(this.NewMessage);
+
+        await this.RunGuardedAsync(async () =>
         {
-            await this.RunGuardedAsync(async () =>
+            if (mode == SubmitMode.Edit)
             {
                 await this._announcementService.UpdateAnnouncementAsync(
-                    this.EditingAnnouncement!.Id,
-                    this.NewMessage.Trim(),
+                    this.EditingAnnouncement!.Model.Id,
+                    message,
                     this._currentUserId,
                     this._currentEvent.EventId);
 
                 this.EditingAnnouncement = null;
-                this.NewMessage = string.Empty;
-                await this.LoadAnnouncementsAsync();
-            });
-        }
-        else
-        {
-            await this.RunGuardedAsync(async () =>
+            }
+            else
             {
                 await this._announcementService.CreateAnnouncementAsync(
-                    this.NewMessage.Trim(),
+                    message,
                     this._currentEvent.EventId,
                     this._currentUserId);
+            }
 
-                this.NewMessage = string.Empty;
-                await this.LoadAnnouncementsAsync();
-            });
-        }
+            this.NewMessage = string.Empty;
+            await this.LoadAnnouncementsAsync();
+        });
     }
 
     [RelayCommand]
@@ -189,7 +173,7 @@ public partial class AnnouncementViewModel : ObservableObject
         }
 
         this.EditingAnnouncement = item;
-        this.NewMessage = item.Message;
+        this.NewMessage = item.Model.Message;
     }
 
     [RelayCommand]
@@ -210,7 +194,7 @@ public partial class AnnouncementViewModel : ObservableObject
         await this.RunGuardedAsync(async () =>
         {
             await this._announcementService.DeleteAnnouncementAsync(
-                item.Id, this._currentUserId, this._currentEvent.EventId);
+                item.Model.Id, this._currentUserId, this._currentEvent.EventId);
 
             this.Announcements.Remove(item);
             this.UpdateUnreadCount();
@@ -228,7 +212,7 @@ public partial class AnnouncementViewModel : ObservableObject
         await this.RunGuardedAsync(async () =>
         {
             await this._announcementService.PinAnnouncementAsync(
-                item.Id, this._currentEvent.EventId, this._currentUserId);
+                item.Model.Id, this._currentEvent.EventId, this._currentUserId);
 
             await this.LoadAnnouncementsAsync();
         });
@@ -247,7 +231,7 @@ public partial class AnnouncementViewModel : ObservableObject
         if (item.IsExpanded)
         {
             var wasMarked = await this._announcementService.MarkAsReadIfNeededAsync(
-                item.Id,
+                item.Model.Id,
                 this._currentUserId,
                 item.IsRead);
 
@@ -273,7 +257,7 @@ public partial class AnnouncementViewModel : ObservableObject
         try
         {
             var (readers, total) = await this._announcementService.GetReadReceiptsAsync(
-                item.Id, this._currentEvent.EventId, this._currentUserId);
+                item.Model.Id, this._currentEvent.EventId, this._currentUserId);
 
             this.ReadReceiptUsers.Clear();
             foreach (var reader in readers)
@@ -304,7 +288,7 @@ public partial class AnnouncementViewModel : ObservableObject
 
         await this.RunGuardedAsync(async () =>
         {
-            await this._announcementService.ToggleReactionAsync(payload.announcement.Id, this._currentUserId, payload.emoji);
+            await this._announcementService.ToggleReactionAsync(payload.announcement.Model.Id, this._currentUserId, payload.emoji);
 
             await this.LoadAnnouncementsAsync();
         });
@@ -312,7 +296,9 @@ public partial class AnnouncementViewModel : ObservableObject
 
     private void UpdateUnreadCount()
     {
-        this.UnreadCount = this.Announcements.Count(a => !a.IsRead);
+        this.UnreadCount =
+            AnnouncementsViewModelCore.CalculateUnreadCount(
+                this.Announcements.Select(a => a.Model));
     }
 
     // Wraps an async operation to manage loading state and handle exceptions consistently across the ViewModel

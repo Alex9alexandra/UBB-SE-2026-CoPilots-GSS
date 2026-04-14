@@ -177,7 +177,7 @@ public sealed partial class AnnouncementControl : UserControl
         await this.ViewModel.LoadReadReceiptsCommand.ExecuteAsync(announcementItem);
 
         // Compute non-readers
-        var nonReaders = await this.ViewModel.GetNonReadersAsync(announcementItem.Id);
+        var nonReaders = await this.ViewModel.GetNonReadersAsync(announcementItem.Model.Id);
 
         // Build dialog
         var panel = new StackPanel { Spacing = 8 };
