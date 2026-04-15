@@ -119,6 +119,45 @@ public class DiscussionServiceTests
         Assert.False(result[0].CanDelete);
     }
 
+
+
+    [Fact]
+    public async Task GetMessagesAsync_MessageWithNullAuthor_RegularUserCannotDelete()
+    {
+        int userId = 3, eventId = 1;
+        var evt = MakeEvent(eventId, adminId: 99);
+        mockEventRepo.Setup(e => e.GetByIdAsync(eventId)).ReturnsAsync(evt);
+
+
+        var messages = new List<DiscussionMessage>
+        {
+            new DiscussionMessage(1, "noauthormessage!", DateTime.UtcNow) { Author = null }
+        };
+        mockRepo.Setup(r => r.GetByEventAsync(eventId, userId)).ReturnsAsync(messages);
+
+        var result = await service.GetMessagesAsync(eventId, userId);
+
+        Assert.False(result[0].CanDelete);
+    }
+
+    [Fact]
+    public async Task GetMessagesAsync_EventHasNoAdmin_RegularUserCannotDeleteOthersMessages()
+    {
+        int userId = 3, eventId = 1;
+        var evt = MakeEvent(eventId);
+        mockEventRepo.Setup(e => e.GetByIdAsync(eventId)).ReturnsAsync(evt);
+
+        var messages = new List<DiscussionMessage>
+        {
+            new DiscussionMessage(1, "not mine", DateTime.UtcNow) { Author = new User { UserId = 99 } }
+        };
+        mockRepo.Setup(r => r.GetByEventAsync(eventId, userId)).ReturnsAsync(messages);
+
+        var result = await service.GetMessagesAsync(eventId, userId);
+
+        Assert.False(result[0].CanDelete);
+    }
+
     [Fact]
     public async Task CreateMessageAsync_EmptyTextAndMedia_ThrowsArgumentException() {
         await Assert.ThrowsAsync<ArgumentException>(async () => await service.CreateMessageAsync("", "", 1, 1, null));
@@ -173,6 +212,62 @@ public class DiscussionServiceTests
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
         service.CreateMessageAsync("heyy", null, eventId, userId, null));
+    }
+
+    [Fact]
+    public async Task CreateMessageAsync_SetsMediaPathOnPersistedMessage()
+    {
+        int userId = 1, eventId = 10;
+        mockReputation.Setup(r => r.CanPostMessagesAsync(userId)).ReturnsAsync(true);
+        var evt = MakeEvent(eventId);
+        mockEventRepo.Setup(e => e.GetByIdAsync(eventId)).ReturnsAsync(evt);
+        mockRepo.Setup(r => r.GetMuteAsync(eventId, userId)).ReturnsAsync((DiscussionMute?)null);
+        mockRepo.Setup(r => r.GetEventParticipantsAsync(eventId)).ReturnsAsync(new List<User>());
+
+        DiscussionMessage? captured = null;
+        mockRepo.Setup(r => r.AddAsync(It.IsAny<DiscussionMessage>()))
+                .Callback<DiscussionMessage>(m => captured = m)
+                .ReturnsAsync(0);
+
+        await service.CreateMessageAsync(null, "/tmp/photo.jpg", eventId, userId, null);
+
+        Assert.Equal("/tmp/photo.jpg", captured!.MediaPath);
+    }
+
+    [Fact]
+    public async Task CreateMessageAsync_MessageContainsTrailingWhitespaces_TrimsWhitespacesFromText()
+    {
+        int userId = 1, eventId = 10;
+        mockReputation.Setup(r => r.CanPostMessagesAsync(userId)).ReturnsAsync(true);
+        var evt = MakeEvent(eventId);
+        mockEventRepo.Setup(e => e.GetByIdAsync(eventId)).ReturnsAsync(evt);
+        mockRepo.Setup(r => r.GetMuteAsync(eventId, userId)).ReturnsAsync((DiscussionMute?)null);
+        mockRepo.Setup(r => r.GetEventParticipantsAsync(eventId)).ReturnsAsync(new List<User>());
+
+        DiscussionMessage? captured = null;
+        mockRepo.Setup(r => r.AddAsync(It.IsAny<DiscussionMessage>()))
+                .Callback<DiscussionMessage>(m => captured = m)
+                .ReturnsAsync(0);
+
+        await service.CreateMessageAsync("  hello  ", null, eventId, userId, null);
+
+        Assert.Equal("hello", captured!.Message);
+    }
+
+    [Fact]
+    public async Task CreateMessageAsync_MuteHasNoMutedUntilAndIsNotPermanent_MessageIsSent()
+    {
+        int userId = 1, eventId = 10;
+        mockReputation.Setup(r => r.CanPostMessagesAsync(userId)).ReturnsAsync(true);
+        var evt = MakeEvent(eventId);
+        mockEventRepo.Setup(e => e.GetByIdAsync(eventId)).ReturnsAsync(evt);
+        mockRepo.Setup(r => r.GetMuteAsync(eventId, userId)).ReturnsAsync(new DiscussionMute { IsPermanent = false, MutedUntil = null });
+        mockRepo.Setup(r => r.AddAsync(It.IsAny<DiscussionMessage>())).ReturnsAsync(0);
+        mockRepo.Setup(r => r.GetEventParticipantsAsync(eventId)).ReturnsAsync(new List<User>());
+
+        await service.CreateMessageAsync("hello", null, eventId, userId, null);
+
+        mockRepo.Verify(r => r.AddAsync(It.IsAny<DiscussionMessage>()), Times.Once);
     }
 
     [Fact]
@@ -831,25 +926,6 @@ public async Task CreateMessageAsync_MentionerNotInParticipants_UsesSomeoneFallb
 
 
     [Fact]
-    public async Task GetMessagesAsync_MessageWithNullAuthor_RegularUserCannotDelete()
-    {
-        int userId = 3, eventId = 1;
-        var evt = MakeEvent(eventId, adminId: 99);
-        mockEventRepo.Setup(e => e.GetByIdAsync(eventId)).ReturnsAsync(evt);
-
-
-        var messages = new List<DiscussionMessage>
-        {
-            new DiscussionMessage(1, "orphan", DateTime.UtcNow) { Author = null }
-        };
-        mockRepo.Setup(r => r.GetByEventAsync(eventId, userId)).ReturnsAsync(messages);
-
-        var result = await service.GetMessagesAsync(eventId, userId);
-
-        Assert.False(result[0].CanDelete);
-    }
-
-    [Fact]
     public async Task MuteUserAsync_EventHasNoAdmin_ThrowsUnauthorized()
     {
         int eventId = 10;
@@ -884,43 +960,8 @@ public async Task CreateMessageAsync_MentionerNotInParticipants_UsesSomeoneFallb
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.SetSlowModeAsync(eventId, 30, 1));
     }
-    [Fact]
-    public async Task CreateMessageAsync_SetsMediaPathOnPersistedMessage()
-    {
-        int userId = 1, eventId = 10;
-        mockReputation.Setup(r => r.CanPostMessagesAsync(userId)).ReturnsAsync(true);
-        var evt = MakeEvent(eventId);
-        mockEventRepo.Setup(e => e.GetByIdAsync(eventId)).ReturnsAsync(evt);
+    
 
-        mockRepo.Setup(r => r.GetEventParticipantsAsync(eventId)).ReturnsAsync(new List<User>());
 
-        DiscussionMessage? captured = null;
-        mockRepo.Setup(r => r.AddAsync(It.IsAny<DiscussionMessage>()))
-                .Callback<DiscussionMessage>(m => captured = m)
-                .ReturnsAsync(0);
-
-        await service.CreateMessageAsync(null, "/tmp/photo.jpg", eventId, userId, null);
-
-        Assert.Equal("/tmp/photo.jpg", captured!.MediaPath);
-    }
-
-    [Fact]
-    public async Task CreateMessageAsync_MessageContainsTrailingWhitespaces_TrimsWhitespacesFromText()
-    {
-        int userId = 1, eventId = 10;
-        mockReputation.Setup(r => r.CanPostMessagesAsync(userId)).ReturnsAsync(true);
-        var evt = MakeEvent(eventId);
-        mockEventRepo.Setup(e => e.GetByIdAsync(eventId)).ReturnsAsync(evt);
-
-        mockRepo.Setup(r => r.GetEventParticipantsAsync(eventId)).ReturnsAsync(new List<User>());
-
-        DiscussionMessage? captured = null;
-        mockRepo.Setup(r => r.AddAsync(It.IsAny<DiscussionMessage>()))
-                .Callback<DiscussionMessage>(m => captured = m)
-                .ReturnsAsync(0);
-
-        await service.CreateMessageAsync("  hello  ", null, eventId, userId, null);
-
-        Assert.Equal("hello", captured!.Message);
-    }
+    
 }

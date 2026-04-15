@@ -48,7 +48,7 @@ public static class DiscussionViewModelCore
 
             if (selection == "Permanent")
             {
-                return null; 
+                return null;
             }
 
             return now.AddMinutes(30);
