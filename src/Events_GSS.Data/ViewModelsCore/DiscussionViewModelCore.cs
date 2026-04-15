@@ -5,14 +5,14 @@ namespace Events_GSS.ViewModelsCore;
 
 public static class DiscussionViewModelCore
 {
-    public static bool CanSend(
-        string? newMessage,
-        string? mediaPath,
-        bool isLoading,
-        bool isMuted) =>
-        (!string.IsNullOrWhiteSpace(newMessage) || !string.IsNullOrWhiteSpace(mediaPath))
-        && !isLoading
-        && !isMuted;
+    public static bool CanSend(string? newMessage, string? mediaPath, bool isLoading, bool isMuted)
+    {
+        bool hasMessage = !string.IsNullOrWhiteSpace(newMessage);
+        bool hasMedia = !string.IsNullOrWhiteSpace(mediaPath);
+        bool hasContent = hasMessage || hasMedia;
+
+        return hasContent && !isLoading && !isMuted;
+    }
 
     public static string InsertMention(string currentMessage, string userName)
     {
@@ -29,19 +29,30 @@ public static class DiscussionViewModelCore
         return currentMessage + mention;
     }
 
-    public static DateTime? CalculateMuteExpiry(
-        string selection,
-        double customHours,
-        double customMinutes,
-        DateTime now) =>
-        selection switch
+    public static DateTime? CalculateMuteExpiry(string selection, double customHours, double customMinutes, DateTime now)
         {
-            "1 hour" => now.AddHours(1),
-            "24 hours" => now.AddDays(1),
-            "Custom" => now.AddHours(customHours).AddMinutes(customMinutes),
-            "Permanent" => (DateTime?)null,
-            _ => now.AddMinutes(30) // default fallback
-        };
+            if (selection == "1 hour")
+            {
+                return now.AddHours(1);
+            }
+
+            if (selection == "24 hours")
+            {
+                return now.AddDays(1);
+            }
+
+            if (selection == "Custom")
+            {
+                return now.AddHours(customHours).AddMinutes(customMinutes);
+            }
+
+            if (selection == "Permanent")
+            {
+                return null; 
+            }
+
+            return now.AddMinutes(30);
+    }
 
     public static int? NormaliseSlowModeSeconds(double? seconds) =>
         seconds.HasValue ? (int)Math.Round(seconds.Value) : null;

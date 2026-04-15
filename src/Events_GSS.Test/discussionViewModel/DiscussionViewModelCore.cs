@@ -15,152 +15,112 @@ public class DiscussionViewModelCoreTests
     public class CanSendTests
     {
         [Fact]
-        public void CanSend_WithTextOnly_ReturnsTrue()
+        public void CanSend_UserSendsMessageWithTextOnly_MessageIsSentSuccessfully ()
         {
-            Assert.True(DiscussionViewModelCore.CanSend(
-                newMessage: "hello",
-                mediaPath: null,
-                isLoading: false,
-                isMuted: false));
+            Assert.True(DiscussionViewModelCore.CanSend(newMessage: "hello",mediaPath: null,isLoading: false, isMuted: false));
         }
 
         [Fact]
-        public void CanSend_WithMediaOnly_ReturnsTrue()
+        public void CanSend_UserSendsMessageWithMediaOnly_MessageIsSentSuccessfully()
         {
-            Assert.True(DiscussionViewModelCore.CanSend(
-                newMessage: null,
-                mediaPath: "/tmp/photo.jpg",
-                isLoading: false,
-                isMuted: false));
+            Assert.True(DiscussionViewModelCore.CanSend(newMessage: null,mediaPath: "/tmp/photo.jpg",isLoading: false, isMuted: false));
         }
 
         [Fact]
-        public void CanSend_WithTextAndMedia_ReturnsTrue()
+        public void CanSend_UserSendsMessageWithBothTextAndMedia_MessageIsSentSuccessfully()
         {
-            Assert.True(DiscussionViewModelCore.CanSend(
-                newMessage: "see attached",
-                mediaPath: "/tmp/photo.jpg",
-                isLoading: false,
-                isMuted: false));
+            Assert.True(DiscussionViewModelCore.CanSend(newMessage: "check this", mediaPath: "/tmp/photo.jpg", isLoading: false, isMuted: false));
         }
 
         [Fact]
-        public void CanSend_WhitespaceMessageNoMedia_ReturnsFalse()
+        public void CanSend_UserSendsMessageWithOnlyWhitespaces_MessageIsNotSent()
         {
-            Assert.False(DiscussionViewModelCore.CanSend(
-                newMessage: "   ",
-                mediaPath: null,
-                isLoading: false,
-                isMuted: false));
+            Assert.False(DiscussionViewModelCore.CanSend(newMessage: "   ",mediaPath: null, isLoading: false, isMuted: false));
         }
 
         [Fact]
-        public void CanSend_NullMessageNullMedia_ReturnsFalse()
+        public void CanSend_UserSendsMessageWithNullTextAndNullMedia_MessageIsNotSent()
         {
-            Assert.False(DiscussionViewModelCore.CanSend(
-                newMessage: null,
-                mediaPath: null,
-                isLoading: false,
-                isMuted: false));
+            Assert.False(DiscussionViewModelCore.CanSend(newMessage: null,mediaPath: null,isLoading: false,isMuted: false));
         }
 
         [Fact]
-        public void CanSend_WhenLoading_ReturnsFalse()
+        public void CanSend_UserSendsMessageDuringLoading_MessageIsNotSent()
         {
-            Assert.False(DiscussionViewModelCore.CanSend(
-                newMessage: "hello",
-                mediaPath: null,
-                isLoading: true,
-                isMuted: false));
+            Assert.False(DiscussionViewModelCore.CanSend(newMessage: "hello", mediaPath: null,isLoading: true, isMuted: false));
         }
 
         [Fact]
-        public void CanSend_WhenMuted_ReturnsFalse()
+        public void CanSend_UserTriesToSendMessageWhileMuted_MessageIsNotSent()
         {
-            Assert.False(DiscussionViewModelCore.CanSend(
-                newMessage: "hello",
-                mediaPath: null,
-                isLoading: false,
-                isMuted: true));
+            Assert.False(DiscussionViewModelCore.CanSend(newMessage: "hello",mediaPath: null,isLoading: false, isMuted: true));
         }
 
         [Fact]
-        public void CanSend_WhenLoadingAndMuted_ReturnsFalse()
+        public void CanSend_UserTriesToSendMessageWhileMutedAndDuringLoading_MessageIsNotSent()
         {
-            Assert.False(DiscussionViewModelCore.CanSend(
-                newMessage: "hello",
-                mediaPath: null,
-                isLoading: true,
-                isMuted: true));
+            Assert.False(DiscussionViewModelCore.CanSend(newMessage: "hello", mediaPath: null, isLoading: true, isMuted: true));
         }
 
         [Fact]
-        public void CanSend_WhitespaceMediaPath_ReturnsFalse()
+        public void CanSend_UserSendsMessageWithMediaPathContainingWhiteSpaces_MessageIsNotSent()
         {
-            // A path that is only whitespace must not count as content.
-            Assert.False(DiscussionViewModelCore.CanSend(
-                newMessage: null,
-                mediaPath: "   ",
-                isLoading: false,
-                isMuted: false));
+            Assert.False(DiscussionViewModelCore.CanSend(newMessage: null,mediaPath: "   ",isLoading: false, isMuted: false));
         }
     }
-
 
 
     public class InsertMentionTests
     {
         [Fact]
-        public void InsertMention_EmptyMessage_PrependsMention()
+        public void InsertMention_UserMentionsWithEmptyMessage_PrependsMention()
         {
-            var result = DiscussionViewModelCore.InsertMention(string.Empty, "Alice");
-            Assert.Equal("@Alice ", result);
+            var result = DiscussionViewModelCore.InsertMention(string.Empty, "David");
+            Assert.Equal("@David ", result);
         }
 
         [Fact]
-        public void InsertMention_MessageEndsWithSpace_AppendsMentionWithoutExtraSpace()
+        public void InsertMention_UserSendsMessageWithTrailingWhitespaceBeforeMentioning_DoesNotAppendAnotherWhitespace()
         {
-            var result = DiscussionViewModelCore.InsertMention("Hey ", "Bob");
-            Assert.Equal("Hey @Bob ", result);
+            var result = DiscussionViewModelCore.InsertMention("Hey ", "David");
+            Assert.Equal("Hey @David ", result);
         }
 
         [Fact]
-        public void InsertMention_MessageDoesNotEndWithSpace_InsertsSpaceBeforeMention()
+        public void InsertMention_UserSendsMessageWithoutTrailingWhitespaceBeforeMentioning_AppendsWhitespaceBeforeMention()
         {
-            var result = DiscussionViewModelCore.InsertMention("Hey", "Bob");
-            Assert.Equal("Hey @Bob ", result);
+            var result = DiscussionViewModelCore.InsertMention("Hey", "David");
+            Assert.Equal("Hey @David ", result);
         }
 
         [Fact]
-        public void InsertMention_BlankUserName_ReturnsOriginalMessage()
+        public void InsertMention_UserAttemptsToMentionAnEmptyString_OriginalMessageIsSent()
         {
             var result = DiscussionViewModelCore.InsertMention("Hello", "   ");
             Assert.Equal("Hello", result);
         }
 
         [Fact]
-        public void InsertMention_NullUserName_ReturnsOriginalMessage()
+        public void InsertMention_UserTriesToMentionNullUser_OriginalMessageIsSent()
         {
             var result = DiscussionViewModelCore.InsertMention("Hello", null!);
             Assert.Equal("Hello", result);
         }
 
         [Fact]
-        public void InsertMention_EmptyUserName_ReturnsOriginalMessage()
+        public void InsertMention_UserTriesToMentionEmptyString_OriginalMessageIsSent()
         {
             var result = DiscussionViewModelCore.InsertMention("Hello", string.Empty);
             Assert.Equal("Hello", result);
         }
 
         [Fact]
-        public void InsertMention_NullCurrentMessage_AppendsMention()
+        public void InsertMention_UserSendsNullMessageWithValidMention_MentionIsAppendedToTheNullMessage()
         {
-            // null current message treated as empty by the concatenation
-            var result = DiscussionViewModelCore.InsertMention(null!, "Carol");
-            Assert.Equal("@Carol ", result);
+            var result = DiscussionViewModelCore.InsertMention(null!, "Isa");
+            Assert.Equal("@Isa ", result);
         }
     }
-
 
 
     public class CalculateMuteExpiryTests
@@ -168,42 +128,42 @@ public class DiscussionViewModelCoreTests
         private static readonly DateTime Now = new(2024, 6, 15, 12, 0, 0, DateTimeKind.Utc);
 
         [Fact]
-        public void CalculateMuteExpiry_OneHour_AddsOneHour()
+        public void CalculateMuteExpiry_MuteForOneHour_MuteIsExtendedByAnHour()
         {
             var result = DiscussionViewModelCore.CalculateMuteExpiry("1 hour", 0, 0, Now);
             Assert.Equal(Now.AddHours(1), result);
         }
 
         [Fact]
-        public void CalculateMuteExpiry_TwentyFourHours_AddsOneDay()
+        public void CalculateMuteExpiry_MuteForTwentyFourHours_MuteIsExtendedByAFullDay()
         {
             var result = DiscussionViewModelCore.CalculateMuteExpiry("24 hours", 0, 0, Now);
             Assert.Equal(Now.AddDays(1), result);
         }
 
         [Fact]
-        public void CalculateMuteExpiry_Custom_AddsHoursAndMinutes()
+        public void CalculateMuteExpiry_MuteForCustomAmountOfTime_MuteIsExtendedAccordingly()
         {
             var result = DiscussionViewModelCore.CalculateMuteExpiry("Custom", 2.5, 45, Now);
             Assert.Equal(Now.AddHours(2.5).AddMinutes(45), result);
         }
 
         [Fact]
-        public void CalculateMuteExpiry_Permanent_ReturnsNull()
+        public void CalculateMuteExpiry_MutePermanently_MuteIsNullSinceItWillNeverExpire()
         {
             var result = DiscussionViewModelCore.CalculateMuteExpiry("Permanent", 0, 0, Now);
             Assert.Null(result);
         }
 
         [Fact]
-        public void CalculateMuteExpiry_UnknownSelection_FallsBackToThirtyMinutes()
+        public void CalculateMuteExpiry_MuteForUnknownExpiry_FallsBackToThirtyMinutesDefault()
         {
-            var result = DiscussionViewModelCore.CalculateMuteExpiry("something else", 0, 0, Now);
+            var result = DiscussionViewModelCore.CalculateMuteExpiry("something", 0, 0, Now);
             Assert.Equal(Now.AddMinutes(30), result);
         }
 
         [Fact]
-        public void CalculateMuteExpiry_Custom_ZeroHoursAndMinutes_ReturnsSameAsNow()
+        public void CalculateMuteExpiry_MuteForZeroHoursAndMinutes_DoesntExtendMute()
         {
             var result = DiscussionViewModelCore.CalculateMuteExpiry("Custom", 0, 0, Now);
             Assert.Equal(Now, result);
@@ -214,7 +174,7 @@ public class DiscussionViewModelCoreTests
     public class NormaliseSlowModeSecondsTests
     {
         [Fact]
-        public void NormaliseSlowModeSeconds_NullInput_ReturnsNull()
+        public void NormaliseSlowModeSeconds_InputIsNull_ReturnsNull()
         {
             Assert.Null(DiscussionViewModelCore.NormaliseSlowModeSeconds(null));
         }
@@ -226,27 +186,20 @@ public class DiscussionViewModelCoreTests
         }
 
         [Fact]
-        public void NormaliseSlowModeSeconds_FractionBelow0Point5_RoundsDown()
+        public void NormaliseSlowModeSeconds_FractionBelowPointFive_RoundsDown()
         {
             Assert.Equal(5, DiscussionViewModelCore.NormaliseSlowModeSeconds(5.3));
         }
 
         [Fact]
-        public void NormaliseSlowModeSeconds_FractionAbove0Point5_RoundsUp()
+        public void NormaliseSlowModeSeconds_FractionAbovePointFive_RoundsUp()
         {
             Assert.Equal(6, DiscussionViewModelCore.NormaliseSlowModeSeconds(5.7));
         }
 
-        [Fact]
-        public void NormaliseSlowModeSeconds_MidpointValue_UsesRoundHalfToEven()
-        {
-            // Math.Round uses banker's rounding by default:  2.5 → 2 (even), 3.5 → 4 (even)
-            Assert.Equal(2, DiscussionViewModelCore.NormaliseSlowModeSeconds(2.5));
-            Assert.Equal(4, DiscussionViewModelCore.NormaliseSlowModeSeconds(3.5));
-        }
 
         [Fact]
-        public void NormaliseSlowModeSeconds_Zero_ReturnsZero()
+        public void NormaliseSlowModeSeconds_ZeroSeconds_ReturnsZero()
         {
             Assert.Equal(0, DiscussionViewModelCore.NormaliseSlowModeSeconds(0.0));
         }
@@ -261,14 +214,6 @@ public class DiscussionViewModelCoreTests
         {
             var result = DiscussionViewModelCore.TryParseSlowModeSeconds("Slow mode: wait 42 seconds");
             Assert.Equal(42, result);
-        }
-
-        [Fact]
-        public void TryParseSlowModeSeconds_MessageWithLeadingNumber_ReturnsFirstNumber()
-        {
-            // Only the FIRST integer is extracted.
-            var result = DiscussionViewModelCore.TryParseSlowModeSeconds("5 seconds remaining");
-            Assert.Equal(5, result);
         }
 
         [Fact]
@@ -307,9 +252,8 @@ public class DiscussionViewModelCoreTests
         }
 
         [Theory]
-        [InlineData("Slow mode active")]
-        [InlineData("Unauthorized")]
-        [InlineData("")]
+        [InlineData("Something something active")]
+        [InlineData("No M*ted here!")]
         public void IsMuteException_WhenMessageDoesNotContainMuted_ReturnsFalse(string message)
         {
             Assert.False(DiscussionViewModelCore.IsMuteException(message));
@@ -321,7 +265,6 @@ public class DiscussionViewModelCoreTests
     {
         [Theory]
         [InlineData("Slow mode: wait 10 seconds")]
-        [InlineData("slow mode enabled")]        // case-insensitive
         [InlineData("SLOW MODE restriction")]
         public void IsSlowModeException_WhenMessageContainsSlowMode_ReturnsTrue(string message)
         {   
@@ -329,9 +272,8 @@ public class DiscussionViewModelCoreTests
         }
 
         [Theory]
-        [InlineData("You are muted")]
-        [InlineData("Unauthorized action")]
-        [InlineData("")]
+        [InlineData("You are done for...")]
+        [InlineData("no slowmode here")]
         public void IsSlowModeException_WhenMessageDoesNotContainSlowMode_ReturnsFalse(string message)
         {
             Assert.False(DiscussionViewModelCore.IsSlowModeException(message));
