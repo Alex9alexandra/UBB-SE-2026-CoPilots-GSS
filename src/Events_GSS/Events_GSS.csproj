@@ -13,7 +13,16 @@
     <IsPackable>false</IsPackable>
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
     <EnableMsixTooling>true</EnableMsixTooling>
+    <!-- <CodeAnalysisRuleSet>SE.ruleset</CodeAnalysisRuleSet> -->
   </PropertyGroup>
+  <ItemGroup>
+    <None Remove="appsettings.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.241114003" />

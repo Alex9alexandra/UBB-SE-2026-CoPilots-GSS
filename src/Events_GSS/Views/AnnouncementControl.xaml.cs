@@ -38,14 +38,14 @@ public sealed partial class AnnouncementControl : UserControl
 
     // Handles ViewModel changes by subscribing to the Announcements collection and updates the UI
     // to show or hide the empty state message based on whether the collection is empty
-    private static void OnViewModelChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs args)
+    private static void OnViewModelChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs arguments)
     {
         if (dependencyObject is AnnouncementControl control &&
-            args.NewValue is AnnouncementViewModel viewModel)
+            arguments.NewValue is AnnouncementViewModel viewModel)
         {
             viewModel.Announcements.CollectionChanged += OnAnnouncementsCollectionChanged;
 
-            void OnAnnouncementsCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+            void OnAnnouncementsCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs events)
             {
                 control.EmptyStateText.Visibility =
                     viewModel.Announcements.Count == 0
@@ -85,7 +85,7 @@ public sealed partial class AnnouncementControl : UserControl
     }
 
     // Handles tapping on an announcement header and toggles its expanded state
-    private void OnAnnouncementHeaderTapped(object sender, TappedRoutedEventArgs eventArgs)
+    private void OnAnnouncementHeaderTapped(object sender, TappedRoutedEventArgs eventArguments)
     {
         if (sender is FrameworkElement frameworkElement &&
             frameworkElement.Tag is AnnouncementItemViewModel announcementItem &&
@@ -95,7 +95,7 @@ public sealed partial class AnnouncementControl : UserControl
         }
     }
 
-    private void OnEmojiClicked(object sender, RoutedEventArgs eventArgs)
+    private void OnEmojiClicked(object sender, RoutedEventArgs eventArguments)
     {
         if (sender is not Button button ||
             button.Tag is not string selectedEmoji ||
@@ -116,7 +116,7 @@ public sealed partial class AnnouncementControl : UserControl
         }
     }
 
-    private void OnEditClicked(object sender, RoutedEventArgs eventArgs)
+    private void OnEditClicked(object sender, RoutedEventArgs eventArguments)
     {
         if (sender is FrameworkElement frameworkElement &&
             frameworkElement.Tag is AnnouncementItemViewModel announcementItem &&
@@ -126,7 +126,7 @@ public sealed partial class AnnouncementControl : UserControl
         }
     }
 
-    private async void OnDeleteClicked(object sender, RoutedEventArgs eventArgs)
+    private async void OnDeleteClicked(object sender, RoutedEventArgs eventArguments)
     {
         if (sender is not FrameworkElement frameworkElement ||
             frameworkElement.Tag is not AnnouncementItemViewModel announcementItem ||
@@ -153,7 +153,7 @@ public sealed partial class AnnouncementControl : UserControl
         }
     }
 
-    private void OnPinClicked(object sender, RoutedEventArgs e)
+    private void OnPinClicked(object sender, RoutedEventArgs eventArguments)
     {
         if (sender is FrameworkElement frameworkElement
             && frameworkElement.Tag is AnnouncementItemViewModel announcementItem
@@ -177,7 +177,7 @@ public sealed partial class AnnouncementControl : UserControl
         await this.ViewModel.LoadReadReceiptsCommand.ExecuteAsync(announcementItem);
 
         // Compute non-readers
-        var nonReaders = await this.ViewModel.GetNonReadersAsync(announcementItem.Id);
+        var nonReaders = await this.ViewModel.GetNonReadersAsync(announcementItem.Model.Id);
 
         // Build dialog
         var panel = new StackPanel { Spacing = 8 };

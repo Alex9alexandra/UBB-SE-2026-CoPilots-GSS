@@ -53,7 +53,7 @@
                             Grid.Column="0"
                             Style="{ThemeResource CaptionTextBlockStyle}"
                             Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}">
-                            <Run Text="Editing announcement #" /><Run Text="{x:Bind ViewModel.EditingAnnouncement.Id, Mode=OneWay, FallbackValue=''}" />
+                            <Run Text="Editing announcement #" /><Run Text="{x:Bind ViewModel.EditingAnnouncement.Model.Id, Mode=OneWay, FallbackValue=''}" />
                         </TextBlock>
                         <Button
                             Grid.Column="1"
@@ -160,7 +160,7 @@
                                 Margin="0,0,8,0"
                                 VerticalAlignment="Center"
                                 Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
-                                Visibility="{x:Bind IsPinned, Converter={StaticResource BoolToVisibility}}" />
+                                Visibility="{x:Bind Model.IsPinned, Converter={StaticResource BoolToVisibility}}" />
 
                             <!-- Preview text + author + time -->
                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
@@ -171,15 +171,15 @@
                                     TextTrimming="CharacterEllipsis" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <TextBlock
-                                        Text="{x:Bind Author.Name, FallbackValue='Unknown'}"
+                                        Text="{x:Bind Model.Author.Name, FallbackValue='Unknown'}"
                                         Style="{ThemeResource CaptionTextBlockStyle}"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     <TextBlock
-                                        Text="{x:Bind Date}"
+                                        Text="{x:Bind Model.Date}"
                                         Style="{ThemeResource CaptionTextBlockStyle}"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     <Border
-                                        Visibility="{x:Bind IsEdited, Converter={StaticResource BoolToVisibility}}"
+                                        Visibility="{x:Bind Model.IsEdited, Converter={StaticResource BoolToVisibility}}"
                                         Background="{ThemeResource SystemFillColorNeutralBackgroundBrush}"
                                         CornerRadius="2"
                                         Padding="4,1">
@@ -210,7 +210,7 @@
 
                             <!-- Full message -->
                             <TextBlock
-                                Text="{x:Bind Message}"
+                                Text="{x:Bind Model.Message}"
                                 TextWrapping="Wrap"
                                 Style="{ThemeResource BodyTextBlockStyle}" />
                         </StackPanel>

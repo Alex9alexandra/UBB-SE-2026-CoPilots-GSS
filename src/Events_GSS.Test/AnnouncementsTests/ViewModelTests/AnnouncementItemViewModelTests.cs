@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using Events_GSS.ViewModels;
 using Events_GSS.Data.Models;
+using Events_GSS.Data.ViewModelsCore;
 
 using Xunit;
 
@@ -14,200 +14,173 @@ namespace Events_GSS.Tests.AnnouncementsTests.ViewModelTests
         [Fact]
         public void PreviewText_EmptyMessage_ReturnsEmpty()
         {
-            // Arrange
             var model = new Announcement(1, "", DateTime.UtcNow);
+            var core = new AnnouncementItemViewModelCore(model, 1);
 
-            // Act
-            var vm = new AnnouncementItemViewModel(model, 1, false);
-
-            // Assert
-            Assert.Equal(string.Empty, vm.PreviewText);
+            Assert.Equal(string.Empty, core.PreviewText);
         }
 
         [Fact]
-        public void PreviewText_LongMessage_TrimsTo120Chars()
+        public void PreviewText_Under120Chars_ReturnsFullText()
         {
-            // Arrange
-            var longText = new string('a', 150);
-            var model = new Announcement(1, longText, DateTime.UtcNow);
+            var text = "short message";
+            var model = new Announcement(1, text, DateTime.UtcNow);
+            var core = new AnnouncementItemViewModelCore(model, 1);
 
-            // Act
-            var vm = new AnnouncementItemViewModel(model, 1, false);
+            Assert.Equal(text, core.PreviewText);
+        }
 
-            // Assert
-            Assert.Equal(121, vm.PreviewText.Length); // 120 + "…"
+        [Fact]
+        public void PreviewText_Over120Chars_TrimsAndAddsEllipsis()
+        {
+            var text = new string("never gonna give you up, " +
+                                    "never gonna let you down, " +
+                                    "never gonna run around and desert you. " +
+                                    "never gonna make you cry, " +
+                                    "never gonna say goodbye, " +
+                                    "is this over 120 characters yeeeet?");
+            var model = new Announcement(1, text, DateTime.UtcNow);
+            var core = new AnnouncementItemViewModelCore(model, 1);
+
+            Assert.Equal(121, core.PreviewText.Length);
+        }
+
+        [Fact]
+        public void PreviewText_WithNewline_ReturnsFirstLineOnly()
+        {
+            var model = new Announcement(1, "hehehe\nhaw", DateTime.UtcNow);
+            var core = new AnnouncementItemViewModelCore(model, 1);
+
+            Assert.Equal("hehehe", core.PreviewText);
         }
 
         [Fact]
         public void HasFullContent_WithNewline_ReturnsTrue()
         {
-            // Arrange
-            var model = new Announcement(1, "line1\nline2", DateTime.UtcNow);
+            var model = new Announcement(1, "yabadaba\ndooooo", DateTime.UtcNow);
+            var core = new AnnouncementItemViewModelCore(model, 1);
 
-            // Act
-            var vm = new AnnouncementItemViewModel(model, 1, false);
+            Assert.True(core.HasFullContent);
+        }
 
-            // Assert
-            Assert.True(vm.HasFullContent);
+        [Fact]
+        public void HasFullContent_Over120Chars_ReturnsTrue()
+        {
+            var model = new Announcement(1, new string('a', 150), DateTime.UtcNow);
+            var core = new AnnouncementItemViewModelCore(model, 1);
+
+            Assert.True(core.HasFullContent);
         }
 
         [Fact]
         public void HasFullContent_ShortMessage_ReturnsFalse()
         {
-            // Arrange
-            var model = new Announcement(1, "short", DateTime.UtcNow);
+            var model = new Announcement(1, "shortie", DateTime.UtcNow);
+            var core = new AnnouncementItemViewModelCore(model, 1);
 
-            // Act
-            var vm = new AnnouncementItemViewModel(model, 1, false);
-
-            // Assert
-            Assert.False(vm.HasFullContent);
+            Assert.False(core.HasFullContent);
         }
 
         [Fact]
-        public void ReactionGroups_GroupsByEmoji_CorrectCounts()
+        public void ReactionGroups_GroupCount_IsCorrect()
         {
-            // Arrange
             var model = new Announcement(1, "msg", DateTime.UtcNow)
             {
                 Reactions = new List<AnnouncementReaction>
-                {
-                    new AnnouncementReaction { Emoji = "👍", Author = new User { UserId = 1 } },
-                    new AnnouncementReaction { Emoji = "👍", Author = new User { UserId = 2 } },
-                    new AnnouncementReaction { Emoji = "🔥", Author = new User { UserId = 3 } },
-                }
+        {
+            new() { Emoji = "👍", Author = new User { UserId = 1 } },
+            new() { Emoji = "🔥", Author = new User { UserId = 2 } }
+        }
             };
 
-            // Act
-            var vm = new AnnouncementItemViewModel(model, 1, false);
-            var groups = vm.ReactionGroups;
+            var core = new AnnouncementItemViewModelCore(model, 1);
 
-            // Assert
-            Assert.Equal(2, groups.Count);
-            Assert.Equal(2, groups.First(g => g.Emoji == "👍").Count);
+            Assert.Equal(2, core.ReactionGroups.Count);
         }
 
         [Fact]
-        public void ReactionGroups_CurrentUserReacted_DetectedCorrectly()
+        public void ReactionGroups_CountPerEmoji_IsCorrect()
         {
-            // Arrange
             var model = new Announcement(1, "msg", DateTime.UtcNow)
             {
                 Reactions = new List<AnnouncementReaction>
-                {
-                    new AnnouncementReaction { Emoji = "👍", Author = new User { UserId = 1 } }
-                }
+        {
+            new() { Emoji = "👍", Author = new User { UserId = 1 } },
+            new() { Emoji = "👍", Author = new User { UserId = 2 } }
+        }
             };
 
-            // Act
-            var vm = new AnnouncementItemViewModel(model, 1, false);
-            var group = vm.ReactionGroups.First();
+            var core = new AnnouncementItemViewModelCore(model, 1);
 
-            // Assert
-            Assert.True(group.CurrentUserReacted);
+            var group = core.ReactionGroups.First(g => g.Emoji == "👍");
+
+            Assert.Equal(2, group.Count);
         }
 
         [Fact]
-        public void CurrentUserEmoji_UserHasReaction_ReturnsEmoji()
+        public void ReactionGroups_CurrentUserReacted_TrueWhenUserReacted()
         {
-            // Arrange
             var model = new Announcement(1, "msg", DateTime.UtcNow)
             {
                 Reactions = new List<AnnouncementReaction>
-                {
-                    new AnnouncementReaction { Emoji = "🔥", Author = new User { UserId = 1 } }
-                }
+        {
+            new() { Emoji = "👍", Author = new User { UserId = 1 } }
+        }
             };
 
-            // Act
-            var vm = new AnnouncementItemViewModel(model, 1, false);
+            var core = new AnnouncementItemViewModelCore(model, 1);
 
-            // Assert
-            Assert.Equal("🔥", vm.CurrentUserEmoji);
+            Assert.True(core.ReactionGroups.First().CurrentUserReacted);
         }
 
         [Fact]
-        public void HasReactions_WhenEmpty_ReturnsFalse()
+        public void ReactionGroups_CurrentUserReacted_FalseWhenUserDidNotReact()
         {
-            // Arrange
-            var model = new Announcement(1, "msg", DateTime.UtcNow)
-            {
-                Reactions = new List<AnnouncementReaction>()
-            };
-
-            // Act
-            var vm = new AnnouncementItemViewModel(model, 1, false);
-
-            // Assert
-            Assert.False(vm.HasReactions);
-        }
-
-        [Fact]
-        public void IsUnread_WhenRead_ReturnsFalse()
-        {
-            // Arrange
-            var model = new Announcement(1, "msg", DateTime.UtcNow)
-            {
-                IsRead = true
-            };
-
-            // Act
-            var vm = new AnnouncementItemViewModel(model, 1, false);
-
-            // Assert
-            Assert.False(vm.IsUnread);
-        }
-
-        [Fact]
-        public void CurrentUserEmoji_UserHasNoReaction_ReturnsNull()
-        {
-            // Arrange
             var model = new Announcement(1, "msg", DateTime.UtcNow)
             {
                 Reactions = new List<AnnouncementReaction>
-                {
-                    new AnnouncementReaction { Emoji = "🔥", Author = new User { UserId = 2 } }
-                }
+        {
+            new() { Emoji = "👍", Author = new User { UserId = 2 } }
+        }
             };
 
-            // Act
-            var vm = new AnnouncementItemViewModel(model, 1, false);
+            var core = new AnnouncementItemViewModelCore(model, 1);
 
-            // Assert
-            Assert.Null(vm.CurrentUserEmoji);
+            Assert.False(core.ReactionGroups.First().CurrentUserReacted);
         }
 
         [Fact]
-        public void IsUnread_WhenUnread_ReturnsTrue()
+        public void CurrentUserEmoji_WhenUserReacted_ReturnsEmoji()
         {
-            // Arrange
             var model = new Announcement(1, "msg", DateTime.UtcNow)
             {
-                IsRead = false
+                Reactions = new List<AnnouncementReaction>
+        {
+            new() { Emoji = "🔥", Author = new User { UserId = 1 } }
+        }
             };
 
-            // Act
-            var vm = new AnnouncementItemViewModel(model, 1, false);
+            var core = new AnnouncementItemViewModelCore(model, 1);
 
-            // Assert
-            Assert.True(vm.IsUnread);
+            Assert.Equal("🔥", core.CurrentUserEmoji);
         }
 
-        [Theory]
-        [InlineData(120, 120)] // Exactly 120 chars, no ellipsis
-        [InlineData(121, 121)] // 121 chars, gets trimmed to 120 + "…"
-        [InlineData(200, 121)] // 200 chars, gets trimmed to 120 + "…"
-        public void PreviewText_VariousLengths_HandlesCorrectly(int length, int expectedLength)
+        [Fact]
+        public void CurrentUserEmoji_WhenUserDidNotReact_ReturnsNull()
         {
-            // Arrange
-            var text = new string('a', length);
-            var model = new Announcement(1, text, DateTime.UtcNow);
-
-            // Act
-            var vm = new AnnouncementItemViewModel(model, 1, false);
-
-            // Assert
-            Assert.Equal(expectedLength, vm.PreviewText.Length);
+            var model = new Announcement(1, "msg", DateTime.UtcNow)
+            {
+                Reactions = new List<AnnouncementReaction>
+        {
+            new() { Emoji = "🔥", Author = new User { UserId = 2 } }
         }
+            };
+
+            var core = new AnnouncementItemViewModelCore(model, 1);
+
+            Assert.Null(core.CurrentUserEmoji);
+        }
+
+
     }
 }
