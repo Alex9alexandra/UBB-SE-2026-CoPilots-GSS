@@ -15,10 +15,7 @@ public class MessageSegment
 
 public static class DiscussionMessageItemViewModelCore
 {
-    public static bool ShowMuteButton(
-        bool isCurrentUserAdmin,
-        int? messageAuthorId,
-        int currentUserId) =>
+    public static bool ShowMuteButton(bool isCurrentUserAdmin, int? messageAuthorId, int currentUserId) =>
         isCurrentUserAdmin && messageAuthorId != currentUserId;
 
     public static bool HasReactions(ICollection<DiscussionReaction> reactions) =>
@@ -27,25 +24,16 @@ public static class DiscussionMessageItemViewModelCore
     public static bool HasMessageText(string? message) =>
         !string.IsNullOrWhiteSpace(message);
 
-    public static string? CurrentUserEmoji(
-        IEnumerable<DiscussionReaction> reactions,
-        int currentUserId) =>
-        reactions
-            .FirstOrDefault(r => r.Author.UserId == currentUserId)?
-            .Emoji;
+    public static string? CurrentUserEmoji(IEnumerable<DiscussionReaction> reactions, int currentUserId) =>
+        reactions.FirstOrDefault(r => r.Author.UserId == currentUserId)?.Emoji;
 
-    public static List<ReactionGroup> BuildReactionGroups(
-        IEnumerable<DiscussionReaction> reactions,
-        int currentUserId) =>
-        reactions
-            .GroupBy(r => r.Emoji)
-            .Select(g => new ReactionGroup
+    public static List<ReactionGroup> BuildReactionGroups(IEnumerable<DiscussionReaction> reactions, int currentUserId) =>
+        reactions.GroupBy(r => r.Emoji).Select(g => new ReactionGroup
             {
                 Emoji = g.Key,
                 Count = g.Count(),
                 CurrentUserReacted = g.Any(r => r.Author.UserId == currentUserId)
-            })
-            .ToList();
+            }).ToList();
 
     public static List<MessageSegment> ParseMessageIntoSegments(string? message)
     {
