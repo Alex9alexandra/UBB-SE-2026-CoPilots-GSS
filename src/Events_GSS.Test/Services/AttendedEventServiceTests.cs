@@ -326,7 +326,7 @@ namespace Events_GSS.Tests.Services
         }
 
         [Fact]
-        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse()
+        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse1()
         {
             // Arrange
             this.reputationServiceMock
@@ -349,6 +349,64 @@ namespace Events_GSS.Tests.Services
 
             // Assert
             Assert.NotNull(capturedAttendedEvent);
+
+            this.reputationServiceMock.VerifyAll();
+            this.attendedEventRepositoryMock.VerifyAll();
+        }
+
+        [Fact]
+        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse2()
+        {
+            // Arrange
+            this.reputationServiceMock
+                .Setup(service => service.CanAttendEventsAsync(ExampleUserId))
+                .ReturnsAsync(true);
+
+            this.attendedEventRepositoryMock
+                .Setup(repository => repository.GetAsync(ExampleEventId, ExampleUserId))
+                .ReturnsAsync((AttendedEvent?)null);
+
+            AttendedEvent? capturedAttendedEvent = null;
+
+            this.attendedEventRepositoryMock
+                .Setup(repository => repository.AddAsync(It.IsAny<AttendedEvent>()))
+                .Callback<AttendedEvent>(attendedEvent => capturedAttendedEvent = attendedEvent)
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await this.attendedEventService.AttendEventAsync(ExampleEventId, ExampleUserId);
+
+            // Assert
+            Assert.False(capturedAttendedEvent!.IsArchived);
+
+            this.reputationServiceMock.VerifyAll();
+            this.attendedEventRepositoryMock.VerifyAll();
+        }
+
+        [Fact]
+        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse3()
+        {
+            // Arrange
+            this.reputationServiceMock
+                .Setup(service => service.CanAttendEventsAsync(ExampleUserId))
+                .ReturnsAsync(true);
+
+            this.attendedEventRepositoryMock
+                .Setup(repository => repository.GetAsync(ExampleEventId, ExampleUserId))
+                .ReturnsAsync((AttendedEvent?)null);
+
+            AttendedEvent? capturedAttendedEvent = null;
+
+            this.attendedEventRepositoryMock
+                .Setup(repository => repository.AddAsync(It.IsAny<AttendedEvent>()))
+                .Callback<AttendedEvent>(attendedEvent => capturedAttendedEvent = attendedEvent)
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await this.attendedEventService.AttendEventAsync(ExampleEventId, ExampleUserId);
+
+            // Assert
+            Assert.False(capturedAttendedEvent!.IsFavourite);
 
             this.reputationServiceMock.VerifyAll();
             this.attendedEventRepositoryMock.VerifyAll();
@@ -381,7 +439,6 @@ namespace Events_GSS.Tests.Services
             DateTime utcNowAfterCall = DateTime.UtcNow;
 
             // Assert
-            Assert.NotNull(capturedAttendedEvent);
             Assert.InRange(capturedAttendedEvent!.EnrollmentDate, utcNowBeforeCall, utcNowAfterCall);
 
             this.reputationServiceMock.VerifyAll();
@@ -404,20 +461,19 @@ namespace Events_GSS.Tests.Services
                 .Setup(repository => repository.AddAsync(It.IsAny<AttendedEvent>()))
                 .Returns(Task.CompletedTask);
 
-            ReputationMessage? capturedMessage = null;
+            ReputationMessage? capturedReputationMessage = null;
 
             WeakReferenceMessenger.Default.Register<ReputationMessage>(
                 this.reputationMessageRecipient,
-                (recipient, message) => capturedMessage = message);
+                (recipient, message) => capturedReputationMessage = message);
+
+            var expectedReputationMessage = new ReputationMessage(ExampleUserId, ReputationAction.EventAttended, ExampleEventId);
 
             // Act
             await this.attendedEventService.AttendEventAsync(ExampleEventId, ExampleUserId);
 
             // Assert
-            Assert.NotNull(capturedMessage);
-            Assert.Equal(ExampleUserId, capturedMessage!.UserId);
-            Assert.Equal(ExampleEventId, capturedMessage.EventId);
-            Assert.Equal(ReputationAction.EventAttended, capturedMessage.Value);
+            Assert.Equivalent(expectedReputationMessage, capturedReputationMessage);
 
             this.reputationServiceMock.VerifyAll();
             this.attendedEventRepositoryMock.VerifyAll();
