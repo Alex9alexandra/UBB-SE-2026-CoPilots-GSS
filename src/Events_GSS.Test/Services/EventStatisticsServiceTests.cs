@@ -129,7 +129,7 @@ public class EventStatisticsServiceTests
     }
 
     [Fact]
-    public async Task GetEngagementBreakdownAsync_ZeroSubmissions_SetsRatesToZero()
+    public async Task GetEngagementBreakdownAsync_ZeroSubmissions_ApprovedRateIsZero()
     {
         var mockRepo = new Mock<IEventStatisticsRepository>();
         int eventId = 1;
@@ -141,11 +141,25 @@ public class EventStatisticsServiceTests
         var result = await service.GetEngagementBreakdownAsync(eventId);
 
         Assert.Equal(0, result.ApprovedQuestsRate);
+    }
+
+    [Fact]
+    public async Task GetEngagementBreakdownAsync_ZeroSubmissions_DeniedRateIsZero()
+    {
+        var mockRepo = new Mock<IEventStatisticsRepository>();
+        int eventId = 1;
+        var breakdown = new EngagementBreakdown { TotalQuestSubmissions = 0, ApprovedQuests = 0, DeniedQuests = 0 };
+        mockRepo.Setup(r => r.GetEngagementBreakdownAsync(eventId)).ReturnsAsync(breakdown);
+
+        var service = new EventStatisticsService(mockRepo.Object);
+
+        var result = await service.GetEngagementBreakdownAsync(eventId);
+
         Assert.Equal(0, result.DeniedQuestsRate);
     }
 
     [Fact]
-    public async Task GetEngagementBreakdownAsync_NonZeroSubmissions_CalculatesRatesCorrectly()
+    public async Task GetEngagementBreakdownAsync_NonZeroSubmissions_ApprovedRateCalculatedCorrectly()
     {
         var mockRepo = new Mock<IEventStatisticsRepository>();
         int eventId = 1;
@@ -157,6 +171,20 @@ public class EventStatisticsServiceTests
         var result = await service.GetEngagementBreakdownAsync(eventId);
 
         Assert.Equal(70, result.ApprovedQuestsRate);
+    }
+
+    [Fact]
+    public async Task GetEngagementBreakdownAsync_NonZeroSubmissions_DeniedRateCalculatedCorrectly()
+    {
+        var mockRepo = new Mock<IEventStatisticsRepository>();
+        int eventId = 1;
+        var breakdown = new EngagementBreakdown { TotalQuestSubmissions = 10, ApprovedQuests = 7 };
+        mockRepo.Setup(r => r.GetEngagementBreakdownAsync(eventId)).ReturnsAsync(breakdown);
+
+        var service = new EventStatisticsService(mockRepo.Object);
+
+        var result = await service.GetEngagementBreakdownAsync(eventId);
+
         Assert.Equal(30, result.DeniedQuestsRate);
     }
 
@@ -201,7 +229,7 @@ public class EventStatisticsServiceTests
     }
 
     [Fact]
-    public async Task GetEngagementBreakdownAsync_AllApprovedCalculatesCorrectly()
+    public async Task GetEngagementBreakdownAsync_AllApproved_ApprovedRateIs100()
     {
         var mockRepo = new Mock<IEventStatisticsRepository>();
         int eventId = 1;
@@ -213,11 +241,25 @@ public class EventStatisticsServiceTests
         var result = await service.GetEngagementBreakdownAsync(eventId);
 
         Assert.Equal(100, result.ApprovedQuestsRate);
+    }
+
+    [Fact]
+    public async Task GetEngagementBreakdownAsync_AllApproved_DeniedRateIsZero()
+    {
+        var mockRepo = new Mock<IEventStatisticsRepository>();
+        int eventId = 1;
+        var breakdown = new EngagementBreakdown { TotalQuestSubmissions = 5, ApprovedQuests = 5 };
+        mockRepo.Setup(r => r.GetEngagementBreakdownAsync(eventId)).ReturnsAsync(breakdown);
+
+        var service = new EventStatisticsService(mockRepo.Object);
+
+        var result = await service.GetEngagementBreakdownAsync(eventId);
+
         Assert.Equal(0, result.DeniedQuestsRate);
     }
 
     [Fact]
-    public async Task GetEngagementBreakdownAsync_AllDeniedCalculatesCorrectly()
+    public async Task GetEngagementBreakdownAsync_AllDenied_ApprovedRateIsZero()
     {
         var mockRepo = new Mock<IEventStatisticsRepository>();
         int eventId = 1;
@@ -229,11 +271,25 @@ public class EventStatisticsServiceTests
         var result = await service.GetEngagementBreakdownAsync(eventId);
 
         Assert.Equal(0, result.ApprovedQuestsRate);
+    }
+
+    [Fact]
+    public async Task GetEngagementBreakdownAsync_AllDenied_DeniedRateIs100()
+    {
+        var mockRepo = new Mock<IEventStatisticsRepository>();
+        int eventId = 1;
+        var breakdown = new EngagementBreakdown { TotalQuestSubmissions = 5, ApprovedQuests = 0 };
+        mockRepo.Setup(r => r.GetEngagementBreakdownAsync(eventId)).ReturnsAsync(breakdown);
+
+        var service = new EventStatisticsService(mockRepo.Object);
+
+        var result = await service.GetEngagementBreakdownAsync(eventId);
+
         Assert.Equal(100, result.DeniedQuestsRate);
     }
 
     [Fact]
-    public async Task GetQuestAnalyticsAsync_EmptyList_ReturnsEmpty()
+    public async Task GetQuestAnalyticsAsync_EmptyList_ResultIsNotNull()
     {
         var mockRepo = new Mock<IEventStatisticsRepository>();
         int eventId = 1;
@@ -245,11 +301,25 @@ public class EventStatisticsServiceTests
         var result = await service.GetQuestAnalyticsAsync(eventId);
 
         Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetQuestAnalyticsAsync_EmptyList_ResultIsEmpty()
+    {
+        var mockRepo = new Mock<IEventStatisticsRepository>();
+        int eventId = 1;
+        var expected = new List<QuestAnalyticsEntry>();
+        mockRepo.Setup(r => r.GetQuestAnalyticsAsync(eventId)).ReturnsAsync(expected);
+
+        var service = new EventStatisticsService(mockRepo.Object);
+
+        var result = await service.GetQuestAnalyticsAsync(eventId);
+
         Assert.Empty(result);
     }
 
     [Fact]
-    public async Task GetLeaderboardAsync_EmptyList_ReturnsEmpty()
+    public async Task GetLeaderboardAsync_EmptyList_ResultIsNotNull()
     {
         var mockRepo = new Mock<IEventStatisticsRepository>();
         int eventId = 1;
@@ -261,6 +331,20 @@ public class EventStatisticsServiceTests
         var result = await service.GetLeaderboardAsync(eventId);
 
         Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetLeaderboardAsync_EmptyList_ResultIsEmpty()
+    {
+        var mockRepo = new Mock<IEventStatisticsRepository>();
+        int eventId = 1;
+        var expected = new List<LeaderboardEntry>();
+        mockRepo.Setup(r => r.GetLeaderboardAsync(eventId)).ReturnsAsync(expected);
+
+        var service = new EventStatisticsService(mockRepo.Object);
+
+        var result = await service.GetLeaderboardAsync(eventId);
+
         Assert.Empty(result);
     }
 

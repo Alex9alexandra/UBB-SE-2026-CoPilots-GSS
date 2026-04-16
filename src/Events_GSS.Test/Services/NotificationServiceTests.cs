@@ -100,7 +100,7 @@ public class NotificationServiceTests
     }
 
     [Fact]
-    public async Task GetNotificationsAsync_RepositoryReturnsEmptyList_ReturnsEmptyList()
+    public async Task GetNotificationsAsync_RepositoryReturnsEmptyList_ResultIsNotNull()
     {
         // Arrange
         var mockRepo = new Mock<INotificationRepository>();
@@ -114,6 +114,22 @@ public class NotificationServiceTests
 
         // Assert
         Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetNotificationsAsync_RepositoryReturnsEmptyList_ResultIsEmpty()
+    {
+        // Arrange
+        var mockRepo = new Mock<INotificationRepository>();
+        mockRepo.Setup(r => r.GetByUserIdAsync(1))
+            .ReturnsAsync(new List<Notification>());
+
+        var service = new NotificationService(mockRepo.Object);
+
+        // Act
+        var result = await service.GetNotificationsAsync(1);
+
+        // Assert
         Assert.Empty(result);
     }
 }

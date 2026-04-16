@@ -325,7 +325,6 @@ namespace Events_GSS.Tests.Services
             this.attendedEventRepositoryMock.VerifyAll();
         }
 
-        //from here 
         [Fact]
         public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse()
         {
@@ -354,66 +353,6 @@ namespace Events_GSS.Tests.Services
             this.reputationServiceMock.VerifyAll();
             this.attendedEventRepositoryMock.VerifyAll();
         }
-
-        [Fact]
-        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse()
-        {
-            // Arrange
-            this.reputationServiceMock
-                .Setup(service => service.CanAttendEventsAsync(ExampleUserId))
-                .ReturnsAsync(true);
-
-            this.attendedEventRepositoryMock
-                .Setup(repository => repository.GetAsync(ExampleEventId, ExampleUserId))
-                .ReturnsAsync((AttendedEvent?)null);
-
-            AttendedEvent? capturedAttendedEvent = null;
-
-            this.attendedEventRepositoryMock
-                .Setup(repository => repository.AddAsync(It.IsAny<AttendedEvent>()))
-                .Callback<AttendedEvent>(attendedEvent => capturedAttendedEvent = attendedEvent)
-                .Returns(Task.CompletedTask);
-
-            // Act
-            await this.attendedEventService.AttendEventAsync(ExampleEventId, ExampleUserId);
-
-            // Assert
-            Assert.False(capturedAttendedEvent!.IsArchived);
-
-            this.reputationServiceMock.VerifyAll();
-            this.attendedEventRepositoryMock.VerifyAll();
-        }
-
-        [Fact]
-        public async Task AttendEventAsync_UserNotEnrolled_SetsDefaultFlagsToFalse()
-        {
-            // Arrange
-            this.reputationServiceMock
-                .Setup(service => service.CanAttendEventsAsync(ExampleUserId))
-                .ReturnsAsync(true);
-
-            this.attendedEventRepositoryMock
-                .Setup(repository => repository.GetAsync(ExampleEventId, ExampleUserId))
-                .ReturnsAsync((AttendedEvent?)null);
-
-            AttendedEvent? capturedAttendedEvent = null;
-
-            this.attendedEventRepositoryMock
-                .Setup(repository => repository.AddAsync(It.IsAny<AttendedEvent>()))
-                .Callback<AttendedEvent>(attendedEvent => capturedAttendedEvent = attendedEvent)
-                .Returns(Task.CompletedTask);
-
-            // Act
-            await this.attendedEventService.AttendEventAsync(ExampleEventId, ExampleUserId);
-
-            // Assert
-            Assert.False(capturedAttendedEvent!.IsFavourite);
-
-            this.reputationServiceMock.VerifyAll();
-            this.attendedEventRepositoryMock.VerifyAll();
-        }
-
-        //till here
 
         [Fact]
         public async Task AttendEventAsync_UserNotEnrolled_SetsEnrollmentDateNearNow()

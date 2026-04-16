@@ -183,7 +183,7 @@ public class ReputationServiceTests
     }
 
     [Fact]
-    public async Task CanPostMemoriesAsync_AboveAndBelowThreshold()
+    public async Task CanPostMemoriesAsync_ReputationAboveThreshold_ReturnsTrue()
     {
         var userId = 1;
         var mockRepo = new Mock<IReputationRepository>(MockBehavior.Strict);
@@ -198,13 +198,29 @@ public class ReputationServiceTests
         var canPost = await service.CanPostMemoriesAsync(userId);
         Assert.True(canPost);
 
+    }
+
+    [Fact]
+    public async Task CanPostMemoriesAsync_ReputationBelowThreshold_ReturnsFalse()
+    {
+        var userId = 1;
+        var mockRepo = new Mock<IReputationRepository>(MockBehavior.Strict);
+        mockRepo.Setup(r => r.GetReputationPointsAsync(userId)).ReturnsAsync(-299);
+
+        var service = new ReputationService(
+            mockRepo.Object,
+            Mock.Of<IAttendedEventRepository>(),
+            Mock.Of<IEventRepository>(),
+            Mock.Of<IAchievementService>());
+
+
         mockRepo.Setup(r => r.GetReputationPointsAsync(userId)).ReturnsAsync(-301);
-        canPost = await service.CanPostMemoriesAsync(userId);
+        var canPost = await service.CanPostMemoriesAsync(userId);
         Assert.False(canPost);
     }
 
     [Fact]
-    public async Task CanCreateEventsAsync_CoversThreshold()
+    public async Task CanCreateEventsAsync_ReputationAboveThreshold_ReturnsTrue()
     {
         var userId = 1;
         var mockRepo = new Mock<IReputationRepository>();
@@ -217,14 +233,28 @@ public class ReputationServiceTests
 
         var canCreate = await service.CanCreateEventsAsync(userId);
         Assert.True(canCreate);
+    }
+
+    [Fact]
+    public async Task CanCreateEventsAsync_ReputationBelowThreshold_ReturnsFalse()
+    {
+        var userId = 1;
+        var mockRepo = new Mock<IReputationRepository>();
+        mockRepo.Setup(r => r.GetReputationPointsAsync(userId)).ReturnsAsync(-699);
+
+        var service = new ReputationService(mockRepo.Object,
+            Mock.Of<IAttendedEventRepository>(),
+            Mock.Of<IEventRepository>(),
+            Mock.Of<IAchievementService>());
+
 
         mockRepo.Setup(r => r.GetReputationPointsAsync(userId)).ReturnsAsync(-701);
-        canCreate = await service.CanCreateEventsAsync(userId);
+        var canCreate = await service.CanCreateEventsAsync(userId);
         Assert.False(canCreate);
     }
 
     [Fact]
-    public async Task CanAttendEventsAsync_CoversThreshold()
+    public async Task CanAttendEventsAsync_ReputationAboveThreshold_ReturnsTrue()
     {
         var userId = 1;
         var mockRepo = new Mock<IReputationRepository>();
@@ -237,14 +267,28 @@ public class ReputationServiceTests
 
         var canAttend = await service.CanAttendEventsAsync(userId);
         Assert.True(canAttend);
+    }
+
+    [Fact]
+    public async Task CanAttendEventsAsync_ReputationBelowThreshold_ReturnsFalse()
+    {
+        var userId = 1;
+        var mockRepo = new Mock<IReputationRepository>();
+        mockRepo.Setup(r => r.GetReputationPointsAsync(userId)).ReturnsAsync(-999);
+
+        var service = new ReputationService(mockRepo.Object,
+            Mock.Of<IAttendedEventRepository>(),
+            Mock.Of<IEventRepository>(),
+            Mock.Of<IAchievementService>());
+
 
         mockRepo.Setup(r => r.GetReputationPointsAsync(userId)).ReturnsAsync(-1001);
-        canAttend = await service.CanAttendEventsAsync(userId);
+        var canAttend = await service.CanAttendEventsAsync(userId);
         Assert.False(canAttend);
     }
 
     [Fact]
-    public async Task CalculateTier_AllThresholds_ReturnsCorrectTier()
+    public async Task CalculateTier_Score0_ReturnsNewcomer()
     {
         var service = new ReputationService(
             Mock.Of<IReputationRepository>(),
@@ -255,9 +299,61 @@ public class ReputationServiceTests
         var method = service.GetType().GetMethod("CalculateTier", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
         Assert.Equal("Newcomer", method.Invoke(service, new object[] { 0 }));
+    }
+
+    [Fact]
+    public async Task CalculateTier_Score50_ReturnsContributor()
+    {
+        var service = new ReputationService(
+            Mock.Of<IReputationRepository>(),
+            Mock.Of<IAttendedEventRepository>(),
+            Mock.Of<IEventRepository>(),
+            Mock.Of<IAchievementService>());
+
+        var method = service.GetType().GetMethod("CalculateTier", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
         Assert.Equal("Contributor", method.Invoke(service, new object[] { 50 }));
+    }
+
+    [Fact]
+    public async Task CalculateTier_Score200_ReturnsOrganizer()
+    {
+        var service = new ReputationService(
+            Mock.Of<IReputationRepository>(),
+            Mock.Of<IAttendedEventRepository>(),
+            Mock.Of<IEventRepository>(),
+            Mock.Of<IAchievementService>());
+
+        var method = service.GetType().GetMethod("CalculateTier", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
         Assert.Equal("Organizer", method.Invoke(service, new object[] { 200 }));
+    }
+
+    [Fact]
+    public async Task CalculateTier_Score500_ReturnsCommunityLeader()
+    {
+        var service = new ReputationService(
+            Mock.Of<IReputationRepository>(),
+            Mock.Of<IAttendedEventRepository>(),
+            Mock.Of<IEventRepository>(),
+            Mock.Of<IAchievementService>());
+
+        var method = service.GetType().GetMethod("CalculateTier", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
         Assert.Equal("Community Leader", method.Invoke(service, new object[] { 500 }));
+    }
+
+    [Fact]
+    public async Task CalculateTier_Score1000_ReturnsEventMaster()
+    {
+        var service = new ReputationService(
+            Mock.Of<IReputationRepository>(),
+            Mock.Of<IAttendedEventRepository>(),
+            Mock.Of<IEventRepository>(),
+            Mock.Of<IAchievementService>());
+
+        var method = service.GetType().GetMethod("CalculateTier", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
         Assert.Equal("Event Master", method.Invoke(service, new object[] { 1000 }));
     }
 
