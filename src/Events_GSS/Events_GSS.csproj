@@ -13,7 +13,7 @@
     <IsPackable>false</IsPackable>
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
     <EnableMsixTooling>true</EnableMsixTooling>
-    <!-- <CodeAnalysisRuleSet>SE.ruleset</CodeAnalysisRuleSet> -->
+    <CodeAnalysisRuleSet>SE.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="appsettings.json" />
