@@ -229,6 +229,24 @@ namespace Events_GSS.Test.AnnouncementsTests.ServiceTests
         }
 
         [Fact]
+        public void Constructor_NullAnnouncementRepository_ThrowsArgumentNullException()
+        {
+            var ex = Assert.Throws<ArgumentNullException>(() =>
+                new AnnouncementService(null!, eventRepoMock.Object));
+
+            Assert.Equal("announcementRepository", ex.ParamName);
+        }
+
+        [Fact]
+        public void Constructor_NullEventRepository_ThrowsArgumentNullException()
+        {
+            var ex = Assert.Throws<ArgumentNullException>(() =>
+                new AnnouncementService(repoMock.Object, null!));
+
+            Assert.Equal("eventRepository", ex.ParamName);
+        }
+
+        [Fact]
         public async Task ToggleReaction_NewReaction_Inserts()
         {
             repoMock
